@@ -4636,13 +4636,6 @@ ${examinerComment}
       
       const handlePrint = () => window.print();
       
-      const compiledParagraphs = paragraphs.map(p => ({
-        ...p,
-        text: paragraphStates[p.id]?.finalText || '',
-        initialText: paragraphStates[p.id]?.initialText || '',
-        score: paragraphStates[p.id]?.score || 0
-      }));
-      
       // Official grading display component
       const OfficialGradingDisplay = ({ grading }) => {
         const { initialVersion, improvedVersion, comparison, examinerComment } = grading;
