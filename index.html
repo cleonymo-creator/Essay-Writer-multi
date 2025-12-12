@@ -3777,6 +3777,32 @@
       const [teacherPassword, setTeacherPassword] = useState('');
       const [error, setError] = useState('');
       
+      // Check for saved progress on each essay
+      const getSavedProgress = (essayId) => {
+        try {
+          const config = getEssayConfig(essayId);
+          if (!config) return null;
+          const saved = localStorage.getItem(config.LOCAL_STORAGE_KEY);
+          if (!saved) return null;
+          const data = JSON.parse(saved);
+          if (!data.studentName || !data.paragraphStates) return null;
+          
+          const completedCount = Object.values(data.paragraphStates).filter(s => s.completed).length;
+          const totalParagraphs = config.paragraphs?.length || 0;
+          
+          return {
+            studentName: data.studentName,
+            completedCount,
+            totalParagraphs,
+            percentComplete: totalParagraphs > 0 ? Math.round((completedCount / totalParagraphs) * 100) : 0,
+            isComplete: completedCount === totalParagraphs,
+            savedAt: data.savedAt
+          };
+        } catch (e) {
+          return null;
+        }
+      };
+      
       const handleTeacherSubmit = (e) => {
         e.preventDefault();
         const correctPassword = GLOBAL.teacherPassword || 'teacher123';
@@ -3800,25 +3826,70 @@
           {!showTeacherLogin ? (
             <>
               <div className="essay-grid">
-                {ESSAY_LIST.map((essay) => (
-                  <div 
-                    key={essay.id} 
-                    className="essay-card"
-                    onClick={() => onSelectEssay(essay.id)}
-                  >
-                    <div className="essay-card-icon">{essay.icon || '📝'}</div>
-                    <h3 className="essay-card-title">{essay.title}</h3>
-                    <div className="essay-card-meta">
-                      <span>📚 {essay.subject}</span>
-                      <span>🎓 {essay.yearGroup}</span>
+                {ESSAY_LIST.map((essay) => {
+                  const savedProgress = getSavedProgress(essay.id);
+                  return (
+                    <div 
+                      key={essay.id} 
+                      className="essay-card"
+                      onClick={() => onSelectEssay(essay.id)}
+                      style={savedProgress ? { borderColor: 'var(--color-primary)' } : {}}
+                    >
+                      {savedProgress && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'var(--space-md)',
+                          right: 'var(--space-md)',
+                          background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600
+                        }}>
+                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
+                        </div>
+                      )}
+                      <div className="essay-card-icon">{essay.icon || '📝'}</div>
+                      <h3 className="essay-card-title">{essay.title}</h3>
+                      <div className="essay-card-meta">
+                        <span>📚 {essay.subject}</span>
+                        <span>🎓 {essay.yearGroup}</span>
+                      </div>
+                      <p className="essay-card-description">{essay.description}</p>
+                      <div className="essay-card-stats">
+                        <span className="essay-card-stat"><strong>{essay.paragraphs}</strong> paragraphs</span>
+                        <span className="essay-card-stat"><strong>{essay.totalMarks}</strong> marks</span>
+                      </div>
+                      {savedProgress && !savedProgress.isComplete && (
+                        <div style={{ 
+                          marginTop: 'var(--space-md)', 
+                          paddingTop: 'var(--space-md)', 
+                          borderTop: '1px solid var(--color-border)',
+                          fontSize: '0.85rem',
+                          color: 'var(--color-text-muted)'
+                        }}>
+                          <strong style={{ color: 'var(--color-primary-light)' }}>{savedProgress.studentName}</strong>
+                          <span> • {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
+                          <div style={{ 
+                            marginTop: 'var(--space-xs)',
+                            height: '4px',
+                            background: 'var(--color-border)',
+                            borderRadius: '2px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              width: `${savedProgress.percentComplete}%`,
+                              height: '100%',
+                              background: 'var(--color-primary)',
+                              borderRadius: '2px'
+                            }} />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="essay-card-description">{essay.description}</p>
-                    <div className="essay-card-stats">
-                      <span className="essay-card-stat"><strong>{essay.paragraphs}</strong> paragraphs</span>
-                      <span className="essay-card-stat"><strong>{essay.totalMarks}</strong> marks</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               <div style={{ textAlign: 'center', marginTop: 'var(--space-2xl)' }}>
@@ -4339,9 +4410,231 @@
         if (officialGrading) setShowOfficialGrading(true);
       }, [officialGrading]);
       
-      const handlePrint = () => window.print();
-      
       const hasOfficialMarkScheme = !!config?.officialMarkScheme;
+      
+      const compiledParagraphs = paragraphs.map(p => ({
+        ...p,
+        text: paragraphStates[p.id]?.finalText || '',
+        initialText: paragraphStates[p.id]?.initialText || '',
+        score: paragraphStates[p.id]?.score || 0
+      }));
+      
+      // Generate printable report
+      const generatePrintableReport = () => {
+        const fullEssay = compiledParagraphs.map(p => p.text).join('\n\n');
+        const date = new Date().toLocaleDateString('en-GB', { 
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        let report = `
+═══════════════════════════════════════════════════════════════
+                        ESSAY ASSESSMENT REPORT
+═══════════════════════════════════════════════════════════════
+
+Student: ${studentName}
+Date: ${date}
+Subject: ${config?.subject || ''}
+Essay Title: ${config?.essayTitle || ''}
+
+───────────────────────────────────────────────────────────────
+                           YOUR ESSAY
+───────────────────────────────────────────────────────────────
+
+${fullEssay}
+
+`;
+        
+        // Add AI Feedback if available
+        if (essayFeedback) {
+          report += `
+═══════════════════════════════════════════════════════════════
+                        AI FEEDBACK
+═══════════════════════════════════════════════════════════════
+
+OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
+GRADE: ${essayFeedback.overallGrade}
+
+───────────────────────────────────────────────────────────────
+SUMMARY
+───────────────────────────────────────────────────────────────
+${essayFeedback.essaySummary || 'No summary available.'}
+
+`;
+          if (essayFeedback.bestQuotation) {
+            report += `
+───────────────────────────────────────────────────────────────
+YOUR BEST WRITING
+───────────────────────────────────────────────────────────────
+"${essayFeedback.bestQuotation}"
+
+`;
+          }
+          
+          if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
+            report += `
+───────────────────────────────────────────────────────────────
+STRENGTHS
+───────────────────────────────────────────────────────────────
+${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+`;
+          }
+          
+          if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
+            report += `
+───────────────────────────────────────────────────────────────
+AREAS FOR DEVELOPMENT
+───────────────────────────────────────────────────────────────
+${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+`;
+          }
+          
+          if (essayFeedback.closingEncouragement) {
+            report += `
+───────────────────────────────────────────────────────────────
+TEACHER'S ENCOURAGEMENT
+───────────────────────────────────────────────────────────────
+${essayFeedback.closingEncouragement}
+
+`;
+          }
+        }
+        
+        // Add Official Grading if available
+        if (officialGrading) {
+          const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
+          
+          report += `
+═══════════════════════════════════════════════════════════════
+              OFFICIAL MARK SCHEME GRADING
+          ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
+═══════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────
+IMPROVEMENT SUMMARY
+───────────────────────────────────────────────────────────────
+
+Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
+Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
+Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
+
+Most Improved Area: ${comparison.mostImprovedArea}
+${comparison.improvementSummary}
+
+───────────────────────────────────────────────────────────────
+INITIAL VERSION ASSESSMENT
+───────────────────────────────────────────────────────────────
+Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
+
+Assessment Objectives:
+${Object.entries(initialVersion.aoBreakdown).map(([ao, data]) => 
+  `  ${ao}: ${data.mark} marks (Level ${data.level})\n    ${data.justification}`
+).join('\n\n')}
+
+Strengths:
+${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+Areas to Improve:
+${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
+
+───────────────────────────────────────────────────────────────
+FINAL VERSION ASSESSMENT
+───────────────────────────────────────────────────────────────
+Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
+
+Assessment Objectives:
+${Object.entries(improvedVersion.aoBreakdown).map(([ao, data]) => 
+  `  ${ao}: ${data.mark} marks (Level ${data.level})\n    ${data.justification}`
+).join('\n\n')}
+
+Strengths:
+${improvedVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
+
+Areas to Improve:
+${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
+
+`;
+          
+          if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
+            report += `
+───────────────────────────────────────────────────────────────
+NEXT STEPS TO IMPROVE FURTHER
+───────────────────────────────────────────────────────────────
+${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+`;
+          }
+          
+          report += `
+───────────────────────────────────────────────────────────────
+EXAMINER'S COMMENT
+───────────────────────────────────────────────────────────────
+${examinerComment}
+
+`;
+        }
+        
+        report += `
+═══════════════════════════════════════════════════════════════
+                      END OF REPORT
+═══════════════════════════════════════════════════════════════
+`;
+        
+        return report;
+      };
+      
+      // Print full report
+      const handlePrintReport = () => {
+        const report = generatePrintableReport();
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Essay Assessment Report - ${studentName}</title>
+            <style>
+              body {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.5;
+                padding: 20px;
+                max-width: 800px;
+                margin: 0 auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+              }
+              @media print {
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>${report.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      };
+      
+      // Copy report to clipboard
+      const handleCopyReport = async () => {
+        const report = generatePrintableReport();
+        try {
+          await navigator.clipboard.writeText(report);
+          alert('Report copied to clipboard!');
+        } catch (err) {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = report;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          alert('Report copied to clipboard!');
+        }
+      };
+      
+      const handlePrint = () => window.print();
       
       const compiledParagraphs = paragraphs.map(p => ({
         ...p,
@@ -4682,6 +4975,29 @@
               )}
             </>
           )}
+          
+          {/* Print Full Report Section - shown when any feedback is available */}
+          {(essayFeedback || officialGrading) && (
+            <div className="card" style={{ 
+              marginTop: 'var(--space-xl)', 
+              background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(218, 165, 32, 0.05))',
+              border: '2px solid var(--color-primary)',
+              textAlign: 'center'
+            }}>
+              <h3 style={{ marginBottom: 'var(--space-md)' }}>📄 Download Your Full Report</h3>
+              <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-secondary)' }}>
+                Get a complete printable report including your essay, AI feedback{officialGrading ? ', and official mark scheme grading' : ''}.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
+                  🖨️ Print Full Report
+                </button>
+                <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
+                  📋 Copy to Clipboard
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -4980,6 +5296,7 @@
                       {filterEssayId === 'all' && <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Essay</th>}
                       <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Score</th>
                       <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Grade</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Feedback</th>
                       <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Submitted</th>
                       <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Actions</th>
                     </tr>
@@ -4987,6 +5304,8 @@
                   <tbody>
                     {filteredSubmissions.map((sub, index) => {
                       const essayInfo = ESSAY_LIST.find(e => e.id === sub.essayId);
+                      const hasFeedback = !!sub.feedback;
+                      const hasOfficial = !!sub.officialGrading;
                       return (
                         <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
                           <td style={{ padding: 'var(--space-md)' }}>{sub.studentName}</td>
@@ -4998,6 +5317,10 @@
                           )}
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center', fontWeight: 600, color: 'var(--color-success)' }}>{sub.score}%</td>
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>{sub.grade || '-'}</td>
+                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
+                            <span title={hasFeedback ? 'Has AI feedback' : 'No AI feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>💬</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>📊</span>
+                          </td>
                           <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
                             <button className="btn btn-secondary" style={{ padding: 'var(--space-xs) var(--space-md)', fontSize: '0.85rem' }} onClick={() => setSelectedSubmission(sub)}>View</button>
@@ -5013,7 +5336,7 @@
           
           {selectedSubmission && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-lg)', overflow: 'auto' }} onClick={() => setSelectedSubmission(null)}>
-              <div className="card" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+              <div className="card" style={{ maxWidth: '900px', width: '100%', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
                   <div>
                     <h3 style={{ marginBottom: 'var(--space-xs)' }}>{selectedSubmission.studentName}'s Essay</h3>
@@ -5023,15 +5346,106 @@
                   </div>
                   <button className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Close</button>
                 </div>
-                <div style={{ marginBottom: 'var(--space-lg)' }}>
-                  <strong>Score:</strong> {selectedSubmission.score}%
-                  {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                
+                <div style={{ marginBottom: 'var(--space-lg)', display: 'flex', gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
+                  <div>
+                    <strong>AI Score:</strong> {selectedSubmission.score}%
+                    {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                  </div>
+                  {selectedSubmission.officialGrading && (
+                    <div style={{ color: 'var(--color-success)' }}>
+                      <strong>Official:</strong> {selectedSubmission.officialGrading.improvedVersion?.totalMark} marks
+                      {selectedSubmission.officialGrading.improvedVersion?.grade && <> (Grade {selectedSubmission.officialGrading.improvedVersion.grade})</>}
+                    </div>
+                  )}
                 </div>
+                
+                {/* Essay Text */}
                 {selectedSubmission.essay && (
-                  <div className="compiled-essay" style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
-                    {selectedSubmission.essay.split('\n\n').map((para, i) => (
-                      <p key={i} className="compiled-paragraph">{para}</p>
-                    ))}
+                  <div style={{ marginBottom: 'var(--space-xl)' }}>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>📄 Essay</h4>
+                    <div className="compiled-essay" style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                      {selectedSubmission.essay.split('\n\n').map((para, i) => (
+                        <p key={i} className="compiled-paragraph">{para}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* AI Feedback Section */}
+                {selectedSubmission.feedback && (
+                  <div style={{ marginBottom: 'var(--space-xl)' }}>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>💬 AI Feedback</h4>
+                    <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                      {selectedSubmission.feedback.essaySummary && (
+                        <p style={{ marginBottom: 'var(--space-md)' }}>{selectedSubmission.feedback.essaySummary}</p>
+                      )}
+                      
+                      {selectedSubmission.feedback.bestQuotation && (
+                        <div style={{ fontStyle: 'italic', padding: 'var(--space-md)', background: 'rgba(184, 134, 11, 0.1)', borderLeft: '3px solid var(--color-primary)', marginBottom: 'var(--space-md)' }}>
+                          "Best Writing: {selectedSubmission.feedback.bestQuotation}"
+                        </div>
+                      )}
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
+                        {selectedSubmission.feedback.holisticStrengths && (
+                          <div>
+                            <strong style={{ color: 'var(--color-success)' }}>✨ Strengths</strong>
+                            <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
+                              {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                        {selectedSubmission.feedback.holisticImprovements && (
+                          <div>
+                            <strong style={{ color: 'var(--color-warning)' }}>🎯 To Improve</strong>
+                            <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
+                              {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Official Grading Section */}
+                {selectedSubmission.officialGrading && (
+                  <div>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>📊 Official Mark Scheme Grading</h4>
+                    <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                      {/* Improvement Summary */}
+                      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', textAlign: 'center', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Initial</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
+                        </div>
+                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>→</div>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--color-success)' }}>Grade {selectedSubmission.officialGrading.improvedVersion?.grade}</div>
+                        </div>
+                        <div style={{ padding: 'var(--space-sm) var(--space-md)', background: 'var(--color-success-bg)', borderRadius: 'var(--radius-md)' }}>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-success)' }}>Improvement</div>
+                          <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>+{selectedSubmission.officialGrading.comparison?.marksImproved} marks</div>
+                        </div>
+                      </div>
+                      
+                      {selectedSubmission.officialGrading.comparison && (
+                        <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                          <strong>Most improved:</strong> {selectedSubmission.officialGrading.comparison.mostImprovedArea}<br/>
+                          {selectedSubmission.officialGrading.comparison.improvementSummary}
+                        </p>
+                      )}
+                      
+                      {selectedSubmission.officialGrading.examinerComment && (
+                        <div style={{ marginTop: 'var(--space-md)', fontStyle: 'italic', padding: 'var(--space-md)', background: 'rgba(184, 134, 11, 0.1)', borderRadius: 'var(--radius-md)' }}>
+                          <strong>Examiner:</strong> {selectedSubmission.officialGrading.examinerComment}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -5137,15 +5551,41 @@
       }, [studentName, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
       
       const handleSelectEssay = (essayId) => {
+        // Check if there's saved progress for this essay
+        const essayConfig = getEssayConfig(essayId);
+        const saved = essayConfig ? localStorage.getItem(essayConfig.LOCAL_STORAGE_KEY) : null;
+        
         setSelectedEssayId(essayId);
-        setScreen('entry');
-        // Reset state for new essay
+        setEssayFeedback(null);
+        setOfficialGrading(null);
+        
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            // Has saved progress - load it
+            if (data.studentName && Object.keys(data.paragraphStates || {}).length > 0) {
+              setStudentName(data.studentName);
+              setStudentEmail(data.studentEmail || '');
+              setParagraphStates(data.paragraphStates);
+              setCurrentParagraphIndex(data.currentParagraphIndex || 0);
+              
+              // Check if all complete
+              const paragraphs = essayConfig?.paragraphs || [];
+              const allComplete = paragraphs.every(p => data.paragraphStates[p.id]?.completed);
+              setScreen(allComplete ? 'compilation' : 'writing');
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to load saved state:', e);
+          }
+        }
+        
+        // No saved progress - show entry screen
         setStudentName('');
         setStudentEmail('');
         setCurrentParagraphIndex(0);
         setParagraphStates({});
-        setEssayFeedback(null);
-        setOfficialGrading(null);
+        setScreen('entry');
       };
       
       const handleStudentStart = (name, email) => {
@@ -5302,6 +5742,29 @@
           
           if (data.success) {
             setOfficialGrading(data.grading);
+            
+            // Update the submission with official grading
+            const updateData = {
+              type: 'essay',
+              essayId: selectedEssayId,
+              studentName,
+              officialGrading: data.grading,
+              updatedAt: new Date().toISOString()
+            };
+            
+            try {
+              if (FIREBASE_ENABLED) {
+                await FirebaseDB.updateSubmission(studentName, selectedEssayId, { officialGrading: data.grading });
+              } else {
+                await fetch('/.netlify/functions/submit-homework', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...updateData, updateOnly: true })
+                });
+              }
+            } catch (updateError) {
+              console.error('Failed to update submission with official grading:', updateError);
+            }
           } else {
             throw new Error(data.error || 'Failed to get official grading');
           }
