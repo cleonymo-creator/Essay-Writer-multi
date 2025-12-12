@@ -1,0 +1,5474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Essay Writing Assistant</title>
+  
+  <!-- Victorian Font Stack -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Marked for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <!-- Configuration - Multi-Essay System -->
+  <script src="config/firebase-config.js"></script>
+  <script src="config/essay-list.js"></script>
+  <script src="config/essays/christmas-carol.js"></script>
+  <script src="config/essays/mobile-phones-ban.js"></script>
+  <!-- Add more essay configs here as you create them -->
+  <script src="config/theme.js"></script>
+  
+  <style>
+    /* =====================================================
+       HOMEWORK TEMPLATE v6.0 - VICTORIAN GOLD EDITION
+       Aesthetic: Elegant Victorian / Dark Gold
+       ===================================================== */
+    
+    :root {
+      /* Color System - Victorian Gold on Dark */
+      --color-primary: #b8860b;
+      --color-primary-light: #daa520;
+      --color-primary-dark: #8b6914;
+      --color-primary-glow: rgba(184, 134, 11, 0.4);
+      --color-secondary: #daa520;
+      --color-accent: #ffd700;
+      --color-accent-light: #ffe55c;
+      
+      /* Dark Theme Backgrounds */
+      --color-bg: #1a1a2e;
+      --color-bg-alt: #16213e;
+      --color-bg-elevated: #0f3460;
+      --color-surface: rgba(30, 30, 50, 0.9);
+      --color-surface-elevated: rgba(40, 40, 60, 0.95);
+      --color-surface-hover: rgba(184, 134, 11, 0.15);
+      --color-border: rgba(184, 134, 11, 0.3);
+      --color-border-light: rgba(184, 134, 11, 0.2);
+      --color-border-strong: #b8860b;
+      
+      /* Frost glass effect */
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      
+      /* Text on Dark */
+      --color-text: #e8e8e8;
+      --color-text-secondary: #e8e8e8;
+      --color-text-muted: #c0c0c0;
+      --color-text-inverse: #1a1a2e;
+      --color-text-gold: #daa520;
+      
+      /* Semantic Colors */
+      --color-success: #22c55e;
+      --color-success-light: rgba(34, 197, 94, 0.3);
+      --color-success-bg: rgba(34, 197, 94, 0.15);
+      --color-error: #ef4444;
+      --color-error-light: rgba(239, 68, 68, 0.3);
+      --color-error-bg: rgba(239, 68, 68, 0.15);
+      --color-warning: #f59e0b;
+      --color-warning-light: rgba(245, 158, 11, 0.3);
+      --color-warning-bg: rgba(245, 158, 11, 0.15);
+      --color-info: #3b82f6;
+      --color-info-light: rgba(59, 130, 246, 0.3);
+      --color-info-bg: rgba(59, 130, 246, 0.15);
+      
+      /* Typography - Elegant Serif */
+      --font-display: 'Cinzel', 'Fraunces', Georgia, serif;
+      --font-body: 'Crimson Text', 'IM Fell English', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      /* Spacing */
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      --space-2xl: 48px;
+      --space-3xl: 64px;
+      
+      /* Borders & Shadows */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      --radius-2xl: 28px;
+      --radius-full: 9999px;
+      
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+      --shadow-gold: 0 0 30px rgba(184, 134, 11, 0.3);
+      --shadow-gold-strong: 0 5px 20px rgba(184, 134, 11, 0.4);
+      --shadow-inset-gold: inset 0 0 20px rgba(184, 134, 11, 0.1);
+      
+      /* Transitions */
+      --transition-fast: 150ms ease;
+      --transition-base: 300ms ease;
+      --transition-slow: 500ms ease;
+    }
+    
+    /* =====================================================
+       BASE STYLES
+       ===================================================== */
+    
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background-attachment: fixed;
+      color: var(--color-text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    
+    body::before {
+      display: none;
+    }
+    
+    #root {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* =====================================================
+       TYPOGRAPHY
+       ===================================================== */
+    
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--color-text);
+    }
+    
+    h1 { font-size: 2.25rem; letter-spacing: 0.03em; }
+    h2 { font-size: 1.75rem; letter-spacing: 0.02em; }
+    h3 { font-size: 1.375rem; letter-spacing: 0.01em; }
+    h4 { font-size: 1.125rem; }
+    
+    p {
+      color: var(--color-text-secondary);
+    }
+    
+    strong {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    /* =====================================================
+       VICTORIAN UTILITIES & ANIMATIONS
+       ===================================================== */
+    
+    .gold-glow {
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    
+    .victorian-border {
+      border: 3px solid var(--color-primary);
+      box-shadow: var(--shadow-inset-gold), var(--shadow-gold);
+      position: relative;
+    }
+    
+    .victorian-border::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(184, 134, 11, 0.3);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    
+    .frost-glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+    }
+    
+    @keyframes ghostAppear {
+      0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    @keyframes scoreReveal {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes candleFlicker {
+      0%, 100% { opacity: 1; filter: brightness(1); }
+      50% { opacity: 0.9; filter: brightness(1.1); }
+    }
+    
+    .ghost-appear { animation: ghostAppear 0.8s ease-out; }
+    .score-reveal { animation: scoreReveal 0.6s ease-out; }
+    .candle-flicker { animation: candleFlicker 3s ease-in-out infinite; }
+    
+    /* =====================================================
+       LAYOUT
+       ===================================================== */
+    
+    .app-container {
+      width: 100%;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: var(--space-lg);
+      padding-top: var(--space-xl);
+      padding-bottom: var(--space-3xl);
+    }
+    
+    .dashboard-container {
+      max-width: 1200px;
+    }
+    
+    /* =====================================================
+       HEADER - VICTORIAN GOLD
+       ===================================================== */
+    
+    .app-header {
+      position: relative;
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+      color: var(--color-text);
+      padding: var(--space-xl) var(--space-xl);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-xl);
+      border: 3px solid var(--color-primary);
+      box-shadow: var(--shadow-inset-gold), var(--shadow-gold);
+    }
+    
+    .app-header::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(184, 134, 11, 0.3);
+      border-radius: calc(var(--radius-lg) - 4px);
+      pointer-events: none;
+    }
+    
+    .app-header::after {
+      display: none;
+    }
+    
+    .app-header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-xs);
+      position: relative;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    
+    .app-header .subtitle {
+      font-size: 1.1rem;
+      color: var(--color-text-secondary);
+      font-weight: 400;
+      font-style: italic;
+    }
+    
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 0.9rem;
+    }
+    
+    .header-meta span {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      opacity: 0.85;
+    }
+    
+    /* =====================================================
+       CARDS
+       ===================================================== */
+    
+    .card {
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+      border: 2px solid var(--color-border);
+      box-shadow: var(--shadow-inset-gold), var(--shadow-md);
+      transition: all var(--transition-base);
+      position: relative;
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border: 1px solid rgba(184, 134, 11, 0.15);
+      border-radius: calc(var(--radius-lg) - 3px);
+      pointer-events: none;
+    }
+    
+    .card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-inset-gold), var(--shadow-gold);
+    }
+    
+    .card-elevated {
+      background: linear-gradient(145deg, rgba(40, 40, 60, 0.95), rgba(30, 30, 50, 0.98));
+    }
+    
+    .card-accent {
+      border-left: 4px solid var(--color-primary);
+    }
+    
+    /* =====================================================
+       PROGRESS SECTION
+       ===================================================== */
+    
+    .progress-section {
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      border: 2px solid var(--color-border);
+      box-shadow: var(--shadow-inset-gold);
+      margin-bottom: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-md);
+    }
+    
+    .progress-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--color-text);
+    }
+    
+    .progress-stats {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+    }
+    
+    /* Question Tracker - Clickable Navigation */
+    .question-tracker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      margin-top: var(--space-md);
+    }
+    
+    .question-tracker-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      border: 2px solid var(--color-border);
+      background: rgba(30, 30, 50, 0.8);
+      color: var(--color-text-muted);
+      position: relative;
+    }
+    
+    .question-tracker-item:hover:not(.locked) {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold);
+    }
+    
+    .question-tracker-item.current {
+      border-color: var(--color-primary);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: var(--color-text-inverse);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+    
+    .question-tracker-item.correct {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+      color: var(--color-success);
+    }
+    
+    .question-tracker-item.correct::after {
+      content: '✓';
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 16px;
+      height: 16px;
+      background: var(--color-success);
+      color: white;
+      border-radius: var(--radius-full);
+      font-size: 0.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .question-tracker-item.incorrect {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+      color: var(--color-error);
+    }
+    
+    .question-tracker-item.incorrect::after {
+      content: '!';
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 16px;
+      height: 16px;
+      background: var(--color-error);
+      color: white;
+      border-radius: var(--radius-full);
+      font-size: 0.65rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .question-tracker-item.in-progress {
+      border-color: var(--color-info);
+      background: var(--color-info-bg);
+      color: var(--color-info);
+    }
+    
+    .question-tracker-item.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .question-tracker-item.locked:hover {
+      transform: none;
+    }
+    
+    .progress-summary {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border-light);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+    
+    .progress-summary-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .progress-summary-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+    }
+    
+    .progress-summary-dot.correct {
+      background: var(--color-success);
+    }
+    
+    .progress-summary-dot.incorrect {
+      background: var(--color-warning);
+    }
+    
+    .progress-summary-dot.pending {
+      background: var(--color-border);
+    }
+    
+    /* =====================================================
+       QUESTION CARD
+       ===================================================== */
+    
+    .question-card {
+      position: relative;
+    }
+    
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-lg);
+    }
+    
+    .question-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    
+    .points-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light));
+      color: var(--color-primary-dark);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .question-text {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--color-text);
+      margin-bottom: var(--space-xl);
+    }
+    
+    /* =====================================================
+       OPTIONS (MCQ & True/False)
+       ===================================================== */
+    
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .option-button {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: rgba(30, 30, 50, 0.8);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      text-align: left;
+      font-size: 1rem;
+      color: var(--color-text);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .option-button::before {
+      display: none;
+    }
+    
+    .option-button:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+      transform: translateX(5px);
+    }
+    
+    .option-button.selected {
+      border-color: var(--color-primary);
+      background: rgba(184, 134, 11, 0.25);
+    }
+    
+    .option-button.correct {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    
+    .option-button.incorrect {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+    
+    .option-button:disabled {
+      cursor: default;
+    }
+    
+    .option-letter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: rgba(184, 134, 11, 0.2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      transition: all var(--transition-base);
+      font-family: var(--font-mono);
+      color: var(--color-primary-light);
+    }
+    
+    .option-button.selected .option-letter {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      border-color: var(--color-primary);
+      color: var(--color-text-inverse);
+    }
+    
+    .option-button.correct .option-letter {
+      background: var(--color-success);
+      border-color: var(--color-success);
+      color: var(--color-text-inverse);
+    }
+    
+    .option-button.incorrect .option-letter {
+      background: var(--color-error);
+      border-color: var(--color-error);
+      color: var(--color-text-inverse);
+    }
+    
+    .option-text {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* True/False specific */
+    .tf-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+    
+    .tf-button {
+      justify-content: center;
+      padding: var(--space-lg);
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    
+    .tf-button .option-letter {
+      width: 44px;
+      height: 44px;
+      font-size: 1.25rem;
+    }
+    
+    /* =====================================================
+       FREE TEXT INPUT
+       ===================================================== */
+    
+    .free-text-container {
+      position: relative;
+    }
+    
+    .free-text-input {
+      width: 100%;
+      min-height: 180px;
+      padding: var(--space-lg);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--color-text);
+      background: rgba(30, 30, 50, 0.8);
+      resize: vertical;
+      transition: all var(--transition-base);
+    }
+    
+    .free-text-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: rgba(40, 40, 60, 0.9);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+    
+    .free-text-input:disabled {
+      background: rgba(20, 20, 40, 0.8);
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
+    
+    .free-text-input::placeholder {
+      color: var(--color-text-muted);
+    }
+    
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: var(--space-sm);
+    }
+    
+    .char-count {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+    }
+    
+    .paste-warning {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-warning-bg);
+      border: 1px solid var(--color-warning-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      color: var(--color-warning);
+      animation: shake 0.5s ease;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    
+    /* =====================================================
+       FEEDBACK BOXES
+       ===================================================== */
+    
+    .feedback-box {
+      margin-top: var(--space-xl);
+      padding: var(--space-lg);
+      border-radius: var(--radius-md);
+      animation: feedbackSlide 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    @keyframes feedbackSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .feedback-correct {
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      border-left: 3px solid var(--color-success);
+    }
+    
+    .feedback-correct::before {
+      display: none;
+    }
+    
+    .feedback-incorrect {
+      background: var(--color-error-bg);
+      border: 1px solid var(--color-error);
+      border-left: 3px solid var(--color-error);
+    }
+    
+    .feedback-incorrect::before {
+      display: none;
+    }
+    
+    .feedback-partial {
+      background: var(--color-warning-bg);
+      border: 1px solid var(--color-warning);
+      border-left: 3px solid var(--color-warning);
+    }
+    
+    .feedback-partial::before {
+      display: none;
+    }
+    
+    .feedback-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+    
+    .feedback-icon {
+      font-size: 1.5rem;
+    }
+    
+    .feedback-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .feedback-score {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: var(--space-xs) var(--space-sm);
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: var(--radius-sm);
+    }
+    
+    .feedback-explanation {
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+    
+    .correct-answer-reveal {
+      margin-top: var(--space-md);
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--color-primary);
+      border: 1px solid var(--color-border);
+    }
+    
+    .correct-answer-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .correct-answer-text {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    
+    /* AI Feedback Details */
+    .ai-feedback {
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .ai-feedback-section {
+      margin-bottom: var(--space-md);
+    }
+    
+    .ai-feedback-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .ai-feedback-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .ai-feedback-label.good {
+      color: var(--color-success);
+    }
+    
+    .ai-feedback-label.improve {
+      color: var(--color-error);
+    }
+    
+    .ai-feedback-label.tip {
+      color: var(--color-info);
+    }
+    
+    .ai-feedback-list {
+      list-style: none;
+      padding-left: var(--space-md);
+    }
+    
+    .ai-feedback-list li {
+      position: relative;
+      padding-left: var(--space-md);
+      margin-bottom: var(--space-xs);
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .ai-feedback-list li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--color-text-muted);
+    }
+    
+    .ai-feedback-tip {
+      font-style: italic;
+      color: var(--color-text-secondary);
+      padding-left: var(--space-md);
+      border-left: 2px solid var(--color-info);
+    }
+    
+    /* =====================================================
+       SUPPLEMENTARY QUESTION
+       ===================================================== */
+    
+    .supplementary-box {
+      margin-top: var(--space-xl);
+      padding: var(--space-xl);
+      background: linear-gradient(145deg, rgba(30, 40, 60, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-info);
+      border-radius: var(--radius-lg);
+      animation: supplementarySlide 0.5s ease;
+      position: relative;
+    }
+    
+    @keyframes supplementarySlide {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .supplementary-box::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: var(--space-xl);
+      right: var(--space-xl);
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-info), #60a5fa, var(--color-info));
+      border-radius: var(--radius-full);
+    }
+    
+    .supplementary-box.complete {
+      opacity: 0.9;
+    }
+    
+    .supplementary-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .supplementary-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: linear-gradient(135deg, var(--color-info), #2563eb);
+      color: white;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .supplementary-title {
+      font-weight: 600;
+      color: var(--color-info);
+      font-size: 0.9rem;
+    }
+    
+    .supplementary-question {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: var(--space-lg);
+      line-height: 1.5;
+    }
+    
+    .saved-answer-display {
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-md);
+      border: 1px solid var(--color-border);
+    }
+    
+    .saved-answer-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .saved-answer-text {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    
+    .proceed-status {
+      margin-top: var(--space-lg);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+    
+    .proceed-waiting {
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+      border: 1px solid var(--color-warning-light);
+    }
+    
+    .proceed-ready {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      border: 1px solid var(--color-success-light);
+    }
+    
+    /* =====================================================
+       RETRY BANNER
+       ===================================================== */
+    
+    .retry-banner {
+      margin-top: var(--space-xl);
+      padding: var(--space-xl);
+      background: linear-gradient(145deg, rgba(40, 20, 20, 0.95), rgba(30, 15, 15, 0.98));
+      border: 2px solid var(--color-error);
+      border-radius: var(--radius-lg);
+      text-align: center;
+      animation: retryPulse 2s ease infinite;
+    }
+    
+    @keyframes retryPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    }
+    
+    .retry-banner h3 {
+      color: var(--color-error);
+      margin-bottom: var(--space-sm);
+      font-size: 1.25rem;
+    }
+    
+    .retry-banner p {
+      color: var(--color-text-secondary);
+    }
+    
+    /* =====================================================
+       ORDERING QUESTION
+       ===================================================== */
+    
+    .ordering-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .ordering-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: rgba(30, 30, 50, 0.8);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: grab;
+      transition: all var(--transition-base);
+      user-select: none;
+    }
+    
+    .ordering-item:hover:not(.disabled) {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+    }
+    
+    .ordering-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+    
+    .ordering-item.drag-over {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+      transform: scale(1.02);
+    }
+    
+    .ordering-item.disabled {
+      cursor: default;
+    }
+    
+    .ordering-item.correct-position {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    
+    .ordering-item.incorrect-position {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+    
+    .ordering-handle {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--space-xs);
+      color: var(--color-text-muted);
+    }
+    
+    .ordering-handle span {
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+    
+    .ordering-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.9rem;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    
+    .ordering-item.correct-position .ordering-number {
+      background: var(--color-success);
+      border-color: var(--color-success);
+      color: white;
+    }
+    
+    .ordering-item.incorrect-position .ordering-number {
+      background: var(--color-error);
+      border-color: var(--color-error);
+      color: white;
+    }
+    
+    .ordering-text {
+      flex: 1;
+    }
+    
+    .ordering-arrows {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .ordering-arrow-btn {
+      padding: 4px 8px;
+      background: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.75rem;
+      line-height: 1;
+      transition: all var(--transition-fast);
+    }
+    
+    .ordering-arrow-btn:hover:not(:disabled) {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    
+    .ordering-arrow-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    /* =====================================================
+       MATCHING QUESTION
+       ===================================================== */
+    
+    .matching-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    
+    .matching-columns {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    
+    @media (max-width: 640px) {
+      .matching-columns {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+      }
+      
+      .matching-lines {
+        display: none;
+      }
+    }
+    
+    .matching-column {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .matching-column-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .matching-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      background: var(--color-bg);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .matching-item:hover:not(.disabled):not(.matched) {
+      border-color: var(--color-primary-light);
+      background: var(--color-surface);
+    }
+    
+    .matching-item.selected {
+      border-color: var(--color-primary);
+      background: var(--color-info-bg);
+      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+    }
+    
+    .matching-item.matched {
+      border-color: var(--color-secondary);
+      background: var(--color-info-bg);
+    }
+    
+    .matching-item.correct {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    
+    .matching-item.incorrect {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+    
+    .matching-item.disabled {
+      cursor: default;
+    }
+    
+    .matching-letter {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    
+    .matching-item.selected .matching-letter,
+    .matching-item.matched .matching-letter {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .matching-item.correct .matching-letter {
+      background: var(--color-success);
+      border-color: var(--color-success);
+    }
+    
+    .matching-item.incorrect .matching-letter {
+      background: var(--color-error);
+      border-color: var(--color-error);
+    }
+    
+    .matching-pair-indicator {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      background: var(--color-accent);
+      color: var(--color-primary-dark);
+      border-radius: var(--radius-sm);
+      margin-left: auto;
+    }
+    
+    .matching-lines {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-size: 1.5rem;
+    }
+    
+    .matching-instructions {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      text-align: center;
+      padding: var(--space-sm);
+      background: var(--color-bg-alt);
+      border-radius: var(--radius-sm);
+    }
+    
+    /* =====================================================
+       FILL IN THE BLANKS
+       ===================================================== */
+    
+    .fill-blanks-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    
+    .fill-blanks-passage {
+      font-size: 1.1rem;
+      line-height: 2.2;
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .blank-input {
+      display: inline-block;
+      min-width: 120px;
+      padding: var(--space-xs) var(--space-sm);
+      margin: 0 var(--space-xs);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      text-align: center;
+      vertical-align: middle;
+      transition: all var(--transition-fast);
+    }
+    
+    .blank-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      border-style: solid;
+      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+    }
+    
+    .blank-input.correct {
+      border-color: var(--color-success);
+      border-style: solid;
+      background: var(--color-success-bg);
+      color: var(--color-success);
+    }
+    
+    .blank-input.incorrect {
+      border-color: var(--color-error);
+      border-style: solid;
+      background: var(--color-error-bg);
+      color: var(--color-error);
+    }
+    
+    .blank-input:disabled {
+      cursor: default;
+    }
+    
+    .word-bank {
+      padding: var(--space-lg);
+      background: var(--color-bg-alt);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .word-bank-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-md);
+    }
+    
+    .word-bank-words {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+    
+    .word-bank-word {
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .word-bank-word:hover:not(.used):not(.disabled) {
+      border-color: var(--color-primary);
+      background: var(--color-info-bg);
+    }
+    
+    .word-bank-word.used {
+      opacity: 0.4;
+      text-decoration: line-through;
+      cursor: default;
+    }
+    
+    .word-bank-word.selected {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .word-bank-word.disabled {
+      cursor: default;
+    }
+    
+    /* =====================================================
+       CATEGORISATION QUESTION
+       ===================================================== */
+    
+    .categorise-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    
+    .categorise-items-pool {
+      padding: var(--space-lg);
+      background: var(--color-bg-alt);
+      border-radius: var(--radius-md);
+      border: 2px dashed var(--color-border);
+      min-height: 60px;
+    }
+    
+    .categorise-items-pool.empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    
+    .categorise-pool-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-md);
+    }
+    
+    .categorise-pool-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+    
+    .categorise-item {
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: grab;
+      transition: all var(--transition-fast);
+      user-select: none;
+    }
+    
+    .categorise-item:hover:not(.disabled) {
+      border-color: var(--color-primary-light);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .categorise-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+    
+    .categorise-item.correct {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    
+    .categorise-item.incorrect {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+    
+    .categorise-item.disabled {
+      cursor: default;
+    }
+    
+    .categorise-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-md);
+    }
+    
+    .categorise-category {
+      padding: var(--space-md);
+      background: var(--color-bg);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      min-height: 120px;
+      transition: all var(--transition-fast);
+    }
+    
+    .categorise-category.drag-over {
+      border-color: var(--color-primary);
+      background: var(--color-info-bg);
+    }
+    
+    .categorise-category-header {
+      font-weight: 600;
+      color: var(--color-text);
+      padding-bottom: var(--space-sm);
+      margin-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-border-light);
+    }
+    
+    .categorise-category-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      min-height: 40px;
+    }
+    
+    .categorise-category-empty {
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: var(--space-sm);
+    }
+    
+    /* =====================================================
+       MULTIPLE RESPONSE QUESTION
+       ===================================================== */
+    
+    .multiple-response-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    
+    .multiple-response-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .multiple-response-item:hover:not(.disabled) {
+      border-color: var(--color-primary-light);
+      background: var(--color-surface);
+    }
+    
+    .multiple-response-item.selected {
+      border-color: var(--color-primary);
+      background: var(--color-info-bg);
+    }
+    
+    .multiple-response-item.correct {
+      border-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+    
+    .multiple-response-item.incorrect {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+    
+    .multiple-response-item.missed {
+      border-color: var(--color-warning);
+      background: var(--color-warning-bg);
+    }
+    
+    .multiple-response-item.disabled {
+      cursor: default;
+    }
+    
+    .multiple-response-checkbox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      transition: all var(--transition-fast);
+    }
+    
+    .multiple-response-item.selected .multiple-response-checkbox {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .multiple-response-item.correct .multiple-response-checkbox {
+      background: var(--color-success);
+      border-color: var(--color-success);
+      color: white;
+    }
+    
+    .multiple-response-item.incorrect .multiple-response-checkbox {
+      background: var(--color-error);
+      border-color: var(--color-error);
+      color: white;
+    }
+    
+    .multiple-response-item.missed .multiple-response-checkbox {
+      background: var(--color-warning);
+      border-color: var(--color-warning);
+      color: white;
+    }
+    
+    .multiple-response-hint {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+      margin-top: var(--space-sm);
+    }
+    
+    /* =====================================================
+       CLOZE DROPDOWN QUESTION
+       ===================================================== */
+    
+    .cloze-passage {
+      font-size: 1.1rem;
+      line-height: 2.4;
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .cloze-dropdown {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-md);
+      padding-right: var(--space-xl);
+      margin: 0 var(--space-xs);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235c5347' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      min-width: 140px;
+      transition: all var(--transition-fast);
+    }
+    
+    .cloze-dropdown:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+    }
+    
+    .cloze-dropdown.correct {
+      border-color: var(--color-success);
+      background-color: var(--color-success-bg);
+      color: var(--color-success);
+    }
+    
+    .cloze-dropdown.incorrect {
+      border-color: var(--color-error);
+      background-color: var(--color-error-bg);
+      color: var(--color-error);
+    }
+    
+    .cloze-dropdown:disabled {
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    /* =====================================================
+       BUTTONS
+       ===================================================== */
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-xl);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .btn::before {
+      display: none;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #b8860b 0%, #daa520 50%, #b8860b 100%);
+      color: var(--color-text-inverse);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold-strong);
+    }
+    
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: rgba(30, 30, 50, 0.8);
+      color: var(--color-text);
+      border: 2px solid var(--color-border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--color-success), #34d399);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .btn-large {
+      padding: var(--space-lg) var(--space-2xl);
+      font-size: 1.1rem;
+    }
+    
+    .btn-icon {
+      padding: var(--space-sm);
+      border-radius: var(--radius-md);
+    }
+    
+    /* =====================================================
+       NAVIGATION
+       ===================================================== */
+    
+    .question-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: var(--space-xl);
+      padding-top: var(--space-xl);
+      border-top: 1px solid var(--color-border-light);
+    }
+    
+    /* =====================================================
+       LOGIN SCREEN
+       ===================================================== */
+    
+    .login-container {
+      max-width: 440px;
+      margin: var(--space-3xl) auto;
+    }
+    
+    .login-card {
+      text-align: center;
+      padding: var(--space-2xl);
+    }
+    
+    .login-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto var(--space-lg);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .login-card h2 {
+      font-size: 1.75rem;
+      margin-bottom: var(--space-xs);
+      color: var(--color-primary);
+    }
+    
+    .login-card .login-subtitle {
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .login-form {
+      text-align: left;
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: var(--space-sm);
+      color: var(--color-text);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: var(--space-md) var(--space-lg);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
+      color: var(--color-text);
+      transition: all var(--transition-fast);
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: var(--color-surface);
+      box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.1);
+    }
+    
+    .form-input::placeholder {
+      color: var(--color-text-muted);
+    }
+    
+    .error-message {
+      padding: var(--space-md);
+      background: var(--color-error-bg);
+      border: 1px solid var(--color-error-light);
+      border-radius: var(--radius-md);
+      color: var(--color-error);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin: var(--space-lg) 0;
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+    }
+    
+    .login-divider::before,
+    .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--color-border);
+    }
+    
+    /* =====================================================
+       REVIEW SCREEN
+       ===================================================== */
+    
+    .review-header {
+      margin-bottom: var(--space-xl);
+    }
+    
+    .review-header h2 {
+      margin-bottom: var(--space-sm);
+    }
+    
+    .review-list {
+      margin-bottom: var(--space-xl);
+    }
+    
+    .review-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-sm);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    
+    .review-item:hover {
+      background: var(--color-bg-alt);
+      transform: translateX(4px);
+    }
+    
+    .review-status {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    .review-status.correct {
+      background: var(--color-success-bg);
+    }
+    
+    .review-status.incorrect {
+      background: var(--color-error-bg);
+    }
+    
+    .review-status.partial {
+      background: var(--color-warning-bg);
+    }
+    
+    .review-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .review-question {
+      font-weight: 500;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .review-score {
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      color: var(--color-text-muted);
+    }
+    
+    .review-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-lg);
+    }
+    
+    .review-actions .btn {
+      flex: 1;
+    }
+    
+    /* =====================================================
+       SUBMISSION FORM
+       ===================================================== */
+    
+    .submission-container {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    
+    .score-display {
+      text-align: center;
+      padding: var(--space-2xl);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+      border-radius: var(--radius-xl);
+      color: var(--color-text-inverse);
+      margin-bottom: var(--space-xl);
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .score-display::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 80%;
+      height: 200%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+    
+    .score-display.pass {
+      background: linear-gradient(135deg, var(--color-success), #059669);
+    }
+    
+    .score-display.fail {
+      background: linear-gradient(135deg, var(--color-error), #b91c1c);
+    }
+    
+    .score-value {
+      font-family: var(--font-display);
+      font-size: 5rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: var(--space-sm);
+      position: relative;
+    }
+    
+    .score-label {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    
+    .score-status {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      margin-top: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-full);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-md);
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-light);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: var(--color-primary);
+    }
+    
+    .checkbox-group label {
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    
+    .form-buttons {
+      display: flex;
+      gap: var(--space-md);
+    }
+    
+    .form-buttons .btn {
+      flex: 1;
+    }
+    
+    /* =====================================================
+       SUCCESS SCREEN
+       ===================================================== */
+    
+    .success-container {
+      text-align: center;
+      padding: var(--space-3xl) var(--space-xl);
+    }
+    
+    .success-icon {
+      font-size: 5rem;
+      margin-bottom: var(--space-lg);
+      animation: successBounce 0.6s ease;
+    }
+    
+    @keyframes successBounce {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    
+    .success-container h2 {
+      font-size: 1.75rem;
+      color: var(--color-success);
+      margin-bottom: var(--space-md);
+    }
+    
+    .success-container p {
+      font-size: 1rem;
+      margin-bottom: var(--space-sm);
+      color: var(--color-text-secondary);
+    }
+    
+    .success-score {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-top: var(--space-lg);
+      padding: var(--space-md) var(--space-xl);
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-success);
+    }
+    
+    .success-details {
+      margin-top: var(--space-xl);
+      padding: var(--space-lg);
+      background: var(--color-bg-alt);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    
+    /* =====================================================
+       TEACHER DASHBOARD
+       ===================================================== */
+    
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+    
+    .dashboard-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .dashboard-title h1 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+    }
+    
+    .dashboard-actions {
+      display: flex;
+      gap: var(--space-sm);
+    }
+    
+    .dashboard-meta {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+    
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .dashboard-section h3 {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 1rem;
+      margin-bottom: var(--space-lg);
+    }
+    
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 var(--space-sm);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    
+    .submission-list {
+      max-height: 450px;
+      overflow-y: auto;
+      padding-right: var(--space-sm);
+    }
+    
+    .submission-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .submission-list::-webkit-scrollbar-track {
+      background: var(--color-bg);
+      border-radius: var(--radius-full);
+    }
+    
+    .submission-list::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: var(--radius-full);
+    }
+    
+    .submission-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: 2px solid transparent;
+    }
+    
+    .submission-item:hover {
+      background: var(--color-bg-alt);
+      transform: translateX(4px);
+    }
+    
+    .submission-item.selected {
+      background: var(--color-info-bg);
+      border-color: var(--color-primary);
+    }
+    
+    .submission-checkbox {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      accent-color: var(--color-primary);
+    }
+    
+    .submission-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .submission-name {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+    
+    .submission-meta {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+    
+    .submission-score {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    
+    .submission-score.pass {
+      color: var(--color-success);
+    }
+    
+    .submission-score.fail {
+      color: var(--color-error);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: var(--space-2xl);
+      color: var(--color-text-muted);
+    }
+    
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+      opacity: 0.5;
+    }
+    
+    /* In Progress Items */
+    .progress-item {
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-warning-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-sm);
+      border-left: 4px solid var(--color-warning);
+    }
+    
+    .progress-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .progress-item-name {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .progress-item-percent {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--color-warning);
+    }
+    
+    .progress-item-time {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .progress-item-bar {
+      height: 6px;
+      background: rgba(0,0,0,0.1);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    
+    .progress-item-fill {
+      height: 100%;
+      background: var(--color-warning);
+      border-radius: var(--radius-full);
+      transition: width var(--transition-base);
+    }
+    
+    /* AI Overview Button */
+    .ai-overview-btn {
+      width: 100%;
+      margin-top: var(--space-lg);
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+    }
+    
+    .ai-overview-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+    
+    /* AI Overview Panel */
+    .ai-overview-panel {
+      background: linear-gradient(145deg, rgba(30, 40, 60, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-info);
+      border-radius: var(--radius-xl);
+      padding: var(--space-xl);
+      margin-top: var(--space-xl);
+      position: relative;
+    }
+    
+    .ai-overview-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: var(--space-xl);
+      right: var(--space-xl);
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-info), #60a5fa, var(--color-info));
+      border-radius: var(--radius-full);
+    }
+    
+    .ai-overview-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .ai-overview-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--color-info), #2563eb);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    
+    .ai-overview-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--color-info);
+    }
+    
+    .ai-overview-subtitle {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+    
+    .ai-overview-summary {
+      padding: var(--space-lg);
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-xl);
+      line-height: 1.7;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+    }
+    
+    .ai-overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    @media (max-width: 700px) {
+      .ai-overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .ai-overview-section {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .ai-overview-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .ai-overview-section h4 {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 0.9rem;
+      color: var(--color-text);
+      margin-bottom: var(--space-md);
+      font-weight: 600;
+    }
+    
+    .ai-overview-section ul {
+      list-style: none;
+    }
+    
+    .ai-overview-section li {
+      padding: var(--space-sm) var(--space-md);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-xs);
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .ai-overview-quote {
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      font-style: italic;
+      color: var(--color-text-secondary);
+      border-left: 3px solid var(--color-info);
+      border: 1px solid var(--color-border);
+    }
+    
+    /* Detail Panel */
+    .detail-panel {
+      margin-top: var(--space-xl);
+    }
+    
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: var(--space-lg);
+      border-bottom: 1px solid var(--color-border-light);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .detail-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .detail-meta {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    
+    .detail-score {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .detail-score.pass {
+      color: var(--color-success);
+    }
+    
+    .detail-score.fail {
+      color: var(--color-error);
+    }
+    
+    .student-comments {
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-lg);
+      border-left: 3px solid var(--color-accent);
+    }
+    
+    .student-comments-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .answer-detail {
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-md);
+    }
+    
+    .answer-question-text {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+    
+    .answer-response {
+      padding: var(--space-md);
+      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-md);
+      border: 1px solid var(--color-border-light);
+    }
+    
+    .answer-response-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .answer-ai-feedback {
+      padding: var(--space-md);
+      background: var(--color-info-bg);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+    }
+    
+    .answer-ai-score {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+    
+    /* =====================================================
+       LOADING STATES
+       ===================================================== */
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-3xl);
+      gap: var(--space-lg);
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .spinner-small {
+      width: 20px;
+      height: 20px;
+      border-width: 2px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .loading-text {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    
+    .grading-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-info-bg);
+      border-radius: var(--radius-md);
+      margin-top: var(--space-lg);
+      border: 1px solid var(--color-info-light);
+    }
+    
+    .grading-indicator .spinner {
+      width: 24px;
+      height: 24px;
+      border-width: 2px;
+      border-top-color: var(--color-info);
+    }
+    
+    .grading-text {
+      color: var(--color-info);
+      font-weight: 500;
+    }
+    
+    /* =====================================================
+       INSTRUCTIONS BOX
+       ===================================================== */
+    
+    .instructions-box {
+      background: var(--color-info-bg);
+      border: 1px solid var(--color-info-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+      display: flex;
+      gap: var(--space-md);
+    }
+    
+    .instructions-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    .instructions-text {
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+    
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
+    
+    @media (max-width: 640px) {
+      .app-container {
+        padding: var(--space-md);
+      }
+      
+      .app-header {
+        padding: var(--space-lg);
+      }
+      
+      .app-header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .card {
+        padding: var(--space-lg);
+      }
+      
+      .question-text {
+        font-size: 1.1rem;
+      }
+      
+      .tf-options {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-buttons {
+        flex-direction: column;
+      }
+      
+      .dashboard-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+      
+      .dashboard-actions .btn {
+        flex: 1;
+      }
+      
+      .question-nav {
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+      
+      .question-nav .btn {
+        width: 100%;
+      }
+    }
+
+    /* =====================================================
+       ESSAY-SPECIFIC STYLES
+       ===================================================== */
+    
+    .essay-title {
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--color-primary-light);
+      margin-top: var(--space-sm);
+      line-height: 1.5;
+    }
+    
+    .learning-material {
+      background: linear-gradient(145deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .learning-material h2,
+    .learning-material h3,
+    .learning-material h4 {
+      color: var(--color-primary-light);
+      margin-top: var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    
+    .learning-material h2:first-child,
+    .learning-material h3:first-child {
+      margin-top: 0;
+    }
+    
+    .learning-material ul,
+    .learning-material ol {
+      margin-left: var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    
+    .learning-material li {
+      margin-bottom: var(--space-sm);
+      color: var(--color-text-secondary);
+    }
+    
+    .learning-material strong {
+      color: var(--color-accent);
+    }
+    
+    .learning-material code {
+      background: rgba(184, 134, 11, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+    }
+    
+    .learning-material blockquote {
+      border-left: 3px solid var(--color-primary);
+      padding-left: var(--space-md);
+      margin: var(--space-md) 0;
+      font-style: italic;
+      color: var(--color-text-muted);
+    }
+    
+    .writing-prompt {
+      background: var(--color-surface-hover);
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .writing-prompt-label {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .writing-prompt-text {
+      font-size: 1.1rem;
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+    
+    .attempt-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    
+    .attempt-badge {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: var(--color-text-inverse);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .attempts-remaining {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+    
+    .paragraph-editor {
+      width: 100%;
+      min-height: 250px;
+      padding: var(--space-lg);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--color-text);
+      background: rgba(30, 30, 50, 0.8);
+      resize: vertical;
+      transition: all var(--transition-base);
+    }
+    
+    .paragraph-editor:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: rgba(40, 40, 60, 0.9);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+    
+    .paragraph-editor:disabled {
+      background: rgba(20, 20, 40, 0.6);
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
+    
+    .word-count {
+      display: flex;
+      justify-content: space-between;
+      margin-top: var(--space-sm);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+    
+    .word-count.warning {
+      color: var(--color-warning);
+    }
+    
+    .word-count.success {
+      color: var(--color-success);
+    }
+    
+    .feedback-panel {
+      background: linear-gradient(145deg, rgba(30, 40, 60, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-info);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-top: var(--space-xl);
+      animation: ghostAppear 0.5s ease-out;
+    }
+    
+    .feedback-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .feedback-score {
+      font-size: 2rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+    
+    .feedback-score.excellent { color: var(--color-success); }
+    .feedback-score.good { color: var(--color-info); }
+    .feedback-score.satisfactory { color: var(--color-warning); }
+    .feedback-score.needs-work { color: var(--color-error); }
+    
+    .criteria-scores {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .criteria-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: var(--space-md);
+    }
+    
+    .criteria-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .criteria-score {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .feedback-section {
+      margin-bottom: var(--space-lg);
+    }
+    
+    .feedback-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .feedback-section-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-md);
+    }
+    
+    .feedback-list {
+      list-style: none;
+    }
+    
+    .feedback-list li {
+      padding: var(--space-sm) var(--space-md);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-sm);
+      border-left: 3px solid var(--color-border);
+    }
+    
+    .feedback-list.strengths li {
+      border-left-color: var(--color-success);
+    }
+    
+    .feedback-list.improvements li {
+      border-left-color: var(--color-warning);
+    }
+    
+    .detailed-feedback {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      line-height: 1.8;
+      color: var(--color-text-secondary);
+    }
+    
+    .example-revision {
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-top: var(--space-md);
+      font-style: italic;
+    }
+    
+    .example-revision-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-success);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .revision-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+      border-top: 1px solid var(--color-border);
+    }
+    
+    /* Essay compilation styles */
+    .essay-compilation {
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.95), rgba(20, 20, 40, 0.98));
+      border: 3px solid var(--color-primary);
+      border-radius: var(--radius-xl);
+      padding: var(--space-2xl);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .essay-compilation-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+      padding-bottom: var(--space-xl);
+      border-bottom: 2px solid var(--color-border);
+    }
+    
+    .essay-compilation-title {
+      font-size: 1.5rem;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-md);
+    }
+    
+    .essay-compilation-meta {
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    
+    .compiled-essay {
+      font-size: 1.1rem;
+      line-height: 2;
+      color: var(--color-text);
+    }
+    
+    .compiled-paragraph {
+      margin-bottom: var(--space-xl);
+      text-indent: 2em;
+    }
+    
+    .compiled-paragraph:first-child {
+      text-indent: 0;
+    }
+    
+    .holistic-feedback {
+      background: linear-gradient(145deg, rgba(25, 40, 60, 0.95), rgba(20, 35, 55, 0.98));
+      border: 2px solid var(--color-success);
+      border-radius: var(--radius-xl);
+      padding: var(--space-2xl);
+    }
+    
+    .holistic-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      gap: var(--space-lg);
+    }
+    
+    .final-grade {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    
+    .grade-badge {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+      padding: var(--space-md) var(--space-xl);
+      border-radius: var(--radius-lg);
+    }
+    
+    .grade-badge.excellent {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      border: 2px solid var(--color-success);
+    }
+    
+    .grade-badge.good {
+      background: var(--color-info-bg);
+      color: var(--color-info);
+      border: 2px solid var(--color-info);
+    }
+    
+    .grade-badge.satisfactory {
+      background: var(--color-warning-bg);
+      color: var(--color-warning);
+      border: 2px solid var(--color-warning);
+    }
+    
+    .grade-badge.needs-improvement {
+      background: var(--color-error-bg);
+      color: var(--color-error);
+      border: 2px solid var(--color-error);
+    }
+    
+    .best-quote {
+      background: var(--color-surface-hover);
+      border-left: 4px solid var(--color-accent);
+      padding: var(--space-lg);
+      margin: var(--space-xl) 0;
+      font-style: italic;
+      font-size: 1.1rem;
+    }
+    
+    .best-quote-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-accent);
+      margin-bottom: var(--space-sm);
+      font-style: normal;
+    }
+    
+    .encouragement-box {
+      background: var(--color-success-bg);
+      border: 1px solid var(--color-success);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      text-align: center;
+      margin-top: var(--space-xl);
+    }
+    
+    .encouragement-box p {
+      font-size: 1.1rem;
+      color: var(--color-text);
+      font-style: italic;
+    }
+    
+    /* Print styles */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      
+      .app-container {
+        max-width: 100%;
+        padding: 0;
+      }
+      
+      .card, .essay-compilation, .holistic-feedback {
+        background: white !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        color: black !important;
+      }
+      
+      .btn, .paragraph-tracker, .revision-actions {
+        display: none !important;
+      }
+      
+      .compiled-essay, .detailed-feedback, p, li {
+        color: black !important;
+      }
+      
+      h1, h2, h3, h4, .essay-compilation-title, .feedback-section-title {
+        color: #333 !important;
+      }
+      
+      .grade-badge {
+        background: #f0f0f0 !important;
+        color: #333 !important;
+        border-color: #333 !important;
+      }
+      
+      .task-panel {
+        display: none !important;
+      }
+    }
+    
+    /* =====================================================
+       TASK PANEL - DESKTOP SIDEBAR / MOBILE TOGGLE
+       ===================================================== */
+    
+    .writing-layout {
+      display: flex;
+      gap: var(--space-xl);
+      align-items: flex-start;
+    }
+    
+    .writing-main {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .task-panel {
+      width: 380px;
+      flex-shrink: 0;
+      position: sticky;
+      top: var(--space-lg);
+      max-height: calc(100vh - var(--space-2xl));
+      overflow-y: auto;
+      background: linear-gradient(145deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+    }
+    
+    .task-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .task-panel-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--color-primary-light);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .task-panel-close {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: var(--space-xs);
+      font-size: 1.25rem;
+      line-height: 1;
+      display: none;
+    }
+    
+    .task-panel-content {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--color-text-secondary);
+    }
+    
+    .task-panel-content h2 {
+      font-size: 1.1rem;
+      color: var(--color-primary-light);
+      margin-top: var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    
+    .task-panel-content h2:first-child {
+      margin-top: 0;
+    }
+    
+    .task-panel-content h3 {
+      font-size: 1rem;
+      color: var(--color-text);
+      margin-top: var(--space-md);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .task-panel-content p {
+      margin-bottom: var(--space-md);
+    }
+    
+    .task-panel-content blockquote {
+      background: rgba(184, 134, 11, 0.1);
+      border-left: 3px solid var(--color-primary);
+      padding: var(--space-md);
+      margin: var(--space-md) 0;
+      font-style: italic;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+    
+    .task-panel-content hr {
+      border: none;
+      border-top: 1px solid var(--color-border);
+      margin: var(--space-lg) 0;
+    }
+    
+    .task-panel-content ul,
+    .task-panel-content ol {
+      margin-left: var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    
+    .task-panel-content li {
+      margin-bottom: var(--space-xs);
+    }
+    
+    .task-panel-content strong {
+      color: var(--color-accent);
+    }
+    
+    .task-panel-content em {
+      color: var(--color-text-muted);
+    }
+    
+    /* Mobile task toggle button */
+    .task-toggle-btn {
+      display: none;
+      position: fixed;
+      bottom: var(--space-lg);
+      right: var(--space-lg);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: var(--color-text-inverse);
+      border: none;
+      cursor: pointer;
+      font-size: 1.5rem;
+      box-shadow: var(--shadow-lg), var(--shadow-gold);
+      z-index: 100;
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+    }
+    
+    .task-toggle-btn:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-xl), var(--shadow-gold-strong);
+    }
+    
+    .task-toggle-btn.has-task {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Mobile styles */
+    @media (max-width: 1024px) {
+      .writing-layout {
+        flex-direction: column;
+      }
+      
+      .task-panel {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        z-index: 200;
+        padding: var(--space-xl);
+        padding-top: var(--space-lg);
+      }
+      
+      .task-panel.mobile-open {
+        display: block;
+      }
+      
+      .task-panel-close {
+        display: block;
+      }
+      
+      .task-toggle-btn.has-task {
+        display: flex;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      .task-toggle-btn {
+        display: none !important;
+      }
+    }
+    
+    /* =====================================================
+       ESSAY SELECTION SCREEN
+       ===================================================== */
+    
+    .essay-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--space-lg);
+      margin-top: var(--space-xl);
+    }
+    
+    .essay-card {
+      background: linear-gradient(145deg, var(--color-surface) 0%, rgba(30, 40, 60, 0.95) 100%);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .essay-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+      opacity: 0;
+      transition: opacity var(--transition-base);
+    }
+    
+    .essay-card:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg), var(--shadow-gold);
+    }
+    
+    .essay-card:hover::before {
+      opacity: 1;
+    }
+    
+    .essay-card-icon {
+      font-size: 2.5rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .essay-card-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .essay-card-meta {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+    
+    .essay-card-meta span {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .essay-card-description {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    
+    .essay-card-stats {
+      display: flex;
+      gap: var(--space-lg);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+      font-size: 0.85rem;
+    }
+    
+    .essay-card-stat {
+      color: var(--color-text-muted);
+    }
+    
+    .essay-card-stat strong {
+      color: var(--color-accent);
+    }
+    
+    /* Teacher dashboard essay filter */
+    .essay-filter {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+    
+    .essay-filter-btn {
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      font-size: 0.85rem;
+    }
+    
+    .essay-filter-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary-light);
+    }
+    
+    .essay-filter-btn.active {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      border-color: var(--color-primary);
+      color: var(--color-text-inverse);
+    }
+  </style>
+
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+    
+    // =====================================================
+    // MULTI-ESSAY CONFIGURATION
+    // =====================================================
+    
+    // Global settings
+    const GLOBAL = window.GLOBAL_CONFIG || {};
+    const ESSAY_LIST = window.ESSAY_LIST || [];
+    const ESSAYS = window.ESSAYS || {};
+    const THEME = window.THEME_CONFIG || {};
+    
+    // =====================================================
+    // FIREBASE INITIALIZATION
+    // =====================================================
+    
+    let db = null;
+    const FIREBASE_ENABLED = window.FIREBASE_ENABLED && window.FIREBASE_CONFIG?.apiKey && window.FIREBASE_CONFIG?.apiKey !== 'YOUR_API_KEY';
+    
+    if (FIREBASE_ENABLED) {
+      try {
+        firebase.initializeApp(window.FIREBASE_CONFIG);
+        db = firebase.firestore();
+        console.log('Firebase initialized successfully');
+      } catch (error) {
+        console.error('Firebase initialization failed:', error);
+      }
+    } else {
+      console.log('Firebase not configured - using Netlify Blobs fallback');
+    }
+    
+    // Firebase Database Helper Functions
+    const FirebaseDB = {
+      // Save student progress (in-progress essays)
+      async saveProgress(progressData) {
+        if (!db) return null;
+        try {
+          const docId = `${progressData.studentEmail}_${progressData.essayId}`;
+          await db.collection('progress').doc(docId).set({
+            ...progressData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          return true;
+        } catch (error) {
+          console.error('Firebase saveProgress error:', error);
+          return null;
+        }
+      },
+      
+      // Submit completed essay
+      async submitEssay(submissionData) {
+        if (!db) return null;
+        try {
+          const docRef = await db.collection('submissions').add({
+            ...submissionData,
+            submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          // Remove from progress collection
+          const progressDocId = `${submissionData.studentEmail}_${submissionData.essayId}`;
+          await db.collection('progress').doc(progressDocId).delete().catch(() => {});
+          return docRef.id;
+        } catch (error) {
+          console.error('Firebase submitEssay error:', error);
+          return null;
+        }
+      },
+      
+      // Get all submissions (for teacher dashboard)
+      async getSubmissions() {
+        if (!db) return null;
+        try {
+          const snapshot = await db.collection('submissions')
+            .orderBy('submittedAt', 'desc')
+            .limit(100)
+            .get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
+          }));
+        } catch (error) {
+          console.error('Firebase getSubmissions error:', error);
+          return null;
+        }
+      },
+      
+      // Get in-progress students (for teacher dashboard)
+      async getProgress() {
+        if (!db) return null;
+        try {
+          // Only get progress from last 24 hours
+          const cutoff = new Date();
+          cutoff.setHours(cutoff.getHours() - 24);
+          
+          const snapshot = await db.collection('progress')
+            .where('updatedAt', '>', cutoff)
+            .orderBy('updatedAt', 'desc')
+            .get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            lastUpdate: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().lastUpdate
+          }));
+        } catch (error) {
+          console.error('Firebase getProgress error:', error);
+          return null;
+        }
+      },
+      
+      // Subscribe to real-time submissions updates
+      subscribeToSubmissions(callback) {
+        if (!db) return () => {};
+        return db.collection('submissions')
+          .orderBy('submittedAt', 'desc')
+          .limit(100)
+          .onSnapshot(snapshot => {
+            const submissions = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
+            }));
+            callback(submissions);
+          }, error => {
+            console.error('Submissions subscription error:', error);
+          });
+      },
+      
+      // Subscribe to real-time progress updates
+      subscribeToProgress(callback) {
+        if (!db) return () => {};
+        const cutoff = new Date();
+        cutoff.setHours(cutoff.getHours() - 24);
+        
+        return db.collection('progress')
+          .where('updatedAt', '>', cutoff)
+          .orderBy('updatedAt', 'desc')
+          .onSnapshot(snapshot => {
+            const progress = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              lastUpdate: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().lastUpdate
+            }));
+            callback(progress);
+          }, error => {
+            console.error('Progress subscription error:', error);
+          });
+      }
+    };
+    
+    // Helper to get essay config by ID
+    const getEssayConfig = (essayId) => {
+      const essay = ESSAYS[essayId];
+      if (!essay) return null;
+      return {
+        TEACHER_PASSWORD: 'teacher123',
+        LOCAL_STORAGE_KEY: `essay_app_${essayId}`,
+        AUTO_SAVE_INTERVAL: 30000,
+        DASHBOARD_REFRESH_INTERVAL: 15000,
+        ...essay
+      };
+    };
+    
+    // Default grading criteria if not specified
+    const getGradingCriteria = (config) => config?.gradingCriteria || {
+      content: { weight: 25, description: "Content and understanding" },
+      analysis: { weight: 25, description: "Analysis of language" },
+      structure: { weight: 25, description: "Paragraph structure" },
+      expression: { weight: 25, description: "Written expression" }
+    };
+    
+    // Apply custom theme colors
+    if (THEME.colors) {
+      const root = document.documentElement;
+      const colorMap = {
+        primary: '--color-primary',
+        secondary: '--color-secondary',
+        accent: '--color-accent',
+        background: '--color-bg',
+        surface: '--color-surface',
+        text: '--color-text',
+        success: '--color-success',
+        error: '--color-error',
+        warning: '--color-warning'
+      };
+      Object.entries(THEME.colors).forEach(([key, value]) => {
+        if (colorMap[key]) {
+          root.style.setProperty(colorMap[key], value);
+        }
+      });
+    }
+    
+    // =====================================================
+    // UTILITY FUNCTIONS
+    // =====================================================
+    
+    const countWords = (text) => {
+      if (!text || !text.trim()) return 0;
+      return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    };
+    
+    const formatDateTime = (date) => {
+      return new Date(date).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+    
+    const getScoreClass = (score) => {
+      if (score >= 80) return 'excellent';
+      if (score >= 65) return 'good';
+      if (score >= 50) return 'satisfactory';
+      return 'needs-work';
+    };
+    
+    const getGradeClass = (grade) => {
+      const g = (grade || '').toLowerCase();
+      if (g.includes('excellent')) return 'excellent';
+      if (g.includes('good')) return 'good';
+      if (g.includes('satisfactory')) return 'satisfactory';
+      return 'needs-improvement';
+    };
+    
+    const renderMarkdown = (text) => {
+      if (!text) return '';
+      if (typeof marked !== 'undefined') {
+        return marked.parse(text);
+      }
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+        .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+        .replace(/^# (.*$)/gm, '<h2>$1</h2>')
+        .replace(/\n/g, '<br>');
+    };
+    
+    // =====================================================
+    // LOADING SPINNER
+    // =====================================================
+    
+    function LoadingSpinner({ text = "Loading..." }) {
+      return (
+        <div className="grading-indicator">
+          <div className="spinner"></div>
+          <span className="grading-text">{text}</span>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ESSAY SELECTION SCREEN
+    // =====================================================
+    
+    function EssaySelectionScreen({ onSelectEssay, onTeacherLogin }) {
+      const [showTeacherLogin, setShowTeacherLogin] = useState(false);
+      const [teacherPassword, setTeacherPassword] = useState('');
+      const [error, setError] = useState('');
+      
+      const handleTeacherSubmit = (e) => {
+        e.preventDefault();
+        const correctPassword = GLOBAL.teacherPassword || 'teacher123';
+        if (teacherPassword === correctPassword) {
+          onTeacherLogin();
+        } else {
+          setError('Incorrect password');
+        }
+      };
+      
+      return (
+        <div className="app-container" style={{ maxWidth: '1000px' }}>
+          <div className="app-header" style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
+            <h1 className="gold-glow">{GLOBAL.siteName || 'Essay Writing Practice'}</h1>
+            {GLOBAL.schoolName && <p className="subtitle">{GLOBAL.schoolName}</p>}
+            <p style={{ color: 'var(--color-text-muted)', marginTop: 'var(--space-md)' }}>
+              Select an essay to begin your guided writing practice
+            </p>
+          </div>
+          
+          {!showTeacherLogin ? (
+            <>
+              <div className="essay-grid">
+                {ESSAY_LIST.map((essay) => (
+                  <div 
+                    key={essay.id} 
+                    className="essay-card"
+                    onClick={() => onSelectEssay(essay.id)}
+                  >
+                    <div className="essay-card-icon">{essay.icon || '📝'}</div>
+                    <h3 className="essay-card-title">{essay.title}</h3>
+                    <div className="essay-card-meta">
+                      <span>📚 {essay.subject}</span>
+                      <span>🎓 {essay.yearGroup}</span>
+                    </div>
+                    <p className="essay-card-description">{essay.description}</p>
+                    <div className="essay-card-stats">
+                      <span className="essay-card-stat"><strong>{essay.paragraphs}</strong> paragraphs</span>
+                      <span className="essay-card-stat"><strong>{essay.totalMarks}</strong> marks</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{ textAlign: 'center', marginTop: 'var(--space-2xl)' }}>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => setShowTeacherLogin(true)}
+                >
+                  Teacher Login
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="card" style={{ maxWidth: '400px', margin: '0 auto' }}>
+              <h3 style={{ marginBottom: 'var(--space-lg)' }}>Teacher Login</h3>
+              <form onSubmit={handleTeacherSubmit}>
+                <div style={{ marginBottom: 'var(--space-lg)' }}>
+                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                    Password:
+                  </label>
+                  <input
+                    type="password"
+                    value={teacherPassword}
+                    onChange={(e) => { setTeacherPassword(e.target.value); setError(''); }}
+                    placeholder="Enter teacher password"
+                    className="paragraph-editor"
+                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                    autoFocus
+                  />
+                </div>
+                
+                {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>{error}</p>}
+                
+                <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                  <button type="submit" className="btn btn-primary">Login</button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    onClick={() => { setShowTeacherLogin(false); setError(''); }}
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // TASK PANEL (shows original exam question)
+    // =====================================================
+    
+    function TaskPanel({ isOpen, onClose, config }) {
+      if (!config?.originalTask) return null;
+      
+      return (
+        <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
+          <div className="task-panel-header">
+            <h3 className="task-panel-title">
+              <span>📋</span> Original Task
+            </h3>
+            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">
+              ✕
+            </button>
+          </div>
+          <div 
+            className="task-panel-content"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(config.originalTask) }}
+          />
+        </div>
+      );
+    }
+    
+    function TaskToggleButton({ onClick, hasTask }) {
+      if (!hasTask) return null;
+      
+      return (
+        <button 
+          className={`task-toggle-btn ${hasTask ? 'has-task' : ''}`}
+          onClick={onClick}
+          aria-label="Show original task"
+          title="Show original task"
+        >
+          📋
+        </button>
+      );
+    }
+    
+    // =====================================================
+    // ENTRY SCREEN
+    // =====================================================
+    
+    function EntryScreen({ config, onStudentStart, onBack }) {
+      const [studentName, setStudentName] = useState('');
+      const [studentEmail, setStudentEmail] = useState('');
+      const [error, setError] = useState('');
+      
+      const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
+      
+      const handleStudentSubmit = (e) => {
+        e.preventDefault();
+        
+        // Validate name
+        if (studentName.trim().length < 2) {
+          setError('Please enter your name (at least 2 characters)');
+          return;
+        }
+        
+        // Validate email
+        const emailLower = studentEmail.trim().toLowerCase();
+        if (!emailLower) {
+          setError('Please enter your school email address');
+          return;
+        }
+        
+        if (!emailLower.endsWith(REQUIRED_EMAIL_DOMAIN)) {
+          setError(`Please use your school email (must end with ${REQUIRED_EMAIL_DOMAIN})`);
+          return;
+        }
+        
+        // Basic email format check
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailLower)) {
+          setError('Please enter a valid email address');
+          return;
+        }
+        
+        onStudentStart(studentName.trim(), emailLower);
+      };
+      
+      if (!config) {
+        return <div className="app-container"><LoadingSpinner text="Loading essay..." /></div>;
+      }
+      
+      return (
+        <div className="app-container">
+          <div className="card ghost-appear">
+            <div className="app-header" style={{ marginBottom: 0, border: 'none', background: 'transparent', padding: 'var(--space-lg) 0' }}>
+              <h1 className="gold-glow">{config.title}</h1>
+              <p className="subtitle">{config.subject} • {config.yearGroup}</p>
+              {config.essayTitle && (
+                <p className="essay-title">"{config.essayTitle}"</p>
+              )}
+            </div>
+            
+            <div style={{ marginTop: 'var(--space-xl)' }}>
+              <p style={{ marginBottom: 'var(--space-lg)', lineHeight: 1.7 }}>
+                {config.instructions}
+              </p>
+              
+              <form onSubmit={handleStudentSubmit}>
+                <div style={{ marginBottom: 'var(--space-lg)' }}>
+                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                    Your full name:
+                  </label>
+                  <input
+                    type="text"
+                    value={studentName}
+                    onChange={(e) => { setStudentName(e.target.value); setError(''); }}
+                    placeholder="e.g. John Smith"
+                    className="paragraph-editor"
+                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                    autoFocus
+                  />
+                </div>
+                
+                <div style={{ marginBottom: 'var(--space-lg)' }}>
+                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                    Your school email:
+                  </label>
+                  <input
+                    type="email"
+                    value={studentEmail}
+                    onChange={(e) => { setStudentEmail(e.target.value); setError(''); }}
+                    placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
+                    className="paragraph-editor"
+                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                  />
+                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-xs)' }}>
+                    Must end with {REQUIRED_EMAIL_DOMAIN}
+                  </p>
+                </div>
+                
+                {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>{error}</p>}
+                
+                <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+                  <button type="submit" className="btn btn-primary btn-large">
+                    Start Essay
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    onClick={onBack}
+                  >
+                    ← Back to Essay List
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // PARAGRAPH TRACKER
+    // =====================================================
+    
+    function ParagraphTracker({ paragraphs, currentIndex, paragraphStates, onNavigate, previewMode }) {
+      return (
+        <div className="progress-section" style={{ marginBottom: 'var(--space-xl)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+            <span style={{ fontWeight: 600 }}>Essay Progress</span>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+              {Object.values(paragraphStates).filter(s => s.completed).length} of {paragraphs.length} paragraphs
+            </span>
+          </div>
+          
+          <div className="question-tracker">
+            {paragraphs.map((para, index) => {
+              const state = paragraphStates[para.id] || {};
+              let className = 'question-tracker-item';
+              
+              if (index === currentIndex) className += ' current';
+              else if (state.completed) className += ' correct';
+              else if (state.attempts > 0) className += ' in-progress';
+              
+              // In preview mode, all paragraphs are navigable
+              const canNavigate = previewMode || index <= currentIndex || state.completed || 
+                (index > 0 && paragraphStates[paragraphs[index - 1]?.id]?.completed);
+              
+              if (!canNavigate) className += ' locked';
+              
+              return (
+                <div
+                  key={para.id}
+                  className={className}
+                  onClick={() => canNavigate && onNavigate(index)}
+                  title={para.title}
+                >
+                  {index + 1}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // FEEDBACK DISPLAY
+    // =====================================================
+    
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, onRevise, onAccept }) {
+      const scoreClass = getScoreClass(feedback.overallScore);
+      
+      return (
+        <div className="feedback-panel">
+          <div className="feedback-header">
+            <div className={`feedback-score ${scoreClass}`}>
+              {feedback.overallScore}%
+            </div>
+            <div>
+              <div style={{ fontWeight: 600 }}>Attempt {attemptNumber} Feedback</div>
+              <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                {canRevise ? 'You can revise based on this feedback' : 'Final assessment'}
+              </div>
+            </div>
+          </div>
+          
+          {feedback.criteriaScores && (
+            <div className="criteria-scores">
+              {Object.entries(feedback.criteriaScores).map(([key, score]) => (
+                <div key={key} className="criteria-item">
+                  <div className="criteria-label">{key}</div>
+                  <div className="criteria-score">{score}%</div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {feedback.progressNote && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>📈</span> Progress</div>
+              <p style={{ color: 'var(--color-text-secondary)' }}>{feedback.progressNote}</p>
+            </div>
+          )}
+          
+          {feedback.strengths && feedback.strengths.length > 0 && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>✨</span> Strengths</div>
+              <ul className="feedback-list strengths">
+                {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
+            </div>
+          )}
+          
+          {feedback.improvements && feedback.improvements.length > 0 && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>🎯</span> Areas to Improve</div>
+              <ul className="feedback-list improvements">
+                {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
+            </div>
+          )}
+          
+          {feedback.detailedFeedback && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>📝</span> Detailed Feedback</div>
+              <div className="detailed-feedback">{feedback.detailedFeedback}</div>
+            </div>
+          )}
+          
+          {feedback.exampleRevision && canRevise && (
+            <div className="example-revision">
+              <div className="example-revision-label">💡 Example Improvement</div>
+              {feedback.exampleRevision}
+            </div>
+          )}
+          
+          <div className="revision-actions">
+            {canRevise ? (
+              <>
+                <button className="btn btn-primary" onClick={onRevise}>✏️ Revise My Writing</button>
+                <button className="btn btn-secondary" onClick={onAccept}>✓ Accept & Continue</button>
+              </>
+            ) : (
+              <button className="btn btn-primary" onClick={onAccept}>Continue to Next Section →</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // PARAGRAPH SCREEN
+    // =====================================================
+    
+    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode }) {
+      const [text, setText] = useState(paragraphState?.currentText || '');
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [showFeedback, setShowFeedback] = useState(false);
+      const [currentFeedback, setCurrentFeedback] = useState(null);
+      const textareaRef = useRef(null);
+      
+      const wordCount = countWords(text);
+      const minWords = CONFIG.minWordsPerParagraph || 50;
+      const targetWords = CONFIG.targetWordsPerParagraph || 100;
+      const attemptNumber = (paragraphState?.attempts || 0) + 1;
+      const maxAttempts = CONFIG.maxAttempts || 3;
+      const canSubmit = wordCount >= minWords && !isSubmitting;
+      
+      useEffect(() => {
+        if (paragraphState?.lastFeedback && !paragraphState?.completed) {
+          setCurrentFeedback(paragraphState.lastFeedback);
+          setShowFeedback(true);
+        }
+      }, [paragraphState]);
+      
+      const handleSubmit = async () => {
+        if (!canSubmit) return;
+        setIsSubmitting(true);
+        setShowFeedback(false);
+        
+        try {
+          const response = await fetch('/.netlify/functions/grade-paragraph', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paragraphText: text,
+              paragraphConfig: paragraph,
+              attemptNumber: attemptNumber,
+              maxAttempts: maxAttempts,
+              previousFeedback: paragraphState?.feedbackHistory || [],
+              essayTitle: CONFIG.essayTitle,
+              gradingCriteria: GRADING_CRITERIA
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            setCurrentFeedback(data.feedback);
+            setShowFeedback(true);
+            onSubmitAttempt({
+              text: text,
+              feedback: data.feedback,
+              attemptNumber: attemptNumber,
+              canRevise: data.canRevise,
+              isLastAttempt: data.isLastAttempt
+            });
+          } else {
+            throw new Error(data.error || 'Failed to grade paragraph');
+          }
+        } catch (error) {
+          console.error('Grading error:', error);
+          alert('Failed to submit. Please try again.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+      
+      const handleRevise = () => {
+        setShowFeedback(false);
+        setCurrentFeedback(null);
+        textareaRef.current?.focus();
+      };
+      
+      const handleAccept = () => {
+        onComplete(text, currentFeedback);
+      };
+      
+      const wordCountClass = wordCount < minWords ? 'warning' : wordCount >= targetWords ? 'success' : '';
+      
+      return (
+        <div className="card ghost-appear">
+          <div style={{ marginBottom: 'var(--space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-sm)' }}>
+              <span style={{ 
+                background: paragraph.type === 'introduction' ? 'var(--color-info-bg)' : 
+                           paragraph.type === 'conclusion' ? 'var(--color-success-bg)' : 'var(--color-surface-hover)',
+                color: paragraph.type === 'introduction' ? 'var(--color-info)' : 
+                       paragraph.type === 'conclusion' ? 'var(--color-success)' : 'var(--color-primary-light)',
+                padding: 'var(--space-xs) var(--space-md)',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                textTransform: 'uppercase'
+              }}>
+                {paragraph.type}
+              </span>
+              <h2 style={{ margin: 0 }}>{paragraph.title}</h2>
+            </div>
+          </div>
+          
+          <div className="learning-material" dangerouslySetInnerHTML={{ __html: renderMarkdown(paragraph.learningMaterial) }} />
+          
+          <div className="writing-prompt">
+            <div className="writing-prompt-label">Your Task</div>
+            <div className="writing-prompt-text">{paragraph.writingPrompt}</div>
+          </div>
+          
+          <div className="attempt-indicator">
+            <span className="attempt-badge">Attempt {attemptNumber} of {maxAttempts}</span>
+            {attemptNumber < maxAttempts && (
+              <span className="attempts-remaining">
+                {maxAttempts - attemptNumber} revision{maxAttempts - attemptNumber !== 1 ? 's' : ''} remaining
+              </span>
+            )}
+          </div>
+          
+          {!showFeedback && (
+            <>
+              <textarea
+                ref={textareaRef}
+                className="paragraph-editor"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onPaste={previewMode ? undefined : (e) => {
+                  e.preventDefault();
+                  alert('Pasting is not allowed. Please type your response.');
+                }}
+                onDrop={previewMode ? undefined : (e) => {
+                  e.preventDefault();
+                  alert('Drag and drop is not allowed. Please type your response.');
+                }}
+                placeholder="Start writing your paragraph here..."
+                disabled={isSubmitting}
+              />
+              
+              <div className={`word-count ${wordCountClass}`}>
+                <span>{wordCount} words {wordCount < minWords && `(minimum ${minWords})`}</span>
+                <span>Target: {targetWords} words</span>
+              </div>
+              
+              {isSubmitting ? (
+                <div style={{ marginTop: 'var(--space-lg)' }}>
+                  <LoadingSpinner text="AI is reviewing your writing..." />
+                </div>
+              ) : (
+                <div style={{ marginTop: 'var(--space-lg)' }}>
+                  <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit}>
+                    Submit for Feedback
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          
+          {showFeedback && currentFeedback && (
+            <FeedbackDisplay
+              feedback={currentFeedback}
+              attemptNumber={paragraphState?.attempts || attemptNumber}
+              canRevise={(paragraphState?.attempts || attemptNumber) < maxAttempts}
+              onRevise={handleRevise}
+              onAccept={handleAccept}
+            />
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ESSAY COMPILATION SCREEN
+    // =====================================================
+    
+    function EssayCompilationScreen({ studentName, paragraphs, paragraphStates, onRequestFeedback, onRequestOfficialGrading, essayFeedback, officialGrading, isLoadingFeedback, isLoadingOfficialGrading, config }) {
+      const [showFeedback, setShowFeedback] = useState(!!essayFeedback);
+      const [showOfficialGrading, setShowOfficialGrading] = useState(!!officialGrading);
+      const [activeTab, setActiveTab] = useState('essay');
+      
+      useEffect(() => {
+        if (essayFeedback) setShowFeedback(true);
+      }, [essayFeedback]);
+      
+      useEffect(() => {
+        if (officialGrading) setShowOfficialGrading(true);
+      }, [officialGrading]);
+      
+      const handlePrint = () => window.print();
+      
+      const hasOfficialMarkScheme = !!config?.officialMarkScheme;
+      
+      const compiledParagraphs = paragraphs.map(p => ({
+        ...p,
+        text: paragraphStates[p.id]?.finalText || '',
+        initialText: paragraphStates[p.id]?.initialText || '',
+        score: paragraphStates[p.id]?.score || 0
+      }));
+      
+      // Official grading display component
+      const OfficialGradingDisplay = ({ grading }) => {
+        const { initialVersion, improvedVersion, comparison, examinerComment } = grading;
+        
+        const VersionCard = ({ version, title, isImproved }) => (
+          <div className="card" style={{ 
+            flex: 1,
+            background: isImproved ? 'linear-gradient(145deg, rgba(46, 125, 50, 0.1), var(--color-surface))' : 'var(--color-surface)',
+            border: isImproved ? '2px solid var(--color-success)' : '1px solid var(--color-border)'
+          }}>
+            <h4 style={{ marginBottom: 'var(--space-md)', color: isImproved ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+              {title}
+            </h4>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
+              <div style={{ 
+                fontSize: '3rem', 
+                fontWeight: 700, 
+                fontFamily: 'var(--font-display)',
+                color: 'var(--color-primary-light)'
+              }}>
+                {version.totalMark}<span style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>/{config.officialMarkScheme.totalMarks}</span>
+              </div>
+              <div>
+                <div style={{ 
+                  fontSize: '2rem', 
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  Grade {version.grade}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                  Level {version.level} • {version.percentage}%
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: 'var(--space-md)' }}>
+              <strong>Assessment Objective Breakdown:</strong>
+            </div>
+            
+            {Object.entries(version.aoBreakdown).map(([ao, data]) => (
+              <div key={ao} style={{ 
+                marginBottom: 'var(--space-md)', 
+                padding: 'var(--space-md)', 
+                background: 'var(--color-bg)', 
+                borderRadius: 'var(--radius-md)',
+                borderLeft: '3px solid var(--color-primary)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+                  <strong>{ao}</strong>
+                  <span style={{ color: 'var(--color-primary-light)' }}>
+                    {data.mark} marks (Level {data.level})
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                  {data.justification}
+                </p>
+              </div>
+            ))}
+            
+            <div style={{ marginTop: 'var(--space-lg)' }}>
+              <p style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>
+                {version.overallComment}
+              </p>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+              <div>
+                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>✓ Strengths</strong>
+                <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
+                  {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+              <div>
+                <strong style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>→ To Improve</strong>
+                <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
+                  {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+        
+        return (
+          <div className="ghost-appear">
+            <div className="holistic-feedback" style={{ marginTop: 'var(--space-xl)' }}>
+              <div className="holistic-header">
+                <div>
+                  <h2 style={{ marginBottom: 'var(--space-sm)' }}>📋 Official Mark Scheme Grading</h2>
+                  <p style={{ color: 'var(--color-text-muted)' }}>
+                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} • {config.officialMarkScheme.paper}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Improvement Summary */}
+              <div className="card" style={{ 
+                background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.15), rgba(218, 165, 32, 0.1))',
+                border: '2px solid var(--color-primary)',
+                marginBottom: 'var(--space-xl)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', textAlign: 'center', flexWrap: 'wrap', gap: 'var(--space-lg)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Initial</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 700 }}>{initialVersion.totalMark}</div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>Grade {initialVersion.grade}</div>
+                  </div>
+                  
+                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>→</div>
+                  
+                  <div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Improved</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-success)' }}>{improvedVersion.totalMark}</div>
+                    <div style={{ color: 'var(--color-success)' }}>Grade {improvedVersion.grade}</div>
+                  </div>
+                  
+                  <div style={{ 
+                    padding: 'var(--space-md) var(--space-lg)', 
+                    background: 'var(--color-success-bg)', 
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-success)'
+                  }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-success)', marginBottom: 'var(--space-xs)' }}>Improvement</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                      +{comparison.marksImproved} marks
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-success)' }}>{comparison.gradeChange}</div>
+                  </div>
+                </div>
+                
+                <div style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border)' }}>
+                  <p style={{ margin: 0 }}><strong>Most improved:</strong> {comparison.mostImprovedArea}</p>
+                  <p style={{ margin: 'var(--space-sm) 0 0 0', color: 'var(--color-text-secondary)' }}>{comparison.improvementSummary}</p>
+                </div>
+              </div>
+              
+              {/* Side by side comparison */}
+              <div style={{ display: 'flex', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
+                <VersionCard version={initialVersion} title="📝 Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={improvedVersion} title="✨ Improved Version (Final)" isImproved={true} />
+              </div>
+              
+              {/* Remaining targets */}
+              {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
+                <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-md)' }}>🎯 Next Steps to Improve Further</h4>
+                  <ul style={{ margin: 0, paddingLeft: 'var(--space-lg)' }}>
+                    {comparison.remainingTargets.map((target, i) => (
+                      <li key={i} style={{ marginBottom: 'var(--space-sm)' }}>{target}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Examiner comment */}
+              <div className="encouragement-box">
+                <p><strong>Examiner's Comment:</strong> {examinerComment}</p>
+              </div>
+            </div>
+          </div>
+        );
+      };
+      
+      return (
+        <div className="ghost-appear">
+          {/* Tab navigation */}
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', borderBottom: '2px solid var(--color-border)', paddingBottom: 'var(--space-md)' }}>
+            <button 
+              className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('essay')}
+            >
+              📄 Your Essay
+            </button>
+            <button 
+              className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('feedback')}
+            >
+              💬 AI Feedback
+            </button>
+            {hasOfficialMarkScheme && (
+              <button 
+                className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('official')}
+              >
+                📊 Official Grading
+              </button>
+            )}
+          </div>
+          
+          {/* Essay Tab */}
+          {activeTab === 'essay' && (
+            <>
+              <div className="essay-compilation">
+                <div className="essay-compilation-header">
+                  <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
+                  <p className="essay-compilation-meta">By {studentName} • {config?.subject} • {formatDateTime(new Date())}</p>
+                </div>
+                
+                <div className="compiled-essay">
+                  {compiledParagraphs.map((para) => (
+                    <p key={para.id} className="compiled-paragraph">{para.text}</p>
+                  ))}
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)' }}>
+                <button className="btn btn-primary btn-large" onClick={handlePrint}>🖨️ Print Essay</button>
+              </div>
+            </>
+          )}
+          
+          {/* Feedback Tab */}
+          {activeTab === 'feedback' && (
+            <>
+              {!showFeedback && !isLoadingFeedback && (
+                <div style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                  <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-secondary)' }}>
+                    Get AI feedback on how your essay works as a complete piece of writing.
+                  </p>
+                  <button className="btn btn-primary btn-large" onClick={onRequestFeedback}>
+                    📊 Get AI Feedback
+                  </button>
+                </div>
+              )}
+              
+              {isLoadingFeedback && (
+                <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                  <LoadingSpinner text="AI is analysing your complete essay..." />
+                </div>
+              )}
+              
+              {showFeedback && essayFeedback && (
+                <div className="holistic-feedback">
+                  <div className="holistic-header">
+                    <div>
+                      <h2 style={{ marginBottom: 'var(--space-sm)' }}>📋 Essay Feedback</h2>
+                      <p style={{ color: 'var(--color-text-muted)' }}>Overall assessment of your complete essay</p>
+                    </div>
+                    <div className="final-grade">
+                      <div className={`grade-badge ${getGradeClass(essayFeedback.overallGrade)}`}>
+                        {essayFeedback.overallGrade}
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                          {essayFeedback.finalScore || essayFeedback.overallScore}%
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final Score</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {essayFeedback.essaySummary && (
+                    <div className="feedback-section">
+                      <div className="feedback-section-title"><span>📝</span> Summary</div>
+                      <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
+                    </div>
+                  )}
+                  
+                  {essayFeedback.bestQuotation && (
+                    <div className="best-quote">
+                      <div className="best-quote-label">⭐ Your Best Writing</div>
+                      "{essayFeedback.bestQuotation}"
+                    </div>
+                  )}
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginTop: 'var(--space-xl)' }}>
+                    {essayFeedback.holisticStrengths && (
+                      <div className="feedback-section">
+                        <div className="feedback-section-title"><span>✨</span> Essay Strengths</div>
+                        <ul className="feedback-list strengths">
+                          {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {essayFeedback.holisticImprovements && (
+                      <div className="feedback-section">
+                        <div className="feedback-section-title"><span>🎯</span> Areas for Development</div>
+                        <ul className="feedback-list improvements">
+                          {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {essayFeedback.closingEncouragement && (
+                    <div className="encouragement-box">
+                      <p>{essayFeedback.closingEncouragement}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Official Grading Tab */}
+          {activeTab === 'official' && hasOfficialMarkScheme && (
+            <>
+              {!showOfficialGrading && !isLoadingOfficialGrading && (
+                <div style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                  <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                    <h3 style={{ marginBottom: 'var(--space-md)' }}>📊 Official Mark Scheme Grading</h3>
+                    <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-text-secondary)' }}>
+                      Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
+                    </p>
+                    <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                      This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
+                    </p>
+                    <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
+                      📋 Get Official Grading
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {isLoadingOfficialGrading && (
+                <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                  <LoadingSpinner text="Grading against official mark scheme..." />
+                  <p style={{ marginTop: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                    Comparing initial and improved versions...
+                  </p>
+                </div>
+              )}
+              
+              {showOfficialGrading && officialGrading && (
+                <OfficialGradingDisplay grading={officialGrading} />
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // TEACHER DASHBOARD
+    // =====================================================
+    
+    function TeacherDashboard({ onLogout, onPreview }) {
+      const [submissions, setSubmissions] = useState([]);
+      const [inProgress, setInProgress] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedSubmission, setSelectedSubmission] = useState(null);
+      const [error, setError] = useState(null);
+      const [filterEssayId, setFilterEssayId] = useState('all');
+      const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
+      
+      // Fetch data from Netlify Blobs (fallback)
+      const fetchFromNetlify = useCallback(async () => {
+        try {
+          setError(null);
+          const authParam = encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+          
+          const [submissionsRes, progressRes] = await Promise.all([
+            fetch(`/.netlify/functions/get-submissions?auth=${authParam}`),
+            fetch(`/.netlify/functions/save-progress?auth=${authParam}`)
+          ]);
+          
+          const submissionsData = await submissionsRes.json();
+          const progressData = await progressRes.json();
+          
+          if (!submissionsRes.ok) {
+            throw new Error(submissionsData.error || 'Failed to fetch submissions');
+          }
+          
+          if (submissionsData.submissions) {
+            setSubmissions(submissionsData.submissions);
+          }
+          
+          if (progressData.inProgress) {
+            setInProgress(progressData.inProgress);
+          }
+        } catch (error) {
+          console.error('Failed to fetch data:', error);
+          setError(error.message);
+        } finally {
+          setLoading(false);
+        }
+      }, []);
+      
+      // Set up Firebase real-time listeners or Netlify polling
+      useEffect(() => {
+        if (FIREBASE_ENABLED) {
+          // Real-time Firebase listeners
+          setLoading(true);
+          
+          const unsubscribeSubmissions = FirebaseDB.subscribeToSubmissions((data) => {
+            setSubmissions(data);
+            setLoading(false);
+          });
+          
+          const unsubscribeProgress = FirebaseDB.subscribeToProgress((data) => {
+            setInProgress(data);
+          });
+          
+          return () => {
+            unsubscribeSubmissions();
+            unsubscribeProgress();
+          };
+        } else {
+          // Fallback to Netlify polling
+          fetchFromNetlify();
+          const interval = setInterval(fetchFromNetlify, 15000);
+          return () => clearInterval(interval);
+        }
+      }, [fetchFromNetlify]);
+      
+      // Manual refresh function
+      const handleRefresh = async () => {
+        if (FIREBASE_ENABLED) {
+          setLoading(true);
+          try {
+            const [subs, prog] = await Promise.all([
+              FirebaseDB.getSubmissions(),
+              FirebaseDB.getProgress()
+            ]);
+            if (subs) setSubmissions(subs);
+            if (prog) setInProgress(prog);
+          } catch (err) {
+            console.error('Refresh error:', err);
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          fetchFromNetlify();
+        }
+      };
+      
+      // Filter submissions and progress by selected essay
+      const filteredSubmissions = filterEssayId === 'all' 
+        ? submissions 
+        : submissions.filter(s => s.essayId === filterEssayId);
+      
+      const filteredInProgress = filterEssayId === 'all'
+        ? inProgress
+        : inProgress.filter(p => p.essayId === filterEssayId);
+      
+      // Get unique essay IDs from submissions for filter
+      const availableEssays = [...new Set([
+        ...submissions.map(s => s.essayId).filter(Boolean),
+        ...inProgress.map(p => p.essayId).filter(Boolean)
+      ])];
+      
+      if (loading) {
+        return (
+          <div className="app-container dashboard-container">
+            <LoadingSpinner text="Loading submissions..." />
+          </div>
+        );
+      }
+      
+      if (error) {
+        return (
+          <div className="app-container dashboard-container">
+            <div className="card">
+              <h3 style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>Error Loading Dashboard</h3>
+              <p style={{ marginBottom: 'var(--space-lg)' }}>{error}</p>
+              <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                <button className="btn btn-primary" onClick={handleRefresh}>Try Again</button>
+                <button className="btn btn-secondary" onClick={onLogout}>Back to Home</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="app-container dashboard-container">
+          <div className="app-header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+              <div>
+                <h1 className="gold-glow">Teacher Dashboard</h1>
+                <p className="subtitle">{GLOBAL.siteName || 'Essay Writing Practice'}</p>
+                {FIREBASE_ENABLED && (
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 'var(--space-xs)', 
+                    marginTop: 'var(--space-xs)',
+                    fontSize: '0.8rem',
+                    color: 'var(--color-success)'
+                  }}>
+                    <span style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      background: 'var(--color-success)', 
+                      borderRadius: '50%',
+                      animation: 'pulse 2s infinite'
+                    }}></span>
+                    Real-time updates enabled
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
+                <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Essay Filter */}
+          {ESSAY_LIST.length > 1 && (
+            <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+              <h4 style={{ marginBottom: 'var(--space-md)' }}>Filter by Essay</h4>
+              <div className="essay-filter">
+                <button 
+                  className={`essay-filter-btn ${filterEssayId === 'all' ? 'active' : ''}`}
+                  onClick={() => setFilterEssayId('all')}
+                >
+                  All Essays
+                </button>
+                {ESSAY_LIST.map(essay => (
+                  <button 
+                    key={essay.id}
+                    className={`essay-filter-btn ${filterEssayId === essay.id ? 'active' : ''}`}
+                    onClick={() => setFilterEssayId(essay.id)}
+                  >
+                    {essay.icon} {essay.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Preview Essays */}
+          <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
+            <h4 style={{ marginBottom: 'var(--space-md)' }}>📝 Preview Essays</h4>
+            <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+              {ESSAY_LIST.map(essay => (
+                <button 
+                  key={essay.id}
+                  className="btn btn-primary"
+                  onClick={() => onPreview(essay.id)}
+                >
+                  {essay.icon} {essay.title}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* In-Progress Students */}
+          <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
+            <h3 style={{ marginBottom: 'var(--space-lg)' }}>✏️ In Progress ({filteredInProgress.length})</h3>
+            
+            {filteredInProgress.length === 0 ? (
+              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-lg)' }}>
+                No students currently working on essays.
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Student</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Email</th>
+                      {filterEssayId === 'all' && <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Essay</th>}
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Current Section</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Progress</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Last Active</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInProgress.map((student, index) => {
+                      const essayInfo = ESSAY_LIST.find(e => e.id === student.essayId);
+                      return (
+                        <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                          <td style={{ padding: 'var(--space-md)' }}>{student.studentName}</td>
+                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{student.studentEmail || '-'}</td>
+                          {filterEssayId === 'all' && (
+                            <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                              {essayInfo?.icon} {essayInfo?.title || student.essayTitle || '-'}
+                            </td>
+                          )}
+                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                            {student.currentParagraph || `Paragraph ${student.currentParagraphIndex || 1}`}
+                          </td>
+                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-sm)' }}>
+                              <div style={{ 
+                                width: '100px', 
+                                height: '8px', 
+                                background: 'var(--color-border)', 
+                                borderRadius: '4px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{ 
+                                  width: `${student.percentComplete || 0}%`, 
+                                  height: '100%', 
+                                  background: 'var(--color-primary)',
+                                  borderRadius: '4px',
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                {student.completedParagraphs || 0}/{student.totalParagraphs || '?'}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            {student.lastUpdate ? formatDateTime(student.lastUpdate) : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          
+          {/* Completed Submissions */}
+          <div className="card">
+            <h3 style={{ marginBottom: 'var(--space-lg)' }}>📝 Completed Essays ({filteredSubmissions.length})</h3>
+            
+            {filteredSubmissions.length === 0 ? (
+              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-xl)' }}>
+                No essays submitted yet.
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Student</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Email</th>
+                      {filterEssayId === 'all' && <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Essay</th>}
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Score</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Grade</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Submitted</th>
+                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSubmissions.map((sub, index) => {
+                      const essayInfo = ESSAY_LIST.find(e => e.id === sub.essayId);
+                      return (
+                        <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                          <td style={{ padding: 'var(--space-md)' }}>{sub.studentName}</td>
+                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{sub.studentEmail || '-'}</td>
+                          {filterEssayId === 'all' && (
+                            <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                              {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                            </td>
+                          )}
+                          <td style={{ padding: 'var(--space-md)', textAlign: 'center', fontWeight: 600, color: 'var(--color-success)' }}>{sub.score}%</td>
+                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>{sub.grade || '-'}</td>
+                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>{formatDateTime(sub.submittedAt)}</td>
+                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
+                            <button className="btn btn-secondary" style={{ padding: 'var(--space-xs) var(--space-md)', fontSize: '0.85rem' }} onClick={() => setSelectedSubmission(sub)}>View</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          
+          {selectedSubmission && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-lg)', overflow: 'auto' }} onClick={() => setSelectedSubmission(null)}>
+              <div className="card" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+                  <div>
+                    <h3 style={{ marginBottom: 'var(--space-xs)' }}>{selectedSubmission.studentName}'s Essay</h3>
+                    {selectedSubmission.studentEmail && (
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>{selectedSubmission.studentEmail}</p>
+                    )}
+                  </div>
+                  <button className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Close</button>
+                </div>
+                <div style={{ marginBottom: 'var(--space-lg)' }}>
+                  <strong>Score:</strong> {selectedSubmission.score}%
+                  {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                </div>
+                {selectedSubmission.essay && (
+                  <div className="compiled-essay" style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                    {selectedSubmission.essay.split('\n\n').map((para, i) => (
+                      <p key={i} className="compiled-paragraph">{para}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // MAIN APP COMPONENT
+    // =====================================================
+    
+    function App() {
+      const [screen, setScreen] = useState('select-essay');
+      const [selectedEssayId, setSelectedEssayId] = useState(null);
+      const [studentName, setStudentName] = useState('');
+      const [studentEmail, setStudentEmail] = useState('');
+      const [currentParagraphIndex, setCurrentParagraphIndex] = useState(0);
+      const [paragraphStates, setParagraphStates] = useState({});
+      const [essayFeedback, setEssayFeedback] = useState(null);
+      const [isLoadingEssayFeedback, setIsLoadingEssayFeedback] = useState(false);
+      const [officialGrading, setOfficialGrading] = useState(null);
+      const [isLoadingOfficialGrading, setIsLoadingOfficialGrading] = useState(false);
+      const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+      const [isPreviewMode, setIsPreviewMode] = useState(false);
+      
+      // Get current essay config
+      const CONFIG = selectedEssayId ? getEssayConfig(selectedEssayId) : null;
+      const PARAGRAPHS = CONFIG?.paragraphs || [];
+      const GRADING_CRITERIA = CONFIG ? getGradingCriteria(CONFIG) : {};
+      
+      // Check URL for direct essay link
+      useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const essayParam = urlParams.get('essay');
+        if (essayParam && ESSAYS[essayParam]) {
+          setSelectedEssayId(essayParam);
+          setScreen('entry');
+        }
+      }, []);
+      
+      // Load saved state for selected essay
+      useEffect(() => {
+        if (!CONFIG) return;
+        const saved = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEY);
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            if (data.studentName) setStudentName(data.studentName);
+            if (data.paragraphStates) setParagraphStates(data.paragraphStates);
+            if (data.currentParagraphIndex !== undefined) setCurrentParagraphIndex(data.currentParagraphIndex);
+            if (data.studentName && Object.keys(data.paragraphStates || {}).length > 0) {
+              const allComplete = PARAGRAPHS.every(p => data.paragraphStates[p.id]?.completed);
+              setScreen(allComplete ? 'compilation' : 'writing');
+            }
+          } catch (e) {
+            console.error('Failed to load saved state:', e);
+          }
+        }
+      }, [selectedEssayId]);
+      
+      // Auto-save to localStorage and server (skip in preview mode)
+      useEffect(() => {
+        if (!CONFIG || !studentName || screen !== 'writing' || isPreviewMode) return;
+        
+        // Save to localStorage
+        const saveData = { studentName, studentEmail, paragraphStates, currentParagraphIndex, savedAt: new Date().toISOString() };
+        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEY, JSON.stringify(saveData));
+        
+        // Save to server for teacher dashboard
+        const completedCount = Object.values(paragraphStates).filter(s => s.completed).length;
+        const percentComplete = Math.round((completedCount / PARAGRAPHS.length) * 100);
+        const currentParagraph = PARAGRAPHS[currentParagraphIndex];
+        
+        const progressData = {
+          studentName,
+          studentEmail,
+          type: 'essay',
+          essayId: selectedEssayId,
+          essayTitle: CONFIG.essayTitle,
+          currentParagraph: currentParagraph?.title || 'Starting',
+          currentParagraphIndex: currentParagraphIndex + 1,
+          totalParagraphs: PARAGRAPHS.length,
+          completedParagraphs: completedCount,
+          percentComplete,
+          paragraphScores: Object.entries(paragraphStates)
+            .filter(([_, s]) => s.completed)
+            .map(([id, s]) => ({ id, score: s.score })),
+          lastUpdate: new Date().toISOString()
+        };
+        
+        // Save to Firebase if available, otherwise Netlify Blobs
+        if (FIREBASE_ENABLED) {
+          FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
+        } else {
+          fetch('/.netlify/functions/save-progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(progressData)
+          }).catch(err => console.log('Progress save note:', err.message));
+        }
+      }, [studentName, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
+      
+      const handleSelectEssay = (essayId) => {
+        setSelectedEssayId(essayId);
+        setScreen('entry');
+        // Reset state for new essay
+        setStudentName('');
+        setStudentEmail('');
+        setCurrentParagraphIndex(0);
+        setParagraphStates({});
+        setEssayFeedback(null);
+        setOfficialGrading(null);
+      };
+      
+      const handleStudentStart = (name, email) => {
+        setStudentName(name);
+        setStudentEmail(email);
+        setScreen('writing');
+      };
+      
+      const handleTeacherLogin = () => {
+        setScreen('dashboard');
+      };
+      
+      const handleSubmitAttempt = (paragraphId, attemptData) => {
+        setParagraphStates(prev => {
+          const current = prev[paragraphId] || { attempts: 0, feedbackHistory: [] };
+          return {
+            ...prev,
+            [paragraphId]: {
+              ...current,
+              attempts: attemptData.attemptNumber,
+              currentText: attemptData.text,
+              // Store initial text on first attempt
+              initialText: current.initialText || (attemptData.attemptNumber === 1 ? attemptData.text : current.initialText),
+              lastFeedback: attemptData.feedback,
+              feedbackHistory: [
+                ...current.feedbackHistory,
+                { text: attemptData.text, feedback: attemptData.feedback.detailedFeedback, score: attemptData.feedback.overallScore }
+              ]
+            }
+          };
+        });
+      };
+      
+      const handleCompleteParagraph = (paragraphId, finalText, finalFeedback) => {
+        setParagraphStates(prev => ({
+          ...prev,
+          [paragraphId]: {
+            ...prev[paragraphId],
+            completed: true,
+            finalText: finalText,
+            score: finalFeedback?.overallScore || 0
+          }
+        }));
+        
+        const nextIndex = currentParagraphIndex + 1;
+        if (nextIndex >= PARAGRAPHS.length) {
+          setScreen('compilation');
+        } else {
+          setCurrentParagraphIndex(nextIndex);
+        }
+      };
+      
+      const handleNavigate = (index) => {
+        setCurrentParagraphIndex(index);
+      };
+      
+      const handleRequestEssayFeedback = async () => {
+        setIsLoadingEssayFeedback(true);
+        
+        try {
+          const paragraphData = PARAGRAPHS.map(p => ({
+            config: p,
+            finalText: paragraphStates[p.id]?.finalText || '',
+            attempts: paragraphStates[p.id]?.attempts || 0,
+            paragraphScore: paragraphStates[p.id]?.score || 0
+          }));
+          
+          const response = await fetch('/.netlify/functions/grade-essay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              studentName,
+              essayTitle: CONFIG.essayTitle,
+              paragraphs: paragraphData,
+              gradingCriteria: GRADING_CRITERIA
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            setEssayFeedback({ ...data.feedback, finalScore: data.finalScore });
+            
+            const submissionData = {
+              type: 'essay',
+              essayId: selectedEssayId,
+              essayTitle: CONFIG.essayTitle,
+              studentName,
+              studentEmail,
+              score: data.finalScore,
+              grade: data.feedback.overallGrade,
+              essay: data.fullEssay,
+              paragraphSummary: data.paragraphSummary,
+              feedback: data.feedback,
+              submittedAt: new Date().toISOString()
+            };
+            
+            try {
+              // Save to Firebase if available, otherwise Netlify Blobs
+              if (FIREBASE_ENABLED) {
+                await FirebaseDB.submitEssay(submissionData);
+              } else {
+                await fetch('/.netlify/functions/submit-homework', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(submissionData)
+                });
+              }
+            } catch (submitError) {
+              console.error('Failed to save submission:', submitError);
+            }
+            
+            localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+          } else {
+            throw new Error(data.error || 'Failed to grade essay');
+          }
+        } catch (error) {
+          console.error('Essay grading error:', error);
+          alert('Failed to get essay feedback. Please try again.');
+        } finally {
+          setIsLoadingEssayFeedback(false);
+        }
+      };
+      
+      const handleRequestOfficialGrading = async () => {
+        if (!CONFIG?.officialMarkScheme) {
+          alert('No official mark scheme configured for this essay.');
+          return;
+        }
+        
+        setIsLoadingOfficialGrading(true);
+        
+        try {
+          const paragraphData = PARAGRAPHS.map(p => ({
+            config: p,
+            finalText: paragraphStates[p.id]?.finalText || '',
+            initialText: paragraphStates[p.id]?.initialText || paragraphStates[p.id]?.finalText || '',
+            attempts: paragraphStates[p.id]?.attempts || 0
+          }));
+          
+          const response = await fetch('/.netlify/functions/grade-official', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              studentName,
+              essayTitle: CONFIG.essayTitle,
+              paragraphs: paragraphData,
+              officialMarkScheme: CONFIG.officialMarkScheme,
+              examBoard: CONFIG.officialMarkScheme.examBoard
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            setOfficialGrading(data.grading);
+          } else {
+            throw new Error(data.error || 'Failed to get official grading');
+          }
+        } catch (error) {
+          console.error('Official grading error:', error);
+          alert('Failed to get official grading. Please try again.');
+        } finally {
+          setIsLoadingOfficialGrading(false);
+        }
+      };
+      
+      const handleLogout = () => {
+        setScreen('select-essay');
+        setSelectedEssayId(null);
+        setIsPreviewMode(false);
+        setStudentName('');
+        setStudentEmail('');
+        setParagraphStates({});
+        setCurrentParagraphIndex(0);
+        setEssayFeedback(null);
+        setOfficialGrading(null);
+      };
+      
+      const handleBackToEssayList = () => {
+        setScreen('select-essay');
+        setSelectedEssayId(null);
+        setStudentName('');
+        setStudentEmail('');
+        setParagraphStates({});
+        setCurrentParagraphIndex(0);
+        setEssayFeedback(null);
+        setOfficialGrading(null);
+      };
+      
+      const handlePreviewMode = (essayId) => {
+        if (essayId) {
+          setSelectedEssayId(essayId);
+        }
+        setStudentName('Teacher Preview');
+        setStudentEmail('teacher@preview.mode');
+        setCurrentParagraphIndex(0);
+        setParagraphStates({});
+        setEssayFeedback(null);
+        setOfficialGrading(null);
+        setIsPreviewMode(true);
+        setScreen('writing');
+      };
+      
+      // Render screens
+      if (screen === 'select-essay') {
+        return <EssaySelectionScreen onSelectEssay={handleSelectEssay} onTeacherLogin={handleTeacherLogin} />;
+      }
+      
+      if (screen === 'entry') {
+        return <EntryScreen config={CONFIG} onStudentStart={handleStudentStart} onBack={handleBackToEssayList} />;
+      }
+      
+      if (screen === 'dashboard') {
+        return <TeacherDashboard onLogout={handleLogout} onPreview={handlePreviewMode} />;
+      }
+      
+      if (screen === 'compilation') {
+        return (
+          <div className="app-container">
+            <div className="app-header">
+              <h1 className="gold-glow">{CONFIG.title}</h1>
+              <p className="subtitle">Essay Complete • {studentName}</p>
+            </div>
+            <EssayCompilationScreen
+              studentName={studentName}
+              paragraphs={PARAGRAPHS}
+              paragraphStates={paragraphStates}
+              onRequestFeedback={handleRequestEssayFeedback}
+              onRequestOfficialGrading={handleRequestOfficialGrading}
+              essayFeedback={essayFeedback}
+              officialGrading={officialGrading}
+              isLoadingFeedback={isLoadingEssayFeedback}
+              isLoadingOfficialGrading={isLoadingOfficialGrading}
+              config={CONFIG}
+            />
+          </div>
+        );
+      }
+      
+      // Writing screen
+      const currentParagraph = PARAGRAPHS[currentParagraphIndex];
+      const hasOriginalTask = !!CONFIG.originalTask;
+      
+      return (
+        <div className="app-container" style={{ maxWidth: hasOriginalTask ? '1400px' : '880px' }}>
+          <div className="app-header">
+            <h1 className="gold-glow">{CONFIG.title}</h1>
+            <p className="subtitle">{CONFIG.subject} • {studentName}</p>
+            {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
+          </div>
+          
+          {isPreviewMode && (
+            <div className="card" style={{ 
+              marginBottom: 'var(--space-lg)', 
+              background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.2), rgba(218, 165, 32, 0.1))',
+              border: '2px solid var(--color-primary)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 'var(--space-md) var(--space-lg)'
+            }}>
+              <div>
+                <strong style={{ color: 'var(--color-primary-light)' }}>📝 Teacher Preview Mode</strong>
+                <span style={{ marginLeft: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                  Paste enabled • Free navigation • Progress not saved
+                </span>
+              </div>
+              <button className="btn btn-secondary" onClick={() => {
+                setScreen('dashboard');
+                setIsPreviewMode(false);
+                setStudentName('');
+                setParagraphStates({});
+                setCurrentParagraphIndex(0);
+              }}>
+                ✕ Exit Preview
+              </button>
+            </div>
+          )}
+          
+          <ParagraphTracker
+            paragraphs={PARAGRAPHS}
+            currentIndex={currentParagraphIndex}
+            paragraphStates={paragraphStates}
+            onNavigate={handleNavigate}
+            previewMode={isPreviewMode}
+          />
+          
+          <div className="writing-layout">
+            <div className="writing-main">
+              <ParagraphScreen
+                key={currentParagraph.id}
+                paragraph={currentParagraph}
+                paragraphState={paragraphStates[currentParagraph.id]}
+                onSubmitAttempt={(data) => handleSubmitAttempt(currentParagraph.id, data)}
+                onComplete={(text, feedback) => handleCompleteParagraph(currentParagraph.id, text, feedback)}
+                previewMode={isPreviewMode}
+              />
+            </div>
+            
+            {hasOriginalTask && (
+              <TaskPanel 
+                isOpen={taskPanelOpen} 
+                onClose={() => setTaskPanelOpen(false)}
+                config={CONFIG}
+              />
+            )}
+          </div>
+          
+          <TaskToggleButton 
+            onClick={() => setTaskPanelOpen(true)} 
+            hasTask={hasOriginalTask}
+          />
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // RENDER
+    // =====================================================
+    
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
