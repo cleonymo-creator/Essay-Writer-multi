@@ -4158,7 +4158,7 @@
     // PARAGRAPH SCREEN
     // =====================================================
     
-    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode }) {
+    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria }) {
       const [text, setText] = useState(paragraphState?.currentText || '');
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
@@ -4166,10 +4166,10 @@
       const textareaRef = useRef(null);
       
       const wordCount = countWords(text);
-      const minWords = CONFIG.minWordsPerParagraph || 50;
-      const targetWords = CONFIG.targetWordsPerParagraph || 100;
+      const minWords = config?.minWordsPerParagraph || 50;
+      const targetWords = config?.targetWordsPerParagraph || 100;
       const attemptNumber = (paragraphState?.attempts || 0) + 1;
-      const maxAttempts = CONFIG.maxAttempts || 3;
+      const maxAttempts = config?.maxAttempts || 3;
       const canSubmit = wordCount >= minWords && !isSubmitting;
       
       useEffect(() => {
@@ -4194,8 +4194,8 @@
               attemptNumber: attemptNumber,
               maxAttempts: maxAttempts,
               previousFeedback: paragraphState?.feedbackHistory || [],
-              essayTitle: CONFIG.essayTitle,
-              gradingCriteria: GRADING_CRITERIA
+              essayTitle: config?.essayTitle,
+              gradingCriteria: gradingCriteria
             })
           });
           
@@ -5364,6 +5364,7 @@
       }
       
       if (screen === 'compilation') {
+        if (!CONFIG) return <LoadingSpinner text="Loading..." />;
         return (
           <div className="app-container">
             <div className="app-header">
@@ -5388,6 +5389,7 @@
       
       // Writing screen
       const currentParagraph = PARAGRAPHS[currentParagraphIndex];
+      if (!CONFIG || !currentParagraph) return <LoadingSpinner text="Loading essay..." />;
       const hasOriginalTask = !!CONFIG.originalTask;
       
       return (
@@ -5443,6 +5445,8 @@
                 onSubmitAttempt={(data) => handleSubmitAttempt(currentParagraph.id, data)}
                 onComplete={(text, feedback) => handleCompleteParagraph(currentParagraph.id, text, feedback)}
                 previewMode={isPreviewMode}
+                config={CONFIG}
+                gradingCriteria={GRADING_CRITERIA}
               />
             </div>
             
