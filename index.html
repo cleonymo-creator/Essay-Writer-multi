@@ -424,7 +424,7 @@
     }
     
     .question-tracker-item.correct::after {
-      content: 'âœ“';
+      content: '✓';
       position: absolute;
       top: -5px;
       right: -5px;
@@ -914,7 +914,7 @@
     }
     
     .ai-feedback-list li::before {
-      content: 'â€¢';
+      content: '•';
       position: absolute;
       left: 0;
       color: var(--color-text-muted);
@@ -3967,14 +3967,14 @@
                           fontSize: '0.75rem',
                           fontWeight: 600
                         }}>
-                          {savedProgress.isComplete ? 'âœ“ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || 'ðŸ“'}</div>
+                      <div className="essay-card-icon">{essay.icon || '📝'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>ðŸ“š {essay.subject}</span>
-                        <span>ðŸŽ“ {essay.yearGroup}</span>
+                        <span>📚 {essay.subject}</span>
+                        <span>🎓 {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -3990,7 +3990,7 @@
                           color: 'var(--color-text-muted)'
                         }}>
                           <strong style={{ color: 'var(--color-primary-light)' }}>{savedProgress.studentName}</strong>
-                          <span> â€¢ {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
+                          <span> • {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
                           <div style={{ 
                             marginTop: 'var(--space-xs)',
                             height: '4px',
@@ -4070,10 +4070,10 @@
         <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
           <div className="task-panel-header">
             <h3 className="task-panel-title">
-              <span>ðŸ“‹</span> Original Task
+              <span>📋</span> Original Task
             </h3>
             <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">
-              âœ•
+              ✕
             </button>
           </div>
           <div 
@@ -4094,7 +4094,7 @@
           aria-label="Show original task"
           title="Show original task"
         >
-          ðŸ“‹
+          📋
         </button>
       );
     }
@@ -4205,7 +4205,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>🎯</span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4214,21 +4214,21 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>📝</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>ðŸ“</span> Detailed Feedback</div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
           
           {feedback.exampleRevision && (
             <div className="example-revision">
-              <div className="example-revision-label">💡 Example Improvement</div>
+              <div className="example-revision-label">ðŸ’¡ Example Improvement</div>
               {feedback.exampleRevision}
             </div>
           )}
           
           {feedback.nextLevelHint && (
             <div className="feedback-section" style={{ marginTop: 'var(--space-lg)' }}>
-              <div className="feedback-section-title"><span>🚀</span> To Reach the Next Grade</div>
+              <div className="feedback-section-title"><span>ðŸš€</span> To Reach the Next Grade</div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
           )}
@@ -4237,7 +4237,7 @@
             {canRevise ? (
               <>
                 <button className="btn btn-primary" onClick={onRevise}>
-                  ✏️ Revise My Paragraph
+                  âœ Revise My Paragraph
                 </button>
                 <button className="btn btn-success" onClick={onAccept}>
                   ✓ Accept & Continue
@@ -4375,7 +4375,7 @@
           <div className="card ghost-appear">
             <div className="app-header" style={{ marginBottom: 0, border: 'none', background: 'transparent', padding: 'var(--space-lg) 0' }}>
               <h1 className="gold-glow">{config.title}</h1>
-              <p className="subtitle">{config.subject} â€¢ {config.yearGroup}</p>
+              <p className="subtitle">{config.subject} • {config.yearGroup}</p>
               {config.essayTitle && (
                 <p className="essay-title">"{config.essayTitle}"</p>
               )}
@@ -4422,7 +4422,7 @@
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
                   <label className="grade-selector-label">
-                    ðŸŽ¯ What grade are you aiming for?
+                    🎯 What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -4444,9 +4444,9 @@
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
                       <div className="grade-info-title">
-                        {abilityTier === 'high' ? 'ðŸŒŸ Aiming High!' :
-                         abilityTier === 'foundation' ? 'ðŸ’ª Building Strong Foundations' :
-                         'ðŸ“ˆ Solid Progress'}
+                        {abilityTier === 'high' ? '🌟 Aiming High!' :
+                         abilityTier === 'foundation' ? '💪 Building Strong Foundations' :
+                         '📈 Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -4467,7 +4467,7 @@
                     className="btn btn-secondary"
                     onClick={onBack}
                   >
-                    â† Back to Essay List
+                    ← Back to Essay List
                   </button>
                 </div>
               </form>
@@ -4679,18 +4679,18 @@
         });
         
         let report = `
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
                         ESSAY ASSESSMENT REPORT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
 
 Student: ${studentName}
 Date: ${date}
 Subject: ${config?.subject || ''}
 Essay Title: ${config?.essayTitle || ''}
 
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
                            YOUR ESSAY
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 
 ${fullEssay}
 
@@ -4699,24 +4699,24 @@ ${fullEssay}
         // Add AI Feedback if available
         if (essayFeedback) {
           report += `
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
                         AI FEEDBACK
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
 
 OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
 GRADE: ${essayFeedback.overallGrade}
 
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 SUMMARY
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${essayFeedback.essaySummary || 'No summary available.'}
 
 `;
           if (essayFeedback.bestQuotation) {
             report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 YOUR BEST WRITING
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 "${essayFeedback.bestQuotation}"
 
 `;
@@ -4724,9 +4724,9 @@ YOUR BEST WRITING
           
           if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
             report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 STRENGTHS
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -4734,9 +4734,9 @@ ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
             report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 AREAS FOR DEVELOPMENT
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -4744,9 +4744,9 @@ ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.closingEncouragement) {
             report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 TEACHER'S ENCOURAGEMENT
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${essayFeedback.closingEncouragement}
 
 `;
@@ -4758,14 +4758,14 @@ ${essayFeedback.closingEncouragement}
           const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
           
           report += `
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
 
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 IMPROVEMENT SUMMARY
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 
 Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
 Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
@@ -4774,9 +4774,9 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
 
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 INITIAL VERSION ASSESSMENT
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
 
 Assessment Objectives:
@@ -4790,9 +4790,9 @@ ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
 
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 FINAL VERSION ASSESSMENT
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
 
 Assessment Objectives:
@@ -4810,27 +4810,27 @@ ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
           
           if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 NEXT STEPS TO IMPROVE FURTHER
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
 `;
           }
           
           report += `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 EXAMINER'S COMMENT
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+───────────────────────────────────────────────────────────────
 ${examinerComment}
 
 `;
         }
         
         report += `
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
                       END OF REPORT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+═══════════════════════════════════════════════════════════════
 `;
         
         return report;
@@ -4922,7 +4922,7 @@ ${examinerComment}
                   Grade {version.grade}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                  Level {version.level} â€¢ {version.percentage}%
+                  Level {version.level} • {version.percentage}%
                 </div>
               </div>
             </div>
@@ -4959,13 +4959,13 @@ ${examinerComment}
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
               <div>
-                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>âœ“ Strengths</strong>
+                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>✓ Strengths</strong>
                 <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
               <div>
-                <strong style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>â†’ To Improve</strong>
+                <strong style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>→ To Improve</strong>
                 <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
@@ -4979,9 +4979,9 @@ ${examinerComment}
             <div className="holistic-feedback" style={{ marginTop: 'var(--space-xl)' }}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={{ marginBottom: 'var(--space-sm)' }}>ðŸ“‹ Official Mark Scheme Grading</h2>
+                  <h2 style={{ marginBottom: 'var(--space-sm)' }}>📋 Official Mark Scheme Grading</h2>
                   <p style={{ color: 'var(--color-text-muted)' }}>
-                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} â€¢ {config.officialMarkScheme.paper}
+                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} • {config.officialMarkScheme.paper}
                   </p>
                 </div>
               </div>
@@ -4999,7 +4999,7 @@ ${examinerComment}
                     <div style={{ color: 'var(--color-text-muted)' }}>Grade {initialVersion.grade}</div>
                   </div>
                   
-                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>â†’</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>→</div>
                   
                   <div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Improved</div>
@@ -5029,14 +5029,14 @@ ${examinerComment}
               
               {/* Side by side comparison */}
               <div style={{ display: 'flex', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
-                <VersionCard version={initialVersion} title="ðŸ“ Initial Version (First Attempt)" isImproved={false} />
-                <VersionCard version={improvedVersion} title="âœ¨ Improved Version (Final)" isImproved={true} />
+                <VersionCard version={initialVersion} title="📝 Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={improvedVersion} title="✨ Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸŽ¯ Next Steps to Improve Further</h4>
+                  <h4 style={{ marginBottom: 'var(--space-md)' }}>🎯 Next Steps to Improve Further</h4>
                   <ul style={{ margin: 0, paddingLeft: 'var(--space-lg)' }}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={{ marginBottom: 'var(--space-sm)' }}>{target}</li>
@@ -5062,20 +5062,20 @@ ${examinerComment}
               className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('essay')}
             >
-              ðŸ“„ Your Essay
+              📄 Your Essay
             </button>
             <button 
               className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('feedback')}
             >
-              ðŸ’¬ AI Feedback
+              💬 AI Feedback
             </button>
             {hasOfficialMarkScheme && (
               <button 
                 className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('official')}
               >
-                ðŸ“Š Official Grading
+                📜 Official Grading
               </button>
             )}
           </div>
@@ -5086,7 +5086,7 @@ ${examinerComment}
               <div className="essay-compilation">
                 <div className="essay-compilation-header">
                   <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
-                  <p className="essay-compilation-meta">By {studentName} â€¢ {config?.subject} â€¢ {formatDateTime(new Date())}</p>
+                  <p className="essay-compilation-meta">By {studentName} • {config?.subject} • {formatDateTime(new Date())}</p>
                 </div>
                 
                 <div className="compiled-essay">
@@ -5097,7 +5097,7 @@ ${examinerComment}
               </div>
               
               <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)' }}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}>ðŸ–¨ï¸ Print Essay</button>
+                <button className="btn btn-primary btn-large" onClick={handlePrint}>🖨️ Print Essay</button>
               </div>
             </>
           )}
@@ -5111,7 +5111,7 @@ ${examinerComment}
                     Get AI feedback on how your essay works as a complete piece of writing.
                   </p>
                   <button className="btn btn-primary btn-large" onClick={onRequestFeedback}>
-                    ðŸ“Š Get AI Feedback
+                    📜 Get AI Feedback
                   </button>
                 </div>
               )}
@@ -5126,7 +5126,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={{ marginBottom: 'var(--space-sm)' }}>ðŸ“‹ Essay Feedback</h2>
+                      <h2 style={{ marginBottom: 'var(--space-sm)' }}>📋 Essay Feedback</h2>
                       <p style={{ color: 'var(--color-text-muted)' }}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -5144,14 +5144,14 @@ ${examinerComment}
                   
                   {essayFeedback.essaySummary && (
                     <div className="feedback-section">
-                      <div className="feedback-section-title"><span>ðŸ“</span> Summary</div>
+                      <div className="feedback-section-title"><span>📝</span> Summary</div>
                       <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
                     </div>
                   )}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">â­ Your Best Writing</div>
+                      <div className="best-quote-label">⭐ Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -5159,7 +5159,7 @@ ${examinerComment}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginTop: 'var(--space-xl)' }}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>âœ¨</span> Essay Strengths</div>
+                        <div className="feedback-section-title"><span>✨</span> Essay Strengths</div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -5168,7 +5168,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas for Development</div>
+                        <div className="feedback-section-title"><span>🎯</span> Areas for Development</div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -5192,7 +5192,7 @@ ${examinerComment}
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
                   <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                    <h3 style={{ marginBottom: 'var(--space-md)' }}>ðŸ“Š Official Mark Scheme Grading</h3>
+                    <h3 style={{ marginBottom: 'var(--space-md)' }}>📜 Official Mark Scheme Grading</h3>
                     <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-text-secondary)' }}>
                       Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                     </p>
@@ -5200,7 +5200,7 @@ ${examinerComment}
                       This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
                     </p>
                     <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                      ðŸ“‹ Get Official Grading
+                      📋 Get Official Grading
                     </button>
                   </div>
                 </div>
@@ -5229,16 +5229,16 @@ ${examinerComment}
               border: '2px solid var(--color-primary)',
               textAlign: 'center'
             }}>
-              <h3 style={{ marginBottom: 'var(--space-md)' }}>ðŸ“„ Download Your Full Report</h3>
+              <h3 style={{ marginBottom: 'var(--space-md)' }}>📄 Download Your Full Report</h3>
               <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-secondary)' }}>
                 Get a complete printable report including your essay, AI feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  ðŸ–¨ï¸ Print Full Report
+                  🖨️ Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  ðŸ“‹ Copy to Clipboard
+                  📋 Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -5407,7 +5407,7 @@ ${examinerComment}
                 )}
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>ðŸ”„ Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
             </div>
@@ -5439,7 +5439,7 @@ ${examinerComment}
           
           {/* Preview Essays */}
           <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-            <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ“ Preview Essays</h4>
+            <h4 style={{ marginBottom: 'var(--space-md)' }}>📝 Preview Essays</h4>
             <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
               {ESSAY_LIST.map(essay => (
                 <button 
@@ -5455,7 +5455,7 @@ ${examinerComment}
           
           {/* In-Progress Students */}
           <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-            <h3 style={{ marginBottom: 'var(--space-lg)' }}>âœï¸ In Progress ({filteredInProgress.length})</h3>
+            <h3 style={{ marginBottom: 'var(--space-lg)' }}>✏️ In Progress ({filteredInProgress.length})</h3>
             
             {filteredInProgress.length === 0 ? (
               <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-lg)' }}>
@@ -5525,7 +5525,7 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={{ marginBottom: 'var(--space-lg)' }}>ðŸ“ Completed Essays ({filteredSubmissions.length})</h3>
+            <h3 style={{ marginBottom: 'var(--space-lg)' }}>📝 Completed Essays ({filteredSubmissions.length})</h3>
             
             {filteredSubmissions.length === 0 ? (
               <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-xl)' }}>
@@ -5563,8 +5563,8 @@ ${examinerComment}
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center', fontWeight: 600, color: 'var(--color-success)' }}>{sub.score}%</td>
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>{sub.grade || '-'}</td>
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
-                            <span title={hasFeedback ? 'Has AI feedback' : 'No AI feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>ðŸ’¬</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>ðŸ“Š</span>
+                            <span title={hasFeedback ? 'Has AI feedback' : 'No AI feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>💬</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>📜</span>
                           </td>
                           <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
@@ -5595,7 +5595,7 @@ ${examinerComment}
                 <div style={{ marginBottom: 'var(--space-lg)', display: 'flex', gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
                   <div>
                     <strong>AI Score:</strong> {selectedSubmission.score}%
-                    {selectedSubmission.grade && <> â€¢ <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                    {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
                   </div>
                   {selectedSubmission.officialGrading && (
                     <div style={{ color: 'var(--color-success)' }}>
@@ -5608,7 +5608,7 @@ ${examinerComment}
                 {/* Essay Text */}
                 {selectedSubmission.essay && (
                   <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ“„ Essay</h4>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>📄 Essay</h4>
                     <div className="compiled-essay" style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
                       {selectedSubmission.essay.split('\n\n').map((para, i) => (
                         <p key={i} className="compiled-paragraph">{para}</p>
@@ -5620,7 +5620,7 @@ ${examinerComment}
                 {/* AI Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ’¬ AI Feedback</h4>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>💬 AI Feedback</h4>
                     <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={{ marginBottom: 'var(--space-md)' }}>{selectedSubmission.feedback.essaySummary}</p>
@@ -5635,7 +5635,7 @@ ${examinerComment}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={{ color: 'var(--color-success)' }}>âœ¨ Strengths</strong>
+                            <strong style={{ color: 'var(--color-success)' }}>✨ Strengths</strong>
                             <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -5643,7 +5643,7 @@ ${examinerComment}
                         )}
                         {selectedSubmission.feedback.holisticImprovements && (
                           <div>
-                            <strong style={{ color: 'var(--color-warning)' }}>ðŸŽ¯ To Improve</strong>
+                            <strong style={{ color: 'var(--color-warning)' }}>🎯 To Improve</strong>
                             <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
                               {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -5657,7 +5657,7 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ“Š Official Mark Scheme Grading</h4>
+                    <h4 style={{ marginBottom: 'var(--space-md)' }}>📜 Official Mark Scheme Grading</h4>
                     <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
                       {/* Improvement Summary */}
                       <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', textAlign: 'center', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
@@ -5666,7 +5666,7 @@ ${examinerComment}
                           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
                           <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
                         </div>
-                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>â†’</div>
+                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>→</div>
                         <div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final</div>
                           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
@@ -6095,7 +6095,7 @@ ${examinerComment}
           <div className="app-container">
             <div className="app-header">
               <h1 className="gold-glow">{CONFIG.title}</h1>
-              <p className="subtitle">Essay Complete â€¢ {studentName}</p>
+              <p className="subtitle">Essay Complete • {studentName}</p>
             </div>
             <EssayCompilationScreen
               studentName={studentName}
@@ -6122,11 +6122,11 @@ ${examinerComment}
         <div className="app-container" style={{ maxWidth: hasOriginalTask ? '1400px' : '880px' }}>
           <div className="app-header">
             <h1 className="gold-glow">{CONFIG.title}</h1>
-            <p className="subtitle">{CONFIG.subject} â€¢ {studentName}</p>
+            <p className="subtitle">{CONFIG.subject} • {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
               <div className="target-grade-badge" style={{ marginTop: 'var(--space-sm)' }}>
-                🎯 Target: <strong>Grade {targetGrade}</strong>
+                ðŸŽ¯ Target: <strong>Grade {targetGrade}</strong>
               </div>
             )}
           </div>
@@ -6142,9 +6142,9 @@ ${examinerComment}
               padding: 'var(--space-md) var(--space-lg)'
             }}>
               <div>
-                <strong style={{ color: 'var(--color-primary-light)' }}>ðŸ“ Teacher Preview Mode</strong>
+                <strong style={{ color: 'var(--color-primary-light)' }}>📝 Teacher Preview Mode</strong>
                 <span style={{ marginLeft: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
-                  Paste enabled â€¢ Free navigation â€¢ Progress not saved
+                  Paste enabled • Free navigation • Progress not saved
                 </span>
               </div>
               <button className="btn btn-secondary" onClick={() => {
@@ -6154,7 +6154,7 @@ ${examinerComment}
                 setParagraphStates({});
                 setCurrentParagraphIndex(0);
               }}>
-                âœ• Exit Preview
+                ✕ Exit Preview
               </button>
             </div>
           )}
