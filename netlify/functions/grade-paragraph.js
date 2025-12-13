@@ -1,5 +1,5 @@
 // Grade a single paragraph with detailed feedback for revision
-// Adapted for student's target grade (Zone of Proximal Development)
+// Supports authentic exam grade descriptors when available, with fallback to generic criteria
 const Anthropic = require("@anthropic-ai/sdk").default;
 
 const client = new Anthropic();
@@ -10,18 +10,18 @@ const GRADE_SYSTEMS = {
     name: "GCSE",
     grades: ["9", "8", "7", "6", "5", "4", "3", "2", "1"],
     tiers: {
-      high: ["9", "8", "7"],      // High ability - challenge with sophisticated concepts
-      middle: ["6", "5", "4"],    // Middle ability - balanced support and challenge
-      foundation: ["3", "2", "1"] // Foundation - more scaffolding and encouragement
+      high: ["9", "8", "7"],
+      middle: ["6", "5", "4"],
+      foundation: ["3", "2", "1"]
     }
   },
   alevel: {
-    name: "A-Level", 
+    name: "A-Level",
     grades: ["A*", "A", "B", "C", "D", "E"],
     tiers: {
-      high: ["A*", "A"],         // High ability
-      middle: ["B", "C"],        // Middle ability
-      foundation: ["D", "E"]     // Foundation
+      high: ["A*", "A"],
+      middle: ["B", "C"],
+      foundation: ["D", "E"]
     }
   }
 };
@@ -32,12 +32,67 @@ function getAbilityTier(targetGrade, gradeSystem) {
   for (const [tier, grades] of Object.entries(system.tiers)) {
     if (grades.includes(targetGrade)) return tier;
   }
-  return "middle"; // Default fallback
+  return "middle";
+}
+
+// Get the next grade up from current target
+function getNextGradeUp(targetGrade, gradeSystem) {
+  const system = GRADE_SYSTEMS[gradeSystem] || GRADE_SYSTEMS.gcse;
+  const grades = system.grades;
+  const currentIndex = grades.indexOf(targetGrade);
+  if (currentIndex > 0) {
+    return grades[currentIndex - 1];
+  }
+  return targetGrade;
+}
+
+// Build grade descriptors text from gradeBoundaries array
+function buildGradeDescriptorsText(gradeBoundaries, totalMarks) {
+  if (!gradeBoundaries || !Array.isArray(gradeBoundaries) || gradeBoundaries.length === 0) {
+    return null;
+  }
+  
+  return gradeBoundaries.map(gb => {
+    const markRange = gb.maxMarks 
+      ? `${gb.minMarks}-${gb.maxMarks}/${totalMarks} marks`
+      : `${gb.minMarks}+ marks`;
+    return `### ${gb.grade} (${markRange})
+${gb.descriptor}`;
+  }).join('\n\n');
+}
+
+// Find the grade descriptor for a specific grade
+function getGradeDescriptor(gradeBoundaries, grade) {
+  if (!gradeBoundaries || !Array.isArray(gradeBoundaries)) return null;
+  const boundary = gradeBoundaries.find(gb => gb.grade === grade || gb.grade === `Grade ${grade}`);
+  return boundary?.descriptor || null;
+}
+
+// Get adjacent grade descriptors for comparison
+function getAdjacentGradeDescriptors(gradeBoundaries, targetGrade) {
+  if (!gradeBoundaries || !Array.isArray(gradeBoundaries)) return null;
+  
+  const targetIndex = gradeBoundaries.findIndex(gb => 
+    gb.grade === targetGrade || 
+    gb.grade === `Grade ${targetGrade}` ||
+    gb.grade.includes(targetGrade)
+  );
+  
+  if (targetIndex === -1) return null;
+  
+  const result = {
+    target: gradeBoundaries[targetIndex],
+    above: targetIndex > 0 ? gradeBoundaries[targetIndex - 1] : null,
+    below: targetIndex < gradeBoundaries.length - 1 ? gradeBoundaries[targetIndex + 1] : null
+  };
+  
+  return result;
 }
 
 // Generate differentiated teaching approach based on ability tier
 function getDifferentiatedApproach(tier, targetGrade, gradeSystem) {
   const systemName = GRADE_SYSTEMS[gradeSystem]?.name || "GCSE";
+  const nextGrade = getNextGradeUp(targetGrade, gradeSystem);
   
   const approaches = {
     high: {
@@ -63,7 +118,7 @@ function getDifferentiatedApproach(tier, targetGrade, gradeSystem) {
       vocabulary: "clear academic vocabulary with occasional explanations of key terms",
       feedback_style: `
 - Balance encouragement with constructive challenge
-- Their target is grade ${targetGrade} but always push them toward the grade above
+- Their target is grade ${targetGrade} but always push them toward grade ${nextGrade}
 - Provide clear, actionable steps they can take
 - Use a mix of specific praise and focused improvement points
 - Explain WHY certain techniques are effective
@@ -112,8 +167,10 @@ exports.handler = async (event) => {
       previousFeedback,
       essayTitle,
       gradingCriteria,
-      targetGrade,      // NEW: e.g., "6" for GCSE or "B" for A-Level
-      gradeSystem       // NEW: "gcse" or "alevel"
+      gradeBoundaries,  // NEW: Array of {grade, minMarks, maxMarks, descriptor}
+      totalMarks,       // NEW: Total marks for the essay
+      targetGrade,
+      gradeSystem
     } = JSON.parse(event.body);
 
     const isLastAttempt = attemptNumber >= maxAttempts;
@@ -122,6 +179,18 @@ exports.handler = async (event) => {
     const abilityTier = getAbilityTier(targetGrade || "5", gradeSystem || "gcse");
     const approach = getDifferentiatedApproach(abilityTier, targetGrade || "5", gradeSystem || "gcse");
     const systemName = GRADE_SYSTEMS[gradeSystem]?.name || "GCSE";
+    const nextGrade = getNextGradeUp(targetGrade || "5", gradeSystem || "gcse");
+
+    // Check if we have authentic grade descriptors
+    const hasAuthenticDescriptors = gradeBoundaries && Array.isArray(gradeBoundaries) && gradeBoundaries.length > 0;
+    const gradeDescriptorsText = hasAuthenticDescriptors 
+      ? buildGradeDescriptorsText(gradeBoundaries, totalMarks || 40)
+      : null;
+    
+    // Get specific descriptors for target grade and adjacent grades
+    const adjacentDescriptors = hasAuthenticDescriptors 
+      ? getAdjacentGradeDescriptors(gradeBoundaries, targetGrade || "5")
+      : null;
 
     // Build context from previous feedback if this is a revision
     let revisionContext = "";
@@ -136,7 +205,7 @@ ${previousFeedback
 ### Attempt ${i + 1}
 **Their writing:** "${fb.text}"
 **Feedback given:** ${fb.feedback}
-**Score:** ${fb.score}%
+**Score:** ${fb.score}%${fb.estimatedGrade ? ` (Est. ${fb.estimatedGrade})` : ''}
 `
   )
   .join("\n")}
@@ -144,6 +213,68 @@ ${previousFeedback
 Please assess whether they have improved based on previous feedback. ${abilityTier === 'foundation' ? 'Celebrate any improvements enthusiastically!' : abilityTier === 'high' ? 'Note improvements but maintain high expectations.' : 'Acknowledge improvements while encouraging further development.'}
 `;
     }
+
+    // Build assessment criteria section - use authentic descriptors if available, fallback to generic
+    let assessmentCriteriaSection;
+    if (hasAuthenticDescriptors) {
+      assessmentCriteriaSection = `## OFFICIAL GRADE DESCRIPTORS
+Use these authentic exam board descriptors to assess the student's work:
+
+${gradeDescriptorsText}
+
+## TARGET GRADE FOCUS
+The student is targeting **${targetGrade}**. Here's what they need to demonstrate:
+
+**To achieve ${targetGrade}:**
+${adjacentDescriptors?.target?.descriptor || 'Meet the standard descriptors for this grade.'}
+
+${adjacentDescriptors?.above ? `**To reach ${adjacentDescriptors.above.grade} (stretch goal):**
+${adjacentDescriptors.above.descriptor}` : ''}
+
+Your feedback should:
+1. Assess which grade level their current work matches
+2. Identify specific evidence that places them at that level
+3. Give concrete steps to move toward the next grade up`;
+    } else {
+      // Fallback to generic criteria
+      assessmentCriteriaSection = `## Assessment Criteria (weight in brackets)
+${Object.entries(gradingCriteria)
+  .map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`)
+  .join("\n")}`;
+    }
+
+    // Build response format based on whether we have authentic descriptors
+    const responseFormat = hasAuthenticDescriptors ? `{
+  "estimatedGrade": "<the GCSE grade (1-9) this paragraph is currently working at>",
+  "gradeJustification": "<2-3 sentences explaining why this matches that grade descriptor>",
+  "overallScore": <number 0-100 that corresponds to the estimated grade>,
+  "criteriaScores": {
+    "communication": <number 0-100 for tone, style, vocabulary>,
+    "organization": <number 0-100 for structure and coherence>,
+    "language": <number 0-100 for linguistic devices and techniques>,
+    "accuracy": <number 0-100 for spelling, punctuation, grammar>
+  },
+  "strengths": ["<specific strength with evidence from their writing>", "<another strength>"],
+  "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement linked to grade descriptors>"' : '"<improvement linked to next grade descriptor>", "<another specific improvement>"'}],
+  "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs referencing what the grade descriptors say' : '2-3 paragraphs linking feedback to grade descriptors'}>",
+  "exampleRevision": "<${approach.example_style}>",
+  "progressNote": "<if revision: note improvement with reference to grade movement>",
+  "nextLevelHint": "<specific advice quoting what the ${nextGrade} descriptor requires that they haven't yet demonstrated>"
+}` : `{
+  "overallScore": <number 0-100>,
+  "criteriaScores": {
+    "content": <number 0-100>,
+    "analysis": <number 0-100>,
+    "structure": <number 0-100>,
+    "expression": <number 0-100>
+  },
+  "strengths": ["<specific strength 1>", "<specific strength 2>"],
+  "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement with a helpful hint>"' : '"<specific, actionable improvement 1>", "<specific, actionable improvement 2>"'}],
+  "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs' : abilityTier === 'high' ? '2-3 paragraphs of substantive, challenging feedback' : '2-3 paragraphs of balanced feedback'}>",
+  "exampleRevision": "<${approach.example_style}>",
+  "progressNote": "<if revision: ${approach.encouragement}>",
+  "nextLevelHint": "<what would make this work reach the NEXT grade up from their target>"
+}`;
 
     const systemPrompt = `You are an experienced, skilled English teacher providing personalised feedback on essay paragraphs. You adapt your teaching style to each student's needs and target grade.
 
@@ -160,32 +291,15 @@ ${approach.feedback_style}
 ## KEY PRINCIPLE: Zone of Proximal Development
 Your feedback should ALWAYS push the student slightly beyond their current level:
 - Don't just help them reach their target grade - help them EXCEED it
-- If they're working at their target level, show them what the next grade up looks like
+- If they're working at their target level, show them what grade ${nextGrade} looks like
 - Never let them feel "that's good enough" - there's always room to grow
 - BUT ensure your challenges are achievable, not demoralising
 
-## Assessment Criteria (weight in brackets)
-${Object.entries(gradingCriteria)
-  .map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`)
-  .join("\n")}
+${assessmentCriteriaSection}
 
 ## Response Format
 You must respond with valid JSON in this exact format:
-{
-  "overallScore": <number 0-100>,
-  "criteriaScores": {
-    "content": <number 0-100>,
-    "analysis": <number 0-100>,
-    "structure": <number 0-100>,
-    "expression": <number 0-100>
-  },
-  "strengths": ["<specific strength 1>", "<specific strength 2>"],
-  "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement with a helpful hint>"' : '"<specific, actionable improvement 1>", "<specific, actionable improvement 2>"'}],
-  "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs' : abilityTier === 'high' ? '2-3 paragraphs of substantive, challenging feedback' : '2-3 paragraphs of balanced feedback'}>",
-  "exampleRevision": "<${approach.example_style}>",
-  "progressNote": "<if revision: ${approach.encouragement}>",
-  "nextLevelHint": "<what would make this work reach the NEXT grade up from their target>"
-}`;
+${responseFormat}`;
 
     const userPrompt = `## Essay Question
 "${essayTitle}"
@@ -198,7 +312,7 @@ You must respond with valid JSON in this exact format:
 ${paragraphConfig.keyPoints.map((p) => `- ${p}`).join("\n")}
 
 ${
-  paragraphConfig.exampleQuotes
+  paragraphConfig.exampleQuotes && paragraphConfig.exampleQuotes.length > 0
     ? `## Suggested Quotations
 ${paragraphConfig.exampleQuotes.map((q) => `- "${q}"`).join("\n")}`
     : ""
@@ -207,6 +321,7 @@ ${paragraphConfig.exampleQuotes.map((q) => `- "${q}"`).join("\n")}`
 ## Student Profile
 - **Target Grade:** ${targetGrade || "5"} (${systemName})
 - **Ability Tier:** ${abilityTier}
+${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade descriptors` : '- **Assessment:** Using standard criteria'}
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
@@ -219,11 +334,13 @@ ${revisionContext}
 
 ---
 
-Please assess this paragraph and provide differentiated feedback appropriate for a student targeting grade ${targetGrade || "5"}. Remember to:
-1. Score based on the weighted criteria
+Please assess this paragraph${hasAuthenticDescriptors ? ' against the official grade descriptors' : ''} and provide differentiated feedback appropriate for a student targeting grade ${targetGrade || "5"}. 
+
+Remember:
+1. ${hasAuthenticDescriptors ? 'Determine which grade level the work currently matches and cite specific evidence' : 'Score based on the weighted criteria'}
 2. Use the ${approach.tone} tone appropriate for this student
 3. ${abilityTier === 'foundation' ? 'Focus on 1-2 achievable improvements with lots of support' : abilityTier === 'high' ? 'Challenge them with sophisticated improvements' : 'Provide balanced, actionable feedback'}
-4. Always push them toward the NEXT grade up from their target
+4. Always push them toward grade ${nextGrade}
 ${!isLastAttempt ? `5. Help them understand exactly what to change in their next revision` : `5. Summarise their overall achievement and learning`}`;
 
     const response = await client.messages.create({
@@ -243,15 +360,12 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
     // Extract JSON from response
     let feedback;
     try {
-      // Try to parse directly first
       feedback = JSON.parse(content);
     } catch {
-      // Try to extract JSON from markdown code blocks
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         feedback = JSON.parse(jsonMatch[1].trim());
       } else {
-        // Try to find JSON object in the response
         const jsonStart = content.indexOf("{");
         const jsonEnd = content.lastIndexOf("}");
         if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -262,14 +376,35 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
       }
     }
 
-    // Calculate weighted score if not provided correctly
+    // Calculate weighted score if not provided correctly (for fallback mode)
     if (!feedback.overallScore && feedback.criteriaScores) {
+      const criteriaKeys = Object.keys(feedback.criteriaScores);
+      const weights = hasAuthenticDescriptors 
+        ? { communication: 30, organization: 25, language: 25, accuracy: 20 }
+        : gradingCriteria;
+      
       feedback.overallScore = Math.round(
-        Object.entries(feedback.criteriaScores).reduce((sum, [key, score]) => {
-          const weight = gradingCriteria[key]?.weight || 25;
-          return sum + (score * weight) / 100;
+        criteriaKeys.reduce((sum, key) => {
+          const weight = weights[key]?.weight || weights[key] || 25;
+          return sum + (feedback.criteriaScores[key] * weight) / 100;
         }, 0)
       );
+    }
+
+    // If we have authentic descriptors but no estimated grade, derive one from score
+    if (hasAuthenticDescriptors && !feedback.estimatedGrade && feedback.overallScore) {
+      const scoreToGrade = (score) => {
+        if (score >= 90) return "9";
+        if (score >= 80) return "8";
+        if (score >= 70) return "7";
+        if (score >= 60) return "6";
+        if (score >= 50) return "5";
+        if (score >= 40) return "4";
+        if (score >= 30) return "3";
+        if (score >= 20) return "2";
+        return "1";
+      };
+      feedback.estimatedGrade = scoreToGrade(feedback.overallScore);
     }
 
     return {
@@ -282,7 +417,8 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
         isLastAttempt: isLastAttempt,
         canRevise: !isLastAttempt,
         targetGrade: targetGrade,
-        abilityTier: abilityTier
+        abilityTier: abilityTier,
+        usedAuthenticDescriptors: hasAuthenticDescriptors
       }),
     };
   } catch (error) {
