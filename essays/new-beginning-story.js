@@ -1,226 +1,231 @@
 window.ESSAYS = window.ESSAYS || {};
-window.ESSAYS['new-beginning-story'] = {
-  id: 'new-beginning-story',
-  title: "Creative Writing: A Story About a New Beginning",
-  subject: "English GCSE",
+window.ESSAYS['creative-writing-sunset'] = {
+  id: 'creative-writing-sunset',
+  title: "Creative Writing: Describing a Place at Sunset",
+  subject: "GCSE English",
   yearGroup: "Year 11",
-  essayTitle: "Write a story about a new beginning.",
-  instructions: "Write a creative story of 600-800 words about a new beginning. Focus on creating engaging characters, vivid descriptions, and a clear narrative structure. You have 45 minutes to plan and write your response.",
+  totalMarks: 40,
+  essayTitle: "Describe a place at sunset as suggested by this picture",
+  instructions: "You are writing for a magazine's creative writing section. Create a vivid, engaging description that captures the atmosphere and mood of a place at sunset. Focus on using sophisticated vocabulary, varied sentence structures, and creative language techniques to bring your description to life.",
   originalTask: `## Exam Question
-Write a story about a new beginning.
+A magazine has asked for contributions for their creative writing section.
+
+Describe a place at sunset as suggested by this picture:
 
 ## Mark Scheme Summary
-Content and Organisation (24 marks):
-- Compelling and convincing communication
-- Tone, style and register matched to purpose and audience
-- Extensive vocabulary with crafting of linguistic devices
-- Varied and inventive structural features
-- Range of convincing and complex ideas
-- Fluently linked paragraphs
-
-Technical Accuracy (16 marks):
-- Secure sentence demarcation and punctuation
-- Full range of appropriate sentence forms
-- Standard English with complex grammatical structures
-- High accuracy in spelling including ambitious vocabulary`,
+AO5 (24 marks): Communication, tone, style, register, vocabulary, linguistic devices, structural features, organization, coherence
+AO6 (16 marks): Technical accuracy including sentence demarcation, punctuation, sentence variety, Standard English, spelling, vocabulary range`,
   maxAttempts: 3,
   minWordsPerParagraph: 60,
-  targetWordsPerParagraph: 120,
+  targetWordsPerParagraph: 150,
   teacherPassword: "teacher123",
   paragraphs: [
     {
       id: 1,
       title: "Opening - Setting the Scene",
       type: "introduction",
-      learningMaterial: `## Creating Your Story Opening
+      learningMaterial: `## Creating an Engaging Opening
 
-Your opening paragraph should immediately engage the reader and establish the setting, character, and hint at the new beginning to come.
+Your opening paragraph should immediately draw the reader into your sunset scene. This is your chance to establish the setting, atmosphere, and tone that will captivate your magazine audience.
 
-### Key Elements to Include
-- Introduce your main character in a specific situation
-- Create a vivid sense of place and atmosphere
-- Hint at what change or new beginning is coming
-- Use descriptive language to draw the reader in
-- Start with action, dialogue, or an intriguing observation
-
-### Effective Opening Techniques
-- In medias res (starting in the middle of action)
-- Descriptive scene-setting with sensory details
-- Character's internal thoughts at a crucial moment
-- Dialogue that reveals character and situation
-
-### Language Features to Use
-- Varied sentence lengths for rhythm and pace
-- Sensory imagery (sight, sound, smell, touch, taste)
-- Figurative language (metaphors, similes, personification)
-- Specific, concrete nouns and dynamic verbs
+### Key Techniques to Use
+- Start with an arresting image or sensory detail
+- Use sophisticated vocabulary to create atmosphere
+- Employ literary devices like metaphors, similes, or personification
+- Vary your sentence structures for effect
+- Establish the specific location and time
 
 ### Sentence Starters
-- "The last time [character] looked at..."
-- "As the door closed behind her..."
-- "Everything changed the moment..."
-- "The empty boxes stood like..."
-- "She had never imagined that..."`,
-      writingPrompt: "Write your opening paragraph. Introduce your main character and the situation that will lead to their new beginning. Use vivid descriptive language to engage your reader immediately.",
-      keyPoints: ["Engaging opening", "Character introduction", "Setting establishment", "Hint at change to come"],
+- "As the sun began its descent..."
+- "The dying light cast..."
+- "Bathed in golden hues..."
+- "Silence settled over..."
+
+### Language Devices to Consider
+- Personification of the sun or landscape
+- Color imagery and visual metaphors
+- Sensory details beyond just sight
+- Alliteration or assonance for musical effect`,
+      writingPrompt: "Write an opening paragraph that immediately establishes your sunset setting with sophisticated vocabulary and at least one clear literary device. Focus on creating a strong visual impression that draws your reader in.",
+      keyPoints: ["Compelling opening that engages reader", "Sophisticated vocabulary choices", "Clear use of literary devices", "Varied sentence structures"],
       exampleQuotes: [],
-      points: 6
+      points: 8
     },
     {
       id: 2,
-      title: "Development - The Catalyst for Change",
+      title: "Visual Description and Atmosphere",
       type: "body",
-      learningMaterial: `## Developing the Story - The Turning Point
+      learningMaterial: `## Developing Visual Description
 
-This paragraph should reveal what triggers the new beginning. Show the moment of change or decision that sets your character on a new path.
+This paragraph should focus on the visual spectacle of the sunset while building the overall atmosphere of your chosen place.
 
 ### Key Elements to Include
-- The event, decision, or realization that sparks change
-- Your character's emotional response to this catalyst
-- Details that make the moment feel real and significant
-- Build tension or create emotional investment
+- Detailed color palette of the sunset
+- How light affects the landscape/buildings
+- Shadows and contrasts
+- The changing quality of light over time
+- Specific visual details that make your setting unique
 
-### Techniques for Showing Change
-- Use dialogue to reveal character thoughts and feelings
-- Show physical reactions and body language
-- Include internal monologue or reflection
-- Create contrast between 'before' and the emerging 'after'
+### Advanced Vocabulary Suggestions
+- Colors: amber, crimson, vermillion, ochre, burnished, molten
+- Light: radiance, luminescence, incandescent, dappled, filtered
+- Atmosphere: ethereal, sublime, transcendent, serene, dramatic
 
-### Narrative Devices
-- Flashbacks to show what is being left behind
-- Symbolism (objects that represent old life vs new)
-- Weather or setting changes to mirror character's journey
-- Time shifts to show the significance of the moment
-
-### Language Focus
-- Vary sentence structure for emotional impact
-- Use specific vocabulary to convey precise emotions
-- Include figurative language to deepen meaning
-- Show don't tell - use actions to reveal feelings`,
-      writingPrompt: "Develop your story by showing the moment or event that triggers the new beginning. Focus on your character's emotional response and make this turning point feel significant and real.",
-      keyPoints: ["Clear catalyst for change", "Character's emotional response", "Significant moment developed", "Effective narrative techniques"],
+### Structural Techniques
+- Use short sentences for impact alongside longer, flowing descriptions
+- Build from general to specific details
+- Consider the reader's eye movement across the scene`,
+      writingPrompt: "Develop the visual aspects of your sunset scene, using sophisticated color vocabulary and varied sentence structures to create a vivid picture. Include how the changing light affects your chosen setting.",
+      keyPoints: ["Rich visual imagery", "Sophisticated color vocabulary", "Effective use of light and shadow", "Varied sentence structures for effect"],
       exampleQuotes: [],
-      points: 6
+      points: 10
     },
     {
       id: 3,
-      title: "Conflict and Challenge",
+      title: "Sensory Details and Mood",
       type: "body",
-      learningMaterial: `## Building Tension - Obstacles and Challenges
+      learningMaterial: `## Engaging Multiple Senses
 
-New beginnings are rarely smooth. This paragraph should explore the difficulties, fears, or obstacles your character faces as they navigate their change.
+Move beyond just visual description to create a fully immersive experience. This paragraph should deepen the mood and atmosphere through sensory details.
 
-### Types of Conflict to Explore
-- Internal conflict (fear, doubt, uncertainty)
-- External obstacles (practical challenges, other people)
-- Emotional struggles (leaving comfort zone, facing unknown)
-- Moral dilemmas (difficult choices that must be made)
+### Senses to Explore
+- Sound: What can be heard as day turns to evening?
+- Touch: Temperature, texture, breeze
+- Smell: Evening air, flowers, sea, food, smoke
+- Taste: Perhaps something in the air
+- Emotional responses: How does the setting make someone feel?
 
-### Showing Character Development
-- How does your character respond to challenges?
-- What do their actions reveal about their personality?
-- How do they grow or change through facing difficulties?
-- What strengths or weaknesses are revealed?
-
-### Creating Tension
-- Use shorter sentences for moments of high emotion
-- Build suspense through pacing and word choice
-- Include moments of doubt or setback
-- Show the stakes - what your character risks losing or gaining
+### Creating Mood Through Language
+- Choose adjectives that convey emotion as well as description
+- Use rhythm in your sentences to match the mood
+- Consider the pace - is your sunset peaceful or dramatic?
+- Use figurative language to deepen meaning
 
 ### Advanced Techniques
-- Use dramatic irony (reader knows something character doesn't)
-- Include symbolic elements that reflect the character's journey
-- Create parallel situations that highlight growth
-- Use setting and weather to reflect mood and tension`,
-      writingPrompt: "Write about the challenges and obstacles your character faces during their new beginning. Show their struggles and how they respond to difficulties, revealing their character through their actions.",
-      keyPoints: ["Clear obstacles presented", "Character response to challenges", "Tension and conflict developed", "Character growth shown"],
+- Synesthesia (mixing senses)
+- Pathetic fallacy (weather/nature reflecting mood)
+- Symbolism in your chosen details`,
+      writingPrompt: "Expand your description to include at least three different senses beyond sight. Focus on creating a specific mood or atmosphere that will resonate with your magazine readers.",
+      keyPoints: ["Multi-sensory description", "Clear mood creation", "Sophisticated use of adjectives", "Figurative language for deeper meaning"],
       exampleQuotes: [],
-      points: 6
+      points: 10
     },
     {
       id: 4,
-      title: "Resolution and Reflection",
+      title: "Human Element and Life",
       type: "body",
-      learningMaterial: `## Moving Toward Resolution
+      learningMaterial: `## Adding Life to Your Scene
 
-This paragraph should show how your character begins to overcome challenges or comes to terms with their new situation. Show growth and adaptation.
+This paragraph should introduce human activity or the signs of human presence, showing how people interact with or respond to this sunset setting.
 
-### Elements of Resolution
-- How your character adapts to or overcomes obstacles
-- Moments of realization or personal growth
-- Small victories or progress made
-- Changed perspective or understanding
+### Possible Elements
+- People watching the sunset
+- Activities that happen at this time of day
+- Signs of human habitation or use
+- How the sunset affects human behavior
+- Contrast between natural beauty and human activity
 
-### Showing Character Growth
-- Compare character's mindset now to earlier in the story
-- Show new skills, confidence, or understanding developed
-- Reveal changed relationships or circumstances
-- Demonstrate resilience or acceptance
+### Character and Voice Techniques
+- Show rather than tell what people are doing
+- Use specific, concrete details rather than generalizations
+- Consider different perspectives or ages of people present
+- Think about social interactions and relationships
 
-### Techniques for Showing Progress
-- Use specific examples of how things have improved
-- Include dialogue that shows changed thinking
-- Describe actions that demonstrate new confidence
-- Show the character making different choices than before
-
-### Language and Structure
-- Use more positive or hopeful imagery
-- Include longer, more flowing sentences to show peace/resolution
-- Employ metaphors that suggest growth or renewal
-- Create sense of movement forward`,
-      writingPrompt: "Show how your character begins to adapt to or overcome their challenges. Demonstrate their growth and progress in their new beginning, revealing how they have changed.",
-      keyPoints: ["Character adaptation shown", "Progress and growth demonstrated", "Obstacles addressed", "Positive development"],
+### Connecting to Your Audience
+- Choose details that magazine readers can relate to
+- Create moments of recognition or emotion
+- Use universal human experiences`,
+      writingPrompt: "Introduce human elements to your sunset scene. This could be people present, signs of human activity, or how the setting is used by people. Make it relatable to your magazine audience.",
+      keyPoints: ["Effective integration of human elements", "Relatable details for audience", "Specific, concrete imagery", "Connection between setting and human experience"],
       exampleQuotes: [],
-      points: 6
+      points: 8
     },
     {
       id: 5,
-      title: "Conclusion - The New Reality",
+      title: "Conclusion - Lasting Impact",
       type: "conclusion",
-      learningMaterial: `## Crafting Your Conclusion
+      learningMaterial: `## Creating a Memorable Conclusion
 
-Your ending should show the character in their new situation, having grown from their experience. Create a sense of completion while suggesting ongoing possibilities.
+Your conclusion should leave a lasting impression on your magazine readers. This is your final opportunity to create impact and meaning.
 
-### Types of Effective Endings
-- Full circle - return to opening image/situation but show how it's changed
-- Forward-looking - hint at future possibilities or continued growth
-- Reflective - character contemplates what they've learned
-- Symbolic - use imagery that represents the transformation completed
+### Effective Conclusion Techniques
+- Return to your opening image with new insight
+- Focus on the transformation from day to night
+- End with a powerful single image or metaphor
+- Reflect on the universal appeal of sunsets
+- Create a sense of closure while leaving room for imagination
 
-### What to Include
-- Clear sense of how the character has changed
-- Resolution of the main conflict or challenge
-- Emotional satisfaction for the reader
-- Hint at continued life beyond the story
-
-### Language and Tone
-- Match tone to your story's overall mood
-- Use imagery that reinforces your theme
-- Create rhythm and flow with varied sentence structure
-- End with impact - memorable final line or image
-
-### Advanced Techniques
-- Cyclical structure - echo your opening but show transformation
-- Symbolic closure - objects, settings, or actions that represent completion
-- Emotional resonance - leave reader with strong feeling
-- Subtle rather than obvious - trust reader to understand growth shown
+### Final Impact Strategies
+- Use your most sophisticated vocabulary and imagery here
+- Consider the emotional resonance of your ending
+- End with rhythm and flow that feels satisfying
+- Connect your specific place to broader human experience
 
 ### Avoiding Common Pitfalls
-- Don't over-explain the theme or message
-- Avoid 'and then I woke up' or similar cliched endings
-- Don't introduce new major plot elements
-- Resist urge to tie up every loose end too neatly`,
-      writingPrompt: "Write your conclusion showing your character in their new reality. Demonstrate how they have grown and changed, creating a satisfying ending that shows the completion of their new beginning.",
-      keyPoints: ["Character transformation clear", "Satisfying resolution", "Effective ending technique", "Emotional impact achieved"],
+- Don't simply repeat what you've already said
+- Avoid cliches about sunsets unless you can refresh them
+- Don't introduce completely new elements
+- Keep focus on your chosen setting`,
+      writingPrompt: "Write a conclusion that creates lasting impact and brings your sunset description to a satisfying close. Consider how your specific place represents something universal about the beauty of sunsets.",
+      keyPoints: ["Memorable and impactful ending", "Sophisticated vocabulary and imagery", "Sense of closure and completion", "Universal appeal or meaning"],
       exampleQuotes: [],
-      points: 10
+      points: 4
     }
   ],
-  gradingCriteria: {
-    content: { weight: 30, description: "Compelling communication, extensive vocabulary, conscious crafting of linguistic devices" },
-    structure: { weight: 30, description: "Varied structural features, range of complex ideas, coherent paragraphs with integrated discourse markers" },
-    creativity: { weight: 25, description: "Engaging narrative, convincing characters, effective use of literary techniques" },
-    accuracy: { weight: 15, description: "Secure punctuation and grammar, wide range of sentence forms, accurate spelling including ambitious vocabulary" }
-  }
+  gradeBoundaries: [
+    {
+      grade: "Grade 9",
+      minMarks: 30,
+      maxMarks: 40,
+      descriptor: "Demonstrates compelling and convincing communication with extensive, ambitious vocabulary and sustained crafting of linguistic devices. Shows varied and inventive structural features with fluently integrated paragraphs, alongside consistently secure technical accuracy with sophisticated sentence variety."
+    },
+    {
+      grade: "Grade 8",
+      minMarks: 27,
+      maxMarks: 29,
+      descriptor: "Shows convincing communication with extensive vocabulary and conscious crafting of linguistic devices. Demonstrates varied and effective structural features with consistently coherent paragraphs, supported by mostly secure technical accuracy and sophisticated vocabulary use."
+    },
+    {
+      grade: "Grade 7",
+      minMarks: 26,
+      maxMarks: 26,
+      descriptor: "Displays consistently clear communication with increasingly sophisticated vocabulary and successful linguistic devices. Uses effective structural features with coherent paragraphs and integrated discourse markers, alongside mostly accurate technical control."
+    },
+    {
+      grade: "Grade 6",
+      minMarks: 23,
+      maxMarks: 25,
+      descriptor: "Achieves generally clear communication with vocabulary clearly chosen for effect and appropriate use of linguistic devices. Shows usually effective structural features with usually coherent paragraphs, supported by generally accurate spelling and varied sentence forms."
+    },
+    {
+      grade: "Grade 5",
+      minMarks: 22,
+      maxMarks: 22,
+      descriptor: "Demonstrates some sustained successful communication with conscious vocabulary choices and some linguistic devices. Uses some structural features with increasing variety of linked ideas and some paragraphing, alongside some control of punctuation and sentence variety."
+    },
+    {
+      grade: "Grade 4",
+      minMarks: 19,
+      maxMarks: 21,
+      descriptor: "Shows some successful communication with attempts to match tone and style to audience, beginning to vary vocabulary with some linguistic devices. Demonstrates some linked and relevant ideas with attempted paragraphing, supported by mostly secure sentence demarcation and some accurate spelling."
+    },
+    {
+      grade: "Grade 3",
+      minMarks: 16,
+      maxMarks: 18,
+      descriptor: "Achieves simple communication with simple awareness of purpose and audience, using simple vocabulary and linguistic devices. Shows evidence of simple structural features with one or two relevant ideas, alongside occasional sentence demarcation and basic accurate spelling."
+    },
+    {
+      grade: "Grade 2",
+      minMarks: 8,
+      maxMarks: 15,
+      descriptor: "Demonstrates limited communication with occasional sense of purpose, using simple vocabulary. Shows limited structural features with one or two unlinked ideas and no clear paragraphing, supported by simple sentence forms and basic spelling accuracy."
+    },
+    {
+      grade: "Grade 1",
+      minMarks: 1,
+      maxMarks: 7,
+      descriptor: "Shows very limited communication with minimal awareness of task requirements. Demonstrates very simple vocabulary and limited structural organization, with occasional use of sentence demarcation and simple spelling of basic words."
+    }
+  ]
 };
