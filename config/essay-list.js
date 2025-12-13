@@ -20,6 +20,16 @@ window.ESSAY_LIST = [
     totalMarks: 30
   },
   {
+    id: 'creativenov23',
+    title: "Paper 1 Nov 22 Description Task",
+    subject: "English Literature",
+    yearGroup: "Year 11",
+    description: "Describe a place at sunset as suggested by this pictureAnalyse Scrooge's transformation through Dickens' novella",
+    icon: "📚",
+    paragraphs: 5,
+    totalMarks: 40
+  },
+  {
     id: 'mobile-phones-ban',
     title: "Mobile Phones in Schools",
     subject: "English Language",
