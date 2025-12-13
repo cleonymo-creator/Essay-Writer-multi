@@ -4006,11 +4006,11 @@
       };
       
       return (
-        <div className="app-container" style={{ maxWidth: '1000px' }}>
-          <div className="app-header" style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
+        <div className="app-container" style="max-width: 1000px;">
+          <div className="app-header" style="text-align: center; margin-bottom: var(--space-xl);">
             <h1 className="gold-glow">{GLOBAL.siteName || 'Essay Writing Practice'}</h1>
             {GLOBAL.schoolName && <p className="subtitle">{GLOBAL.schoolName}</p>}
-            <p style={{ color: 'var(--color-text-muted)', marginTop: 'var(--space-md)' }}>
+            <p style="color: var(--color-text-muted); margin-top: var(--space-md);">
               Select an essay to begin your guided writing practice
             </p>
           </div>
@@ -4028,25 +4028,15 @@
                       style={savedProgress ? { borderColor: 'var(--color-primary)' } : {}}
                     >
                       {savedProgress && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 'var(--space-md)',
-                          right: 'var(--space-md)',
-                          background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.75rem',
-                          fontWeight: 600
-                        }}>
+                        <div style="position: absolute; top: var(--space-md); right: var(--space-md); background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary); color: white; padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600;">
                           {savedProgress.isComplete ? '? Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
+                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>ðŸ“š {essay.subject}</span>
-                        <span>ðŸŽ“ {essay.yearGroup}</span>
+                        <span>📝 {essay.subject}</span>
+                        <span>🎓 {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -4054,28 +4044,11 @@
                         <span className="essay-card-stat"><strong>{essay.totalMarks}</strong> marks</span>
                       </div>
                       {savedProgress && !savedProgress.isComplete && (
-                        <div style={{ 
-                          marginTop: 'var(--space-md)', 
-                          paddingTop: 'var(--space-md)', 
-                          borderTop: '1px solid var(--color-border)',
-                          fontSize: '0.85rem',
-                          color: 'var(--color-text-muted)'
-                        }}>
-                          <strong style={{ color: 'var(--color-primary-light)' }}>{savedProgress.studentName}</strong>
+                        <div style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);">
+                          <strong style="color: var(--color-primary-light);">{savedProgress.studentName}</strong>
                           <span> • {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
-                          <div style={{ 
-                            marginTop: 'var(--space-xs)',
-                            height: '4px',
-                            background: 'var(--color-border)',
-                            borderRadius: '2px',
-                            overflow: 'hidden'
-                          }}>
-                            <div style={{
-                              width: `${savedProgress.percentComplete}%`,
-                              height: '100%',
-                              background: 'var(--color-primary)',
-                              borderRadius: '2px'
-                            }} />
+                          <div style="margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;">
+                            <div style="width: ${savedProgress.percentComplete}%; height: 100%; background: var(--color-primary); border-radius: 2px;" />
                           </div>
                         </div>
                       )}
@@ -4084,7 +4057,7 @@
                 })}
               </div>
               
-              <div style={{ textAlign: 'center', marginTop: 'var(--space-2xl)' }}>
+              <div style="text-align: center; margin-top: var(--space-2xl);">
                 <button 
                   className="btn btn-secondary"
                   onClick={() => setShowTeacherLogin(true)}
@@ -4094,11 +4067,11 @@
               </div>
             </>
           ) : (
-            <div className="card" style={{ maxWidth: '400px', margin: '0 auto' }}>
-              <h3 style={{ marginBottom: 'var(--space-lg)' }}>Teacher Login</h3>
+            <div className="card" style="max-width: 400px; margin: 0 auto;">
+              <h3 style="margin-bottom: var(--space-lg);">Teacher Login</h3>
               <form onSubmit={handleTeacherSubmit}>
-                <div style={{ marginBottom: 'var(--space-lg)' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                <div style="margin-bottom: var(--space-lg);">
+                  <label style="display: block; margin-bottom: var(--space-sm); font-weight: 600;">
                     Password:
                   </label>
                   <input
@@ -4107,14 +4080,14 @@
                     onChange={(e) => { setTeacherPassword(e.target.value); setError(''); }}
                     placeholder="Enter teacher password"
                     className="paragraph-editor"
-                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                    style="min-height: auto; padding: var(--space-md);"
                     autoFocus
                   />
                 </div>
                 
-                {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>{error}</p>}
+                {error && <p style="color: var(--color-error); margin-bottom: var(--space-md);">{error}</p>}
                 
-                <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                <div style="display: flex; gap: var(--space-md);">
                   <button type="submit" className="btn btn-primary">Login</button>
                   <button 
                     type="button" 
@@ -4145,7 +4118,7 @@
         <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
           <div className="task-panel-header">
             <h3 className="task-panel-title">
-              <span>📋 </span> Reference Materials
+              <span>ðŸ“‹ </span> Reference Materials
             </h3>
             <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">×</button>
           </div>
@@ -4153,7 +4126,7 @@
             {hasTask && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>📝</span> Exam Question
+                  <span>ðŸ“</span> Exam Question
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(config.originalTask) }} />
               </div>
@@ -4162,7 +4135,7 @@
             {hasSource && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>📖</span> Source Material
+                  <span>ðŸ“–</span> Source Material
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }} />
               </div>
@@ -4182,7 +4155,7 @@
           aria-label="Show original task"
           title="Show original task"
         >
-          ðŸ‘¨â€ðŸ«Â
+          Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â
         </button>
       );
     }
@@ -4238,7 +4211,7 @@
               <span>Complete</span>
             </div>
             <div className="progress-summary-item">
-              <span className="progress-summary-dot" style={{ background: 'var(--color-info)' }}></span>
+              <span className="progress-summary-dot" style="background: var(--color-info);"></span>
               <span>In Progress</span>
             </div>
             <div className="progress-summary-item">
@@ -4263,31 +4236,16 @@
         <div className="feedback-panel ghost-appear">
           <div className="feedback-header">
             {hasAuthenticGrade ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                <div style={{ 
-                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
-                  color: 'var(--color-text-inverse)',
-                  padding: 'var(--space-sm) var(--space-md)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-display)'
-                }}>
+              <div style="display: flex; align-items: center; gap: var(--space-md);">
+                <div style="background: linear-gradient(135deg; color: var(--color-text-inverse); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: 1.5rem; font-weight: 700; font-family: var(--font-display);">
                   {feedback.estimatedGrade || feedback.awardedGrade}
                 </div>
                 {hasMarks ? (
-                  <div style={{ 
-                    fontSize: '1rem', 
-                    color: 'var(--color-text)',
-                    background: 'var(--color-surface-alt)',
-                    padding: 'var(--space-xs) var(--space-sm)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontWeight: 500
-                  }}>
+                  <div style="font-size: 1rem; color: var(--color-text); background: var(--color-surface-alt); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 500;">
                     {feedback.awardedMarks}/{feedback.totalMarks} marks
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                  <div style="font-size: 0.9rem; color: var(--color-text-muted);">
                     ({feedback.overallScore}%)
                   </div>
                 )}
@@ -4298,8 +4256,8 @@
               </div>
             )}
             <div>
-              <h3 style={{ margin: 0 }}>Feedback on Attempt {attemptNumber}</h3>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+              <h3 style="margin: 0;">Feedback on Attempt {attemptNumber}</h3>
+              <p style="margin: 0; font-size: 0.9rem; color: var(--color-text-muted);">
                 {canRevise ? 'Review the feedback and revise your paragraph' : 'Final feedback on your paragraph'}
               </p>
             </div>
@@ -4307,17 +4265,11 @@
           
           {/* Grade/Marks Justification - shown when using authentic descriptors */}
           {(feedback.marksJustification || feedback.gradeJustification) && (
-            <div style={{ 
-              marginBottom: 'var(--space-lg)', 
-              padding: 'var(--space-md)', 
-              background: 'rgba(184, 134, 11, 0.1)', 
-              borderRadius: 'var(--radius-md)',
-              borderLeft: '3px solid var(--color-primary)'
-            }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-light)', marginBottom: 'var(--space-xs)' }}>
+            <div style="margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(184; border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);">
+              <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary-light); margin-bottom: var(--space-xs);">
                 Indicative Mark Assessment
               </div>
-              <p style={{ margin: 0, fontSize: '0.95rem' }}>{feedback.marksJustification || feedback.gradeJustification}</p>
+              <p style="margin: 0; font-size: 0.95rem;">{feedback.marksJustification || feedback.gradeJustification}</p>
             </div>
           )}
           
@@ -4359,7 +4311,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ‘Š/span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>Ã°Å¸â€˜Å </span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4368,7 +4320,7 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ‘¨â€ðŸ«Â</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â</span> Detailed Feedback</div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
@@ -4381,7 +4333,7 @@
           )}
           
           {feedback.nextLevelHint && (
-            <div className="feedback-section" style={{ marginTop: 'var(--space-lg)' }}>
+            <div className="feedback-section" style="margin-top: var(--space-lg);">
               <div className="feedback-section-title"><span>🎯</span> To Reach the Next Grade</div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
@@ -4398,7 +4350,7 @@
                 </button>
               </>
             ) : (
-              <button className="btn btn-success btn-large" onClick={onAccept} style={{ width: '100%' }}>
+              <button className="btn btn-success btn-large" onClick={onAccept} style="width: 100%;">
                 ? Complete & Continue to Next Section
               </button>
             )}
@@ -4527,7 +4479,7 @@
       return (
         <div className="app-container">
           <div className="card ghost-appear">
-            <div className="app-header" style={{ marginBottom: 0, border: 'none', background: 'transparent', padding: 'var(--space-lg) 0' }}>
+            <div className="app-header" style="margin-bottom: 0; border: none; background: transparent; padding: var(--space-lg) 0;">
               <h1 className="gold-glow">{config.title}</h1>
               <p className="subtitle">{config.subject} • {config.yearGroup}</p>
               {config.essayTitle && (
@@ -4535,14 +4487,14 @@
               )}
             </div>
 
-            <div style={{ marginTop: 'var(--space-xl)' }}>
-              <p style={{ marginBottom: 'var(--space-lg)', lineHeight: 1.7 }}>
+            <div style="margin-top: var(--space-xl);">
+              <p style="margin-bottom: var(--space-lg); line-height: 1.7;">
                 {config.instructions}
               </p>
 
               <form onSubmit={handleStudentSubmit}>
-                <div style={{ marginBottom: 'var(--space-lg)' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                <div style="margin-bottom: var(--space-lg);">
+                  <label style="display: block; margin-bottom: var(--space-sm); font-weight: 600;">
                     Your full name:
                   </label>
                   <input
@@ -4551,13 +4503,13 @@
                     onChange={(e) => { setStudentName(e.target.value); setError(''); }}
                     placeholder="e.g. John Smith"
                     className="paragraph-editor"
-                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                    style="min-height: auto; padding: var(--space-md);"
                     autoFocus
                   />
                 </div>
 
-                <div style={{ marginBottom: 'var(--space-lg)' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
+                <div style="margin-bottom: var(--space-lg);">
+                  <label style="display: block; margin-bottom: var(--space-sm); font-weight: 600;">
                     Your school email:
                   </label>
                   <input
@@ -4566,9 +4518,9 @@
                     onChange={(e) => { setStudentEmail(e.target.value); setError(''); }}
                     placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
                     className="paragraph-editor"
-                    style={{ minHeight: 'auto', padding: 'var(--space-md)' }}
+                    style="min-height: auto; padding: var(--space-md);"
                   />
-                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-xs)' }}>
+                  <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);">
                     Must end with {REQUIRED_EMAIL_DOMAIN}
                   </p>
                 </div>
@@ -4598,9 +4550,9 @@
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
                       <div className="grade-info-title">
-                        {abilityTier === 'high' ? 'ðŸš€ Aiming High!' :
-                         abilityTier === 'foundation' ? '?â€Â Building Strong Foundations' :
-                         'ðŸ“† Solid Progress'}
+                        {abilityTier === 'high' ? '🚀 Aiming High!' :
+                         abilityTier === 'foundation' ? '?Ã¢â‚¬ÂÃ‚Â Building Strong Foundations' :
+                         'Ã°Å¸â€œâ€  Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -4610,9 +4562,9 @@
                   )}
                 </div>
 
-                {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>{error}</p>}
+                {error && <p style="color: var(--color-error); margin-bottom: var(--space-md);">{error}</p>}
 
-                <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+                <div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
                   <button type="submit" className="btn btn-primary btn-large">
                     Start Essay
                   </button>
@@ -4663,32 +4615,26 @@
       return (
         <div className="app-container">
           <div className="card ghost-appear">
-            <div className="app-header" style={{ marginBottom: 0, border: 'none', background: 'transparent', padding: 'var(--space-lg) 0' }}>
+            <div className="app-header" style="margin-bottom: 0; border: none; background: transparent; padding: var(--space-lg) 0;">
               <h1 className="gold-glow">Teacher Preview</h1>
               <p className="subtitle">{config.title}</p>
-              <p style={{ color: 'var(--color-text-muted)', marginTop: 'var(--space-sm)' }}>
+              <p style="color: var(--color-text-muted); margin-top: var(--space-sm);">
                 {config.subject} - {config.yearGroup}
               </p>
             </div>
 
-            <div style={{ 
-              marginTop: 'var(--space-lg)', 
-              padding: 'var(--space-md)', 
-              background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.15), rgba(218, 165, 32, 0.1))',
-              border: '2px solid var(--color-primary)',
-              borderRadius: 'var(--radius-md)'
-            }}>
-              <p style={{ margin: 0, color: 'var(--color-text)' }}>
-                <strong style={{ color: 'var(--color-primary-light)' }}>Preview Mode:</strong> Test the essay as a student would experience it. Pasting is enabled and progress is not saved.
+            <div style="margin-top: var(--space-lg); padding: var(--space-md); background: linear-gradient(135deg; border: 2px solid var(--color-primary); border-radius: var(--radius-md);">
+              <p style="margin: 0; color: var(--color-text);">
+                <strong style="color: var(--color-primary-light);">Preview Mode:</strong> Test the essay as a student would experience it. Pasting is enabled and progress is not saved.
               </p>
             </div>
 
-            <div style={{ marginTop: 'var(--space-xl)' }}>
-              <div style={{ marginBottom: 'var(--space-md)' }}>
-                <p style={{ fontWeight: 600, marginBottom: 'var(--space-xs)' }}>
-                  Grade System Detected: <span style={{ color: 'var(--color-primary-light)' }}>{gradeSystemInfo.name}</span>
+            <div style="margin-top: var(--space-xl);">
+              <div style="margin-bottom: var(--space-md);">
+                <p style="font-weight: 600; margin-bottom: var(--space-xs);">
+                  Grade System Detected: <span style="color: var(--color-primary-light);">{gradeSystemInfo.name}</span>
                 </p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                <p style="font-size: 0.9rem; color: var(--color-text-muted);">
                   {gradeSystem === 'alevel' ? 'Letter grades (A*-E) will be used for feedback' : 'Number grades (9-1) will be used for feedback'}
                 </p>
               </div>
@@ -4729,7 +4675,7 @@
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-xl)', flexWrap: 'wrap' }}>
+              <div style="display: flex; gap: var(--space-md); margin-top: var(--space-xl); flex-wrap: wrap;">
                 <button className="btn btn-primary btn-large" onClick={handleStartPreview}>
                   Start Preview
                 </button>
@@ -4847,22 +4793,14 @@
       
       return (
         <div className="card ghost-appear">
-          <div style={{ marginBottom: 'var(--space-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-sm)' }}>
-              <span style={{ 
-                background: paragraph.type === 'introduction' ? 'var(--color-info-bg)' : 
-                           paragraph.type === 'conclusion' ? 'var(--color-success-bg)' : 'var(--color-surface-hover)',
-                color: paragraph.type === 'introduction' ? 'var(--color-info)' : 
-                       paragraph.type === 'conclusion' ? 'var(--color-success)' : 'var(--color-primary-light)',
-                padding: 'var(--space-xs) var(--space-md)',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                textTransform: 'uppercase'
-              }}>
+          <div style="margin-bottom: var(--space-lg);">
+            <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-sm);">
+              <span style="background: paragraph.type === 'introduction' ? 'var(--color-info-bg)' : 
+                           paragraph.type === 'conclusion' ? 'var(--color-success-bg)' : 'var(--color-surface-hover); color: paragraph.type === 'introduction' ? 'var(--color-info)' : 
+                       paragraph.type === 'conclusion' ? 'var(--color-success)' : 'var(--color-primary-light); padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
                 {paragraph.type}
               </span>
-              <h2 style={{ margin: 0 }}>{paragraph.title}</h2>
+              <h2 style="margin: 0;">{paragraph.title}</h2>
             </div>
           </div>
           
@@ -4907,11 +4845,11 @@
               </div>
               
               {isSubmitting ? (
-                <div style={{ marginTop: 'var(--space-lg)' }}>
+                <div style="margin-top: var(--space-lg);">
                   <LoadingSpinner text="Grading your writing..." />
                 </div>
               ) : (
-                <div style={{ marginTop: 'var(--space-lg)' }}>
+                <div style="margin-top: var(--space-lg);">
                   <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit}>
                     Submit for Feedback
                   </button>
@@ -4967,17 +4905,17 @@
         });
         
         let report = `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
                         ESSAY ASSESSMENT REPORT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 
 Student: ${studentName}
 Date: ${date}
 Subject: ${config?.subject || ''}
 Essay Title: ${config?.essayTitle || ''}
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
                            YOUR ESSAY
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 
 ${fullEssay}
 
@@ -4986,23 +4924,23 @@ ${fullEssay}
         // Add Feedback if available
         if (essayFeedback) {
           report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
                         FEEDBACK
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 
 OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
 GRADE: ${essayFeedback.overallGrade}
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 SUMMARY
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${essayFeedback.essaySummary || 'No summary available.'}
 
 `;
           if (essayFeedback.bestQuotation) {
             report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 YOUR BEST WRITING
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 "${essayFeedback.bestQuotation}"
 
 `;
@@ -5010,9 +4948,9 @@ YOUR BEST WRITING
           
           if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
             report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 STRENGTHS
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -5020,9 +4958,9 @@ ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
             report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 AREAS FOR DEVELOPMENT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -5030,9 +4968,9 @@ ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.closingEncouragement) {
             report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 TEACHER'S ENCOURAGEMENT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${essayFeedback.closingEncouragement}
 
 `;
@@ -5044,13 +4982,13 @@ ${essayFeedback.closingEncouragement}
           const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
           
           report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 IMPROVEMENT SUMMARY
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 
 Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
 Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
@@ -5058,9 +4996,9 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 INITIAL VERSION ASSESSMENT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
 
 Assessment Objectives:
@@ -5073,9 +5011,9 @@ ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 FINAL VERSION ASSESSMENT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
 
 Assessment Objectives:
@@ -5093,27 +5031,27 @@ ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
           
           if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 NEXT STEPS TO IMPROVE FURTHER
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
 `;
           }
           
           report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 EXAMINER'S COMMENT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 ${examinerComment}
 
 `;
         }
         
         report += `
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
                       END OF REPORT
-=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬=ÂÃ¢â€šÂ¬
+=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 `;
         
         return report;
@@ -5176,80 +5114,59 @@ ${examinerComment}
         const { initialVersion, improvedVersion, comparison, examinerComment } = grading;
         
         const VersionCard = ({ version, title, isImproved }) => (
-          <div className="card" style={{ 
-            flex: 1,
-            background: isImproved ? 'linear-gradient(145deg, rgba(46, 125, 50, 0.1), var(--color-surface))' : 'var(--color-surface)',
-            border: isImproved ? '2px solid var(--color-success)' : '1px solid var(--color-border)'
-          }}>
-            <h4 style={{ marginBottom: 'var(--space-md)', color: isImproved ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
+          <div className="card" style="flex: 1; background: isImproved ? 'linear-gradient(145deg; border: isImproved ? '2px solid var(--color-success)' : '1px solid var(--color-border);">
+            <h4 style="margin-bottom: var(--space-md); color: isImproved ? 'var(--color-success)' : 'var(--color-text-muted);">
               {title}
             </h4>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-              <div style={{ 
-                fontSize: '3rem', 
-                fontWeight: 700, 
-                fontFamily: 'var(--font-display)',
-                color: 'var(--color-primary-light)'
-              }}>
-                {version.totalMark}<span style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>/{config.officialMarkScheme.totalMarks}</span>
+            <div style="display: flex; align-items: center; gap: var(--space-lg); margin-bottom: var(--space-lg);">
+              <div style="font-size: 3rem; font-weight: 700; font-family: var(--font-display); color: var(--color-primary-light);">
+                {version.totalMark}<span style="font-size: 1.5rem; color: var(--color-text-muted);">/{config.officialMarkScheme.totalMarks}</span>
               </div>
               <div>
-                <div style={{ 
-                  fontSize: '2rem', 
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
-                }}>
+                <div style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg; webkit-background-clip: text; webkit-text-fill-color: transparent;">
                   Grade {version.grade}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                <div style="font-size: 0.85rem; color: var(--color-text-muted);">
                   Level {version.level} • {version.percentage}%
                 </div>
               </div>
             </div>
             
-            <div style={{ marginBottom: 'var(--space-md)' }}>
+            <div style="margin-bottom: var(--space-md);">
               <strong>Assessment Objective Breakdown:</strong>
             </div>
             
             {Object.entries(version.aoBreakdown).map(([ao, data]) => (
-              <div key={ao} style={{ 
-                marginBottom: 'var(--space-md)', 
-                padding: 'var(--space-md)', 
-                background: 'var(--color-bg)', 
-                borderRadius: 'var(--radius-md)',
-                borderLeft: '3px solid var(--color-primary)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-xs)' }}>
+              <div key={ao} style="margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-xs);">
                   <strong>{ao}</strong>
-                  <span style={{ color: 'var(--color-primary-light)' }}>
+                  <span style="color: var(--color-primary-light);">
                     {data.mark} marks (Level {data.level})
                   </span>
                 </div>
-                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                <p style="font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;">
                   {data.justification}
                 </p>
               </div>
             ))}
             
-            <div style={{ marginTop: 'var(--space-lg)' }}>
-              <p style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>
+            <div style="margin-top: var(--space-lg);">
+              <p style="font-style: italic; color: var(--color-text-secondary);">
                 {version.overallComment}
               </p>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);">
               <div>
-                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>? Strengths</strong>
-                <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
+                <strong style="color: var(--color-success); font-size: 0.85rem;">? Strengths</strong>
+                <ul style="margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;">
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
               <div>
-                <strong style={{ color: 'var(--color-warning)', fontSize: '0.85rem' }}>ðŸ‘ŠTo Improve</strong>
-                <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
+                <strong style="color: var(--color-warning); font-size: 0.85rem;">Ã°Å¸â€˜Å To Improve</strong>
+                <ul style="margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;">
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
               </div>
@@ -5259,70 +5176,61 @@ ${examinerComment}
         
         return (
           <div className="ghost-appear">
-            <div className="holistic-feedback" style={{ marginTop: 'var(--space-xl)' }}>
+            <div className="holistic-feedback" style="margin-top: var(--space-xl);">
               <div className="holistic-header">
                 <div>
-                  <h2 style={{ marginBottom: 'var(--space-sm)' }}>ðŸ‘¨â€ðŸ«Â Official Mark Scheme Grading</h2>
-                  <p style={{ color: 'var(--color-text-muted)' }}>
+                  <h2 style="margin-bottom: var(--space-sm);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Official Mark Scheme Grading</h2>
+                  <p style="color: var(--color-text-muted);">
                     {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} • {config.officialMarkScheme.paper}
                   </p>
                 </div>
               </div>
               
               {/* Improvement Summary */}
-              <div className="card" style={{ 
-                background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.15), rgba(218, 165, 32, 0.1))',
-                border: '2px solid var(--color-primary)',
-                marginBottom: 'var(--space-xl)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', textAlign: 'center', flexWrap: 'wrap', gap: 'var(--space-lg)' }}>
+              <div className="card" style="background: linear-gradient(135deg; border: 2px solid var(--color-primary); margin-bottom: var(--space-xl);">
+                <div style="display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: var(--space-lg);">
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Initial</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 700 }}>{initialVersion.totalMark}</div>
-                    <div style={{ color: 'var(--color-text-muted)' }}>Grade {initialVersion.grade}</div>
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">Initial</div>
+                    <div style="font-size: 2rem; font-weight: 700;">{initialVersion.totalMark}</div>
+                    <div style="color: var(--color-text-muted);">Grade {initialVersion.grade}</div>
                   </div>
                   
-                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>?</div>
+                  <div style="font-size: 2rem; color: var(--color-primary);">?</div>
                   
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Improved</div>
-                    <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-success)' }}>{improvedVersion.totalMark}</div>
-                    <div style={{ color: 'var(--color-success)' }}>Grade {improvedVersion.grade}</div>
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">Improved</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--color-success);">{improvedVersion.totalMark}</div>
+                    <div style="color: var(--color-success);">Grade {improvedVersion.grade}</div>
                   </div>
                   
-                  <div style={{ 
-                    padding: 'var(--space-md) var(--space-lg)', 
-                    background: 'var(--color-success-bg)', 
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--color-success)'
-                  }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-success)', marginBottom: 'var(--space-xs)' }}>Improvement</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                  <div style="padding: var(--space-md) var(--space-lg); background: var(--color-success-bg); border-radius: var(--radius-md); border: 1px solid var(--color-success);">
+                    <div style="font-size: 0.85rem; color: var(--color-success); margin-bottom: var(--space-xs);">Improvement</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-success);">
                       +{comparison.marksImproved} marks
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-success)' }}>{comparison.gradeChange}</div>
+                    <div style="font-size: 0.85rem; color: var(--color-success);">{comparison.gradeChange}</div>
                   </div>
                 </div>
                 
-                <div style={{ marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--color-border)' }}>
-                  <p style={{ margin: 0 }}><strong>Most improved:</strong> {comparison.mostImprovedArea}</p>
-                  <p style={{ margin: 'var(--space-sm) 0 0 0', color: 'var(--color-text-secondary)' }}>{comparison.improvementSummary}</p>
+                <div style="margin-top: var(--space-lg); padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+                  <p style="margin: 0;"><strong>Most improved:</strong> {comparison.mostImprovedArea}</p>
+                  <p style="margin: var(--space-sm) 0 0 0; color: var(--color-text-secondary);">{comparison.improvementSummary}</p>
                 </div>
               </div>
               
               {/* Side by side comparison */}
-              <div style={{ display: 'flex', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
-                <VersionCard version={initialVersion} title="ðŸ‘¨â€ðŸ«Â Initial Version (First Attempt)" isImproved={false} />
+              <div style="display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;">
+                <VersionCard version={initialVersion} title="Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Initial Version (First Attempt)" isImproved={false} />
                 <VersionCard version={improvedVersion} title="? Improved Version (Final) Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
-                <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>🎯 What grade are you aiming for? Next Steps to Improve Further</h4>
-                  <ul style={{ margin: 0, paddingLeft: 'var(--space-lg)' }}>
+                <div className="card" style="margin-bottom: var(--space-xl);">
+                  <h4 style="margin-bottom: var(--space-md);">🎯 What grade are you aiming for? Next Steps to Improve Further</h4>
+                  <ul style="margin: 0; padding-left: var(--space-lg);">
                     {comparison.remainingTargets.map((target, i) => (
-                      <li key={i} style={{ marginBottom: 'var(--space-sm)' }}>{target}</li>
+                      <li key={i} style="margin-bottom: var(--space-sm);">{target}</li>
                     ))}
                   </ul>
                 </div>
@@ -5340,25 +5248,25 @@ ${examinerComment}
       return (
         <div className="ghost-appear">
           {/* Tab navigation */}
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', borderBottom: '2px solid var(--color-border)', paddingBottom: 'var(--space-md)' }}>
+          <div style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); border-bottom: 2px solid var(--color-border); padding-bottom: var(--space-md);">
             <button 
               className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('essay')}
             >
-              ðŸ‘¨â€ðŸ«Â Your Essay
+              Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Your Essay
             </button>
             <button 
               className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('feedback')}
             >
-              ðŸ’¬ Feedback Feedback
+              💬 Feedback Feedback
             </button>
             {hasOfficialMarkScheme && (
               <button 
                 className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('official')}
               >
-                ðŸ§¾ Official Grading Official Grading
+                🧾 Official Grading Official Grading
               </button>
             )}
           </div>
@@ -5379,8 +5287,8 @@ ${examinerComment}
                 </div>
               </div>
               
-              <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', marginTop: 'var(--space-xl)' }}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}>ðŸ“¨Â Print Essay</button>
+              <div style="display: flex; gap: var(--space-md); justify-content: center; margin-top: var(--space-xl);">
+                <button className="btn btn-primary btn-large" onClick={handlePrint}>📨 Print Essay</button>
               </div>
             </>
           )}
@@ -5389,18 +5297,18 @@ ${examinerComment}
           {activeTab === 'feedback' && (
             <>
               {!showFeedback && !isLoadingFeedback && (
-                <div style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-                  <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-secondary)' }}>
+                <div style="text-align: center; padding: var(--space-2xl);">
+                  <p style="margin-bottom: var(--space-lg); color: var(--color-text-secondary);">
                     Get feedback on how your essay works as a complete piece of writing.
                   </p>
                   <button className="btn btn-primary btn-large" onClick={onRequestFeedback}>
-                    ðŸ§¾ Official Grading Get Feedback
+                    🧾 Official Grading Get Feedback
                   </button>
                 </div>
               )}
               
               {isLoadingFeedback && (
-                <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                <div className="card" style="text-align: center; padding: var(--space-2xl);">
                   <LoadingSpinner text="Generating feedback on your complete essay..." />
                 </div>
               )}
@@ -5409,37 +5317,37 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={{ marginBottom: 'var(--space-sm)' }}>ðŸ‘¨â€ðŸ«Â Essay Feedback</h2>
-                      <p style={{ color: 'var(--color-text-muted)' }}>Overall assessment of your complete essay</p>
+                      <h2 style="margin-bottom: var(--space-sm);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Essay Feedback</h2>
+                      <p style="color: var(--color-text-muted);">Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
                       <div className={`grade-badge ${getGradeClass(essayFeedback.overallGrade)}`}>
                         {essayFeedback.overallGrade}
                       </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                      <div style="text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-display);">
                           {essayFeedback.finalScore || essayFeedback.overallScore}%
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final Score</div>
+                        <div style="font-size: 0.8rem; color: var(--color-text-muted);">Final Score</div>
                       </div>
                     </div>
                   </div>
                   
                   {essayFeedback.essaySummary && (
                     <div className="feedback-section">
-                      <div className="feedback-section-title"><span>ðŸ‘¨â€ðŸ«Â</span> Summary</div>
+                      <div className="feedback-section-title"><span>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â</span> Summary</div>
                       <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
                     </div>
                   )}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">?Â  Your Best Writing</div>
+                      <div className="best-quote-label">?Ã‚Â  Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginTop: 'var(--space-xl)' }}>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);">
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
                         <div className="feedback-section-title"><span>? Improved Version (Final)</span> Essay Strengths</div>
@@ -5473,26 +5381,26 @@ ${examinerComment}
           {activeTab === 'official' && hasOfficialMarkScheme && (
             <>
               {!showOfficialGrading && !isLoadingOfficialGrading && (
-                <div style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-                  <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                    <h3 style={{ marginBottom: 'var(--space-md)' }}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h3>
-                    <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-text-secondary)' }}>
+                <div style="text-align: center; padding: var(--space-2xl);">
+                  <div className="card" style="max-width: 600px; margin: 0 auto;">
+                    <h3 style="margin-bottom: var(--space-md);">🧾 Official Grading Official Mark Scheme Grading</h3>
+                    <p style="margin-bottom: var(--space-md); color: var(--color-text-secondary);">
                       Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                     </p>
-                    <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                    <p style="margin-bottom: var(--space-lg); color: var(--color-text-muted); font-size: 0.9rem;">
                       This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
                     </p>
                     <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                      ðŸ‘¨â€ðŸ«Â Get Official Grading
+                      Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Get Official Grading
                     </button>
                   </div>
                 </div>
               )}
               
               {isLoadingOfficialGrading && (
-                <div className="card" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
+                <div className="card" style="text-align: center; padding: var(--space-2xl);">
                   <LoadingSpinner text="Grading against official mark scheme..." />
-                  <p style={{ marginTop: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                  <p style="margin-top: var(--space-md); color: var(--color-text-muted);">
                     Comparing initial and improved versions...
                   </p>
                 </div>
@@ -5506,22 +5414,17 @@ ${examinerComment}
           
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
-            <div className="card" style={{ 
-              marginTop: 'var(--space-xl)', 
-              background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(218, 165, 32, 0.05))',
-              border: '2px solid var(--color-primary)',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ marginBottom: 'var(--space-md)' }}>â¬‡ï¸Â Download Your Full Report</h3>
-              <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--color-text-secondary)' }}>
+            <div className="card" style="margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;">
+              <h3 style="margin-bottom: var(--space-md);">Ã¢Â¬â€¡Ã¯Â¸ÂÃ‚Â Download Your Full Report</h3>
+              <p style="margin-bottom: var(--space-lg); color: var(--color-text-secondary);">
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
-              <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  ðŸ“¨Â Print Full Report
+                  📨 Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  ðŸ‘¨â€ðŸ«Â Copy to Clipboard
+                  Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -5651,9 +5554,9 @@ ${examinerComment}
         return (
           <div className="app-container dashboard-container">
             <div className="card">
-              <h3 style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>Error Loading Dashboard</h3>
-              <p style={{ marginBottom: 'var(--space-lg)' }}>{error}</p>
-              <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+              <h3 style="color: var(--color-error); margin-bottom: var(--space-md);">Error Loading Dashboard</h3>
+              <p style="margin-bottom: var(--space-lg);">{error}</p>
+              <div style="display: flex; gap: var(--space-md);">
                 <button className="btn btn-primary" onClick={handleRefresh}>Try Again</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Back to Home</button>
               </div>
@@ -5665,31 +5568,18 @@ ${examinerComment}
       return (
         <div className="app-container dashboard-container">
           <div className="app-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);">
               <div>
                 <h1 className="gold-glow">Teacher Dashboard</h1>
                 <p className="subtitle">{GLOBAL.siteName || 'Essay Writing Practice'}</p>
                 {FIREBASE_ENABLED && (
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: 'var(--space-xs)', 
-                    marginTop: 'var(--space-xs)',
-                    fontSize: '0.8rem',
-                    color: 'var(--color-success)'
-                  }}>
-                    <span style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      background: 'var(--color-success)', 
-                      borderRadius: '50%',
-                      animation: 'pulse 2s infinite'
-                    }}></span>
+                  <span style="display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs); font-size: 0.8rem; color: var(--color-success);">
+                    <span style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%; animation: pulse 2s infinite;"></span>
                     Real-time updates enabled
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+              <div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
                 <button className="btn btn-secondary" onClick={handleRefresh}>? Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
@@ -5698,8 +5588,8 @@ ${examinerComment}
           
           {/* Essay Filter */}
           {getEssayList().length > 1 && (
-            <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-              <h4 style={{ marginBottom: 'var(--space-md)' }}>Filter by Essay</h4>
+            <div className="card" style="margin-bottom: var(--space-lg);">
+              <h4 style="margin-bottom: var(--space-md);">Filter by Essay</h4>
               <div className="essay-filter">
                 <button 
                   className={`essay-filter-btn ${filterEssayId === 'all' ? 'active' : ''}`}
@@ -5721,9 +5611,9 @@ ${examinerComment}
           )}
           
           {/* Preview Essays */}
-          <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-            <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ‘¨â€ðŸ«Â Preview Essays</h4>
-            <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <div className="card" style="margin-bottom: var(--space-lg);">
+            <h4 style="margin-bottom: var(--space-md);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Preview Essays</h4>
+            <div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
               {getEssayList().map(essay => (
                 <button 
                   key={essay.id}
@@ -5737,64 +5627,52 @@ ${examinerComment}
           </div>
           
           {/* In-Progress Students */}
-          <div className="card" style={{ marginBottom: 'var(--space-xl)' }}>
-            <h3 style={{ marginBottom: 'var(--space-lg)' }}>âš¡ In Progress ({filteredInProgress.length})</h3>
+          <div className="card" style="margin-bottom: var(--space-xl);">
+            <h3 style="margin-bottom: var(--space-lg);">Ã¢Å¡Â¡ In Progress ({filteredInProgress.length})</h3>
             
             {filteredInProgress.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-lg)' }}>
+              <p style="color: var(--color-text-muted); text-align: center; padding: var(--space-lg);">
                 No students currently working on essays.
               </p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Student</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Email</th>
-                      {filterEssayId === 'all' && <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Essay</th>}
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Current Section</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Progress</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Last Active</th>
+                    <tr style="border-bottom: 2px solid var(--color-border);">
+                      <th style="padding: var(--space-md); text-align: left;">Student</th>
+                      <th style="padding: var(--space-md); text-align: left;">Email</th>
+                      {filterEssayId === 'all' && <th style="padding: var(--space-md); text-align: left;">Essay</th>}
+                      <th style="padding: var(--space-md); text-align: left;">Current Section</th>
+                      <th style="padding: var(--space-md); text-align: center;">Progress</th>
+                      <th style="padding: var(--space-md); text-align: left;">Last Active</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredInProgress.map((student, index) => {
                       const essayInfo = getEssayList().find(e => e.id === student.essayId);
                       return (
-                        <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
-                          <td style={{ padding: 'var(--space-md)' }}>{student.studentName}</td>
-                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{student.studentEmail || '-'}</td>
+                        <tr key={index} style="border-bottom: 1px solid var(--color-border-light);">
+                          <td style="padding: var(--space-md);">{student.studentName}</td>
+                          <td style="padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;">{student.studentEmail || '-'}</td>
                           {filterEssayId === 'all' && (
-                            <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            <td style="padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;">
                               {essayInfo?.icon} {essayInfo?.title || student.essayTitle || '-'}
                             </td>
                           )}
-                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                          <td style="padding: var(--space-md); color: var(--color-text-muted);">
                             {student.currentParagraph || `Paragraph ${student.currentParagraphIndex || 1}`}
                           </td>
-                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-sm)' }}>
-                              <div style={{ 
-                                width: '100px', 
-                                height: '8px', 
-                                background: 'var(--color-border)', 
-                                borderRadius: '4px',
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{ 
-                                  width: `${student.percentComplete || 0}%`, 
-                                  height: '100%', 
-                                  background: 'var(--color-primary)',
-                                  borderRadius: '4px',
-                                  transition: 'width 0.3s ease'
-                                }} />
+                          <td style="padding: var(--space-md); text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-sm);">
+                              <div style="width: 100px; height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${student.percentComplete || 0}%; height: 100%; background: var(--color-primary); border-radius: 4px; transition: width 0.3s ease;" />
                               </div>
-                              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                              <span style="font-size: 0.85rem; color: var(--color-text-muted);">
                                 {student.completedParagraphs || 0}/{student.totalParagraphs || '?'}
                               </span>
                             </div>
                           </td>
-                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                          <td style="padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;">
                             {student.lastUpdate ? formatDateTime(student.lastUpdate) : '-'}
                           </td>
                         </tr>
@@ -5808,25 +5686,25 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={{ marginBottom: 'var(--space-lg)' }}>ðŸ‘¨â€ðŸ«Â Completed Essays ({filteredSubmissions.length})</h3>
+            <h3 style="margin-bottom: var(--space-lg);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Completed Essays ({filteredSubmissions.length})</h3>
             
             {filteredSubmissions.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-xl)' }}>
+              <p style="color: var(--color-text-muted); text-align: center; padding: var(--space-xl);">
                 No essays submitted yet.
               </p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Student</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Email</th>
-                      {filterEssayId === 'all' && <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Essay</th>}
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Score</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Grade</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Feedback</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'left' }}>Submitted</th>
-                      <th style={{ padding: 'var(--space-md)', textAlign: 'center' }}>Actions</th>
+                    <tr style="border-bottom: 2px solid var(--color-border);">
+                      <th style="padding: var(--space-md); text-align: left;">Student</th>
+                      <th style="padding: var(--space-md); text-align: left;">Email</th>
+                      {filterEssayId === 'all' && <th style="padding: var(--space-md); text-align: left;">Essay</th>}
+                      <th style="padding: var(--space-md); text-align: center;">Score</th>
+                      <th style="padding: var(--space-md); text-align: center;">Grade</th>
+                      <th style="padding: var(--space-md); text-align: center;">Feedback</th>
+                      <th style="padding: var(--space-md); text-align: left;">Submitted</th>
+                      <th style="padding: var(--space-md); text-align: center;">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -5835,23 +5713,23 @@ ${examinerComment}
                       const hasFeedback = !!sub.feedback;
                       const hasOfficial = !!sub.officialGrading;
                       return (
-                        <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
-                          <td style={{ padding: 'var(--space-md)' }}>{sub.studentName}</td>
-                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{sub.studentEmail || '-'}</td>
+                        <tr key={index} style="border-bottom: 1px solid var(--color-border-light);">
+                          <td style="padding: var(--space-md);">{sub.studentName}</td>
+                          <td style="padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;">{sub.studentEmail || '-'}</td>
                           {filterEssayId === 'all' && (
-                            <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                            <td style="padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;">
                               {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
                             </td>
                           )}
-                          <td style={{ padding: 'var(--space-md)', textAlign: 'center', fontWeight: 600, color: 'var(--color-success)' }}>{sub.score}%</td>
-                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>{sub.grade || '-'}</td>
-                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>ðŸ’¬ Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>ðŸ§¾ Official Grading</span>
+                          <td style="padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);">{sub.score}%</td>
+                          <td style="padding: var(--space-md); text-align: center;">{sub.grade || '-'}</td>
+                          <td style="padding: var(--space-md); text-align: center;">
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style="opacity: hasFeedback ? 1 : 0.3;">💬 Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style="opacity: hasOfficial ? 1 : 0.3; margin-left: 4px;">🧾 Official Grading</span>
                           </td>
-                          <td style={{ padding: 'var(--space-md)', color: 'var(--color-text-muted)' }}>{formatDateTime(sub.submittedAt)}</td>
-                          <td style={{ padding: 'var(--space-md)', textAlign: 'center' }}>
-                            <button className="btn btn-secondary" style={{ padding: 'var(--space-xs) var(--space-md)', fontSize: '0.85rem' }} onClick={() => setSelectedSubmission(sub)}>View</button>
+                          <td style="padding: var(--space-md); color: var(--color-text-muted);">{formatDateTime(sub.submittedAt)}</td>
+                          <td style="padding: var(--space-md); text-align: center;">
+                            <button className="btn btn-secondary" style="padding: var(--space-xs) var(--space-md); font-size: 0.85rem;" onClick={() => setSelectedSubmission(sub)}>View</button>
                           </td>
                         </tr>
                       );
@@ -5863,25 +5741,25 @@ ${examinerComment}
           </div>
           
           {selectedSubmission && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-lg)', overflow: 'auto' }} onClick={() => setSelectedSubmission(null)}>
-              <div className="card" style={{ maxWidth: '900px', width: '100%', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+            <div style="position: fixed; inset: 0; background: rgba(0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow: auto;" onClick={() => setSelectedSubmission(null)}>
+              <div className="card" style="max-width: 900px; width: 100%; max-height: 90vh; overflow: auto;" onClick={(e) => e.stopPropagation()}>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
                   <div>
-                    <h3 style={{ marginBottom: 'var(--space-xs)' }}>{selectedSubmission.studentName}'s Essay</h3>
+                    <h3 style="margin-bottom: var(--space-xs);">{selectedSubmission.studentName}'s Essay</h3>
                     {selectedSubmission.studentEmail && (
-                      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>{selectedSubmission.studentEmail}</p>
+                      <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0;">{selectedSubmission.studentEmail}</p>
                     )}
                   </div>
                   <button className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Close</button>
                 </div>
                 
-                <div style={{ marginBottom: 'var(--space-lg)', display: 'flex', gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
+                <div style="margin-bottom: var(--space-lg); display: flex; gap: var(--space-lg); flex-wrap: wrap;">
                   <div>
                     <strong>Score:</strong> {selectedSubmission.score}%
                     {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
                   </div>
                   {selectedSubmission.officialGrading && (
-                    <div style={{ color: 'var(--color-success)' }}>
+                    <div style="color: var(--color-success);">
                       <strong>Official:</strong> {selectedSubmission.officialGrading.improvedVersion?.totalMark} marks
                       {selectedSubmission.officialGrading.improvedVersion?.grade && <> (Grade {selectedSubmission.officialGrading.improvedVersion.grade})</>}
                     </div>
@@ -5890,9 +5768,9 @@ ${examinerComment}
                 
                 {/* Essay Text */}
                 {selectedSubmission.essay && (
-                  <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ‘¨â€ðŸ«Â Essay</h4>
-                    <div className="compiled-essay" style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                  <div style="margin-bottom: var(--space-xl);">
+                    <h4 style="margin-bottom: var(--space-md);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Essay</h4>
+                    <div className="compiled-essay" style="background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);">
                       {selectedSubmission.essay.split('\n\n').map((para, i) => (
                         <p key={i} className="compiled-paragraph">{para}</p>
                       ))}
@@ -5902,32 +5780,32 @@ ${examinerComment}
                 
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
-                  <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ’¬ Feedback Feedback</h4>
-                    <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                  <div style="margin-bottom: var(--space-xl);">
+                    <h4 style="margin-bottom: var(--space-md);">💬 Feedback Feedback</h4>
+                    <div style="background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);">
                       {selectedSubmission.feedback.essaySummary && (
-                        <p style={{ marginBottom: 'var(--space-md)' }}>{selectedSubmission.feedback.essaySummary}</p>
+                        <p style="margin-bottom: var(--space-md);">{selectedSubmission.feedback.essaySummary}</p>
                       )}
                       
                       {selectedSubmission.feedback.bestQuotation && (
-                        <div style={{ fontStyle: 'italic', padding: 'var(--space-md)', background: 'rgba(184, 134, 11, 0.1)', borderLeft: '3px solid var(--color-primary)', marginBottom: 'var(--space-md)' }}>
+                        <div style="font-style: italic; padding: var(--space-md); background: rgba(184; border-left: 3px solid var(--color-primary); margin-bottom: var(--space-md);">
                           "Best Writing: {selectedSubmission.feedback.bestQuotation}"
                         </div>
                       )}
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);">
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={{ color: 'var(--color-success)' }}>? Improved Version (Final) Strengths</strong>
-                            <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
+                            <strong style="color: var(--color-success);">? Improved Version (Final) Strengths</strong>
+                            <ul style="margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;">
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
                           </div>
                         )}
                         {selectedSubmission.feedback.holisticImprovements && (
                           <div>
-                            <strong style={{ color: 'var(--color-warning)' }}>ðŸ‘ŠTo Improve</strong>
-                            <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
+                            <strong style="color: var(--color-warning);">Ã°Å¸â€˜Å To Improve</strong>
+                            <ul style="margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;">
                               {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
                           </div>
@@ -5940,36 +5818,36 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h4>
-                    <div style={{ background: 'var(--color-bg)', padding: 'var(--space-lg)', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style="margin-bottom: var(--space-md);">🧾 Official Grading Official Mark Scheme Grading</h4>
+                    <div style="background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);">
                       {/* Improvement Summary */}
-                      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', textAlign: 'center', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                      <div style="display: flex; justify-content: space-around; align-items: center; text-align: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);">
                         <div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Initial</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
+                          <div style="font-size: 0.8rem; color: var(--color-text-muted);">Initial</div>
+                          <div style="font-size: 1.5rem; font-weight: 700;">{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
+                          <div style="font-size: 0.85rem; color: var(--color-text-muted);">Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
                         </div>
-                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>?</div>
+                        <div style="font-size: 1.5rem; color: var(--color-primary);">?</div>
                         <div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--color-success)' }}>Grade {selectedSubmission.officialGrading.improvedVersion?.grade}</div>
+                          <div style="font-size: 0.8rem; color: var(--color-text-muted);">Final</div>
+                          <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-success);">{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
+                          <div style="font-size: 0.85rem; color: var(--color-success);">Grade {selectedSubmission.officialGrading.improvedVersion?.grade}</div>
                         </div>
-                        <div style={{ padding: 'var(--space-sm) var(--space-md)', background: 'var(--color-success-bg)', borderRadius: 'var(--radius-md)' }}>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--color-success)' }}>Improvement</div>
-                          <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>+{selectedSubmission.officialGrading.comparison?.marksImproved} marks</div>
+                        <div style="padding: var(--space-sm) var(--space-md); background: var(--color-success-bg); border-radius: var(--radius-md);">
+                          <div style="font-size: 0.8rem; color: var(--color-success);">Improvement</div>
+                          <div style="font-weight: 700; color: var(--color-success);">+{selectedSubmission.officialGrading.comparison?.marksImproved} marks</div>
                         </div>
                       </div>
                       
                       {selectedSubmission.officialGrading.comparison && (
-                        <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                        <p style="font-size: 0.9rem; color: var(--color-text-secondary);">
                           <strong>Most improved:</strong> {selectedSubmission.officialGrading.comparison.mostImprovedArea}<br/>
                           {selectedSubmission.officialGrading.comparison.improvementSummary}
                         </p>
                       )}
                       
                       {selectedSubmission.officialGrading.examinerComment && (
-                        <div style={{ marginTop: 'var(--space-md)', fontStyle: 'italic', padding: 'var(--space-md)', background: 'rgba(184, 134, 11, 0.1)', borderRadius: 'var(--radius-md)' }}>
+                        <div style="margin-top: var(--space-md); font-style: italic; padding: var(--space-md); background: rgba(184; border-radius: var(--radius-md);">
                           <strong>Examiner:</strong> {selectedSubmission.officialGrading.examinerComment}
                         </div>
                       )}
@@ -6466,31 +6344,23 @@ ${examinerComment}
       const hasReferenceContent = hasOriginalTask || !!currentParagraph?.sourceMaterial;
       
       return (
-        <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
+        <div className="app-container" style="max-width: hasReferenceContent ? '1400px' : '880px;">
           <div className="app-header">
             <h1 className="gold-glow">{CONFIG.title}</h1>
             <p className="subtitle">{CONFIG.subject} • {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
-              <div className="target-grade-badge" style={{ marginTop: 'var(--space-sm)' }}>
+              <div className="target-grade-badge" style="margin-top: var(--space-sm);">
                 Target: <strong>{gradeSystem === 'alevel' ? targetGrade : `Grade ${targetGrade}`}</strong>
               </div>
             )}
           </div>
           
           {isPreviewMode && (
-            <div className="card" style={{ 
-              marginBottom: 'var(--space-lg)', 
-              background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.2), rgba(218, 165, 32, 0.1))',
-              border: '2px solid var(--color-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 'var(--space-md) var(--space-lg)'
-            }}>
+            <div className="card" style="margin-bottom: var(--space-lg); background: linear-gradient(135deg; border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);">
               <div>
-                <strong style={{ color: 'var(--color-primary-light)' }}>ðŸ‘¨â€ðŸ«Â Teacher Preview Mode</strong>
-                <span style={{ marginLeft: 'var(--space-md)', color: 'var(--color-text-muted)' }}>
+                <strong style="color: var(--color-primary-light);">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Teacher Preview Mode</strong>
+                <span style="margin-left: var(--space-md); color: var(--color-text-muted);">
                   Paste enabled • Free navigation • Progress not saved
                 </span>
               </div>
@@ -6501,7 +6371,7 @@ ${examinerComment}
                 setParagraphStates({});
                 setCurrentParagraphIndex(0);
               }}>
-                =Â Ã‚Â Exit Preview
+                =Ã‚Â Ãƒâ€šÃ‚Â Exit Preview
               </button>
             </div>
           )}
