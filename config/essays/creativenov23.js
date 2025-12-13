@@ -1,6 +1,6 @@
 window.ESSAYS = window.ESSAYS || {};
-window.ESSAYS['creative-writing-sunset'] = {
-  id: 'creative-writing-sunset',
+window.ESSAYS['creativenov23'] = {
+  id: 'creativeno23',
   title: "AQA GCSE English Language Paper 1 - Creative Writing",
   subject: "GCSE English",
   yearGroup: "Year 11",
