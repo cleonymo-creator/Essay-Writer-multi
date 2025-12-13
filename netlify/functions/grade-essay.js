@@ -364,6 +364,7 @@ Remember:
       // Add these to feedback object for consistency
       feedback.overallGrade = finalGrade;
       feedback.awardedMarks = awardedMarks;
+      feedback.markBreakdown = `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}`;
     } else {
       // Calculate final score using the old method (blend of paragraph scores and holistic score)
       finalScore = Math.round((averageScore * 0.7) + (feedback.overallScore * 0.3));
@@ -383,6 +384,7 @@ Remember:
         finalGrade: finalGrade,
         awardedMarks: hasAuthenticDescriptors ? awardedMarks : null,
         totalMarks: hasAuthenticDescriptors ? actualTotalMarks : null,
+        markBreakdown: hasAuthenticDescriptors ? `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}` : null,
         targetGrade: targetGrade,
         abilityTier: abilityTier,
         usedAuthenticDescriptors: hasAuthenticDescriptors

@@ -68,6 +68,27 @@ function getGradeDescriptor(gradeBoundaries, grade) {
   return boundary?.descriptor || null;
 }
 
+// Convert total marks to a grade using authentic boundaries
+function marksToGrade(marks, gradeBoundaries) {
+  if (!gradeBoundaries || !Array.isArray(gradeBoundaries) || gradeBoundaries.length === 0) {
+    return null;
+  }
+  
+  // Sort boundaries by minMarks descending to find highest matching grade
+  const sorted = [...gradeBoundaries].sort((a, b) => b.minMarks - a.minMarks);
+  
+  for (const boundary of sorted) {
+    if (marks >= boundary.minMarks) {
+      // Return just the number/letter, stripping "Grade " prefix if present
+      return boundary.grade.replace('Grade ', '');
+    }
+  }
+  
+  // Return lowest grade if below all boundaries
+  const lowestGrade = sorted[sorted.length - 1]?.grade || "1";
+  return lowestGrade.replace('Grade ', '');
+}
+
 // Get adjacent grade descriptors for comparison
 function getAdjacentGradeDescriptors(gradeBoundaries, targetGrade) {
   if (!gradeBoundaries || !Array.isArray(gradeBoundaries)) return null;
@@ -270,15 +291,8 @@ ${Object.entries(gradingCriteria)
 
     // Build response format based on whether we have authentic descriptors
     const responseFormat = hasAuthenticDescriptors ? `{
-  "estimatedGrade": "<the GCSE grade (1-9) this paragraph is currently working at>",
-  "gradeJustification": "<2-3 sentences explaining why this matches that grade descriptor>",
-  "overallScore": <number 0-100 that corresponds to the estimated grade>,
-  "criteriaScores": {
-    "communication": <number 0-100 for tone, style, vocabulary>,
-    "organization": <number 0-100 for structure and coherence>,
-    "language": <number 0-100 for linguistic devices and techniques>,
-    "accuracy": <number 0-100 for spelling, punctuation, grammar>
-  },
+  "awardedMarks": <number: the marks you would award this paragraph out of ${totalMarks || 40} based on the grade descriptors>,
+  "marksJustification": "<1-2 sentences explaining how you arrived at this mark, referencing the grade boundaries>",
   "strengths": ["<specific strength with evidence from their writing>", "<another strength>"],
   "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement linked to grade descriptors>"' : '"<improvement linked to next grade descriptor>", "<another specific improvement>"'}],
   "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs referencing what the grade descriptors say' : '2-3 paragraphs linking feedback to grade descriptors'}>",
@@ -349,7 +363,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade d
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "Ã¢Å¡Â Ã¯Â¸Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
@@ -400,41 +414,53 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
       }
     }
 
-    // Calculate weighted score if not provided correctly (for fallback mode)
-    if (!feedback.overallScore && feedback.criteriaScores) {
-      const criteriaKeys = Object.keys(feedback.criteriaScores);
-      const weights = hasAuthenticDescriptors 
-        ? { communication: 30, organization: 25, language: 25, accuracy: 20 }
-        : gradingCriteria;
+    // Process grading results based on assessment mode
+    let awardedMarks, estimatedGrade, overallScore;
+    
+    if (hasAuthenticDescriptors) {
+      // Use marks-based grading with authentic boundaries
+      awardedMarks = feedback.awardedMarks;
       
-      feedback.overallScore = Math.round(
-        criteriaKeys.reduce((sum, key) => {
-          const weight = weights[key]?.weight || weights[key] || 25;
-          return sum + (feedback.criteriaScores[key] * weight) / 100;
-        }, 0)
-      );
-    }
-
-    // If we have authentic descriptors but no estimated grade, derive one from score
-    if (hasAuthenticDescriptors && !feedback.estimatedGrade && feedback.overallScore) {
-      const scoreToGrade = (score) => {
-        if (score >= 90) return "9";
-        if (score >= 80) return "8";
-        if (score >= 70) return "7";
-        if (score >= 60) return "6";
-        if (score >= 50) return "5";
-        if (score >= 40) return "4";
-        if (score >= 30) return "3";
-        if (score >= 20) return "2";
-        return "1";
-      };
-      feedback.estimatedGrade = scoreToGrade(feedback.overallScore);
+      if (awardedMarks != null && gradeBoundaries) {
+        // Convert marks to grade using authentic boundaries
+        estimatedGrade = marksToGrade(awardedMarks, gradeBoundaries);
+        // Calculate percentage score from marks
+        overallScore = Math.round((awardedMarks / (totalMarks || 40)) * 100);
+      } else {
+        // Fallback if AI didn't return marks (shouldn't happen)
+        console.warn('[grade-paragraph] No awardedMarks returned, using fallback');
+        awardedMarks = null;
+        estimatedGrade = null;
+        overallScore = 0;
+      }
+      
+      // Add derived values to feedback
+      feedback.estimatedGrade = estimatedGrade;
+      feedback.overallScore = overallScore;
+      feedback.awardedMarks = awardedMarks;
+      feedback.totalMarks = totalMarks || 40;
+      feedback.markBreakdown = `${awardedMarks}/${totalMarks || 40} marks = Grade ${estimatedGrade}`;
+      
+    } else {
+      // Fallback mode: Calculate weighted score from criteria scores
+      if (!feedback.overallScore && feedback.criteriaScores) {
+        const criteriaKeys = Object.keys(feedback.criteriaScores);
+        feedback.overallScore = Math.round(
+          criteriaKeys.reduce((sum, key) => {
+            const weight = gradingCriteria[key]?.weight || 25;
+            return sum + (feedback.criteriaScores[key] * weight) / 100;
+          }, 0)
+        );
+      }
+      overallScore = feedback.overallScore;
     }
 
     console.log('[grade-paragraph] Response:', {
       usedAuthenticDescriptors: hasAuthenticDescriptors,
-      estimatedGrade: feedback.estimatedGrade,
-      criteriaKeys: feedback.criteriaScores ? Object.keys(feedback.criteriaScores) : 'none'
+      awardedMarks: awardedMarks,
+      totalMarks: totalMarks,
+      estimatedGrade: estimatedGrade || feedback.estimatedGrade,
+      overallScore: overallScore
     });
 
     return {
@@ -448,7 +474,12 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
         canRevise: !isLastAttempt,
         targetGrade: targetGrade,
         abilityTier: abilityTier,
-        usedAuthenticDescriptors: hasAuthenticDescriptors
+        usedAuthenticDescriptors: hasAuthenticDescriptors,
+        // Include marks breakdown for transparency
+        awardedMarks: hasAuthenticDescriptors ? awardedMarks : null,
+        totalMarks: hasAuthenticDescriptors ? (totalMarks || 40) : null,
+        estimatedGrade: hasAuthenticDescriptors ? estimatedGrade : null,
+        markBreakdown: hasAuthenticDescriptors ? `${awardedMarks}/${totalMarks || 40} marks = Grade ${estimatedGrade}` : null
       }),
     };
   } catch (error) {
