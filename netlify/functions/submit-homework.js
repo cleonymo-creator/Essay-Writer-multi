@@ -1,6 +1,9 @@
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 exports.handler = async (event, context) => {
+  // Connect Lambda context for Blobs access
+  connectLambda(event, context);
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -40,8 +43,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the store - Netlify automatically provides siteID and token in Functions
-    // No manual configuration needed!
+    // Get the store
     const store = getStore("homework-submissions");
     
     // Handle update to existing submission (e.g., adding official grading)

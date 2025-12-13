@@ -1,6 +1,9 @@
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 exports.handler = async (event, context) => {
+  // Connect Lambda context for Blobs access
+  connectLambda(event, context);
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -33,7 +36,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Get the store - siteID and token are automatic in Netlify Functions
+      // Get the store
       const store = getStore("homework-progress");
 
       let blobs = [];
