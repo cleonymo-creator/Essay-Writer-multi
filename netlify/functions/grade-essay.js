@@ -207,7 +207,16 @@ ${gradeDescriptorsText}
 2. Determine which grade descriptor best matches the overall quality
 3. Award a specific mark within that grade's range
 4. Provide justification citing specific evidence from the essay
-5. Identify what would be needed to reach the next grade up`;
+5. Identify what would be needed to reach the next grade up
+
+## IMPORTANT: Fair Marking Guidance
+When assessing, apply the "best-fit" principle used by real examiners:
+- If work shows characteristics of TWO adjacent grades, award the HIGHER grade if ANY significant criterion is met at that level
+- Award marks in the UPPER portion of a grade band when work solidly meets the descriptors (not just scraping in)
+- Don't penalise twice: if you've noted a weakness, don't let it drag down marks in multiple areas
+- Recognise potential and effort: strong attempts at sophisticated techniques count positively even if not fully achieved
+- This is formative assessment for learning - grade fairly and encouragingly, not punitively
+- When in doubt, round UP rather than down`;
     } else {
       assessmentSection = `## Assessment Criteria
 ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`).join('\n')}`;
@@ -215,9 +224,9 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
 
     // Build response format based on assessment mode
     const responseFormat = hasAuthenticDescriptors ? `{
-  "awardedGrade": "<the actual GCSE grade (e.g., 'Grade 6' or '6') this essay achieves>",
-  "awardedMarks": <number: the specific mark out of ${actualTotalMarks}>,
-  "gradeJustification": "<2-3 sentences explaining which descriptor criteria the essay meets, with specific textual evidence>",
+  "awardedGrade": "<the actual GCSE grade (e.g., 'Grade 6' or '6') this essay achieves - use best-fit principle, favouring higher grade when borderline>",
+  "awardedMarks": <number: the specific mark out of ${actualTotalMarks} - award in upper portion of band when criteria are solidly met>,
+  "gradeJustification": "<2-3 sentences highlighting what the student has achieved and which descriptor criteria they meet, with specific textual evidence>",
   "overallScore": <number 0-100 derived from marks>,
   "essaySummary": "<${abilityTier === 'foundation' ? '2-3 encouraging sentences celebrating their work and achievement' : '2-3 sentences: honest assessment of the essay quality against grade descriptors'}>",
   "holisticStrengths": [${abilityTier === 'foundation' ? '"<strength with evidence - be generous>", "<another strength>", "<find a third positive>"' : '"<strength citing grade descriptor criteria met>", "<another strength with evidence>", "<third strength>"'}],
