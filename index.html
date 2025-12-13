@@ -63,7 +63,7 @@
         // Build ESSAY_LIST from loaded ESSAYS object
         window.ESSAY_LIST = Object.values(window.ESSAYS);
         window.ESSAYS_LOADED = true;
-        console.log('All essays loaded:', window.ESSAY_LIST.map(e => e.id));
+        console.log('All essays loaded:', window.getEssayList().map(e => e.id));
         
       } catch (error) {
         console.error('Failed to load essays:', error);
@@ -3686,8 +3686,10 @@
     
     // Global settings
     const GLOBAL = window.GLOBAL_CONFIG || {};
-    const ESSAY_LIST = window.ESSAY_LIST || [];
-    const ESSAYS = window.ESSAYS || {};
+    // ESSAY_LIST and ESSAYS are populated by the dynamic loader before React renders
+    // Access them via window to get the loaded values
+    const getEssayList = () => window.ESSAY_LIST || [];
+    const getEssays = () => window.ESSAYS || {};
     const THEME = window.THEME_CONFIG || {};
     
     // =====================================================
@@ -3829,7 +3831,7 @@
     
     // Helper to get essay config by ID
     const getEssayConfig = (essayId) => {
-      const essay = ESSAYS[essayId];
+      const essay = getEssays()[essayId];
       if (!essay) return null;
       return {
         TEACHER_PASSWORD: 'teacher123',
@@ -3988,7 +3990,7 @@
           {!showTeacherLogin ? (
             <>
               <div className="essay-grid">
-                {ESSAY_LIST.map((essay) => {
+                {getEssayList().map((essay) => {
                   const savedProgress = getSavedProgress(essay.id);
                   return (
                     <div 
@@ -4020,7 +4022,7 @@
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
-                        <span className="essay-card-stat"><strong>{essay.paragraphs}</strong> paragraphs</span>
+                        <span className="essay-card-stat"><strong>{essay.paragraphs?.length || 0}</strong> paragraphs</span>
                         <span className="essay-card-stat"><strong>{essay.totalMarks}</strong> marks</span>
                       </div>
                       {savedProgress && !savedProgress.isComplete && (
@@ -5499,7 +5501,7 @@ ${examinerComment}
           </div>
           
           {/* Essay Filter */}
-          {ESSAY_LIST.length > 1 && (
+          {getEssayList().length > 1 && (
             <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
               <h4 style={{ marginBottom: 'var(--space-md)' }}>Filter by Essay</h4>
               <div className="essay-filter">
@@ -5509,7 +5511,7 @@ ${examinerComment}
                 >
                   All Essays
                 </button>
-                {ESSAY_LIST.map(essay => (
+                {getEssayList().map(essay => (
                   <button 
                     key={essay.id}
                     className={`essay-filter-btn ${filterEssayId === essay.id ? 'active' : ''}`}
@@ -5526,7 +5528,7 @@ ${examinerComment}
           <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
             <h4 style={{ marginBottom: 'var(--space-md)' }}>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â Preview Essays</h4>
             <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-              {ESSAY_LIST.map(essay => (
+              {getEssayList().map(essay => (
                 <button 
                   key={essay.id}
                   className="btn btn-primary"
@@ -5561,7 +5563,7 @@ ${examinerComment}
                   </thead>
                   <tbody>
                     {filteredInProgress.map((student, index) => {
-                      const essayInfo = ESSAY_LIST.find(e => e.id === student.essayId);
+                      const essayInfo = getEssayList().find(e => e.id === student.essayId);
                       return (
                         <tr key={index} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
                           <td style={{ padding: 'var(--space-md)' }}>{student.studentName}</td>
@@ -5633,7 +5635,7 @@ ${examinerComment}
                   </thead>
                   <tbody>
                     {filteredSubmissions.map((sub, index) => {
-                      const essayInfo = ESSAY_LIST.find(e => e.id === sub.essayId);
+                      const essayInfo = getEssayList().find(e => e.id === sub.essayId);
                       const hasFeedback = !!sub.feedback;
                       const hasOfficial = !!sub.officialGrading;
                       return (
@@ -5814,7 +5816,7 @@ ${examinerComment}
       useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const essayParam = urlParams.get('essay');
-        if (essayParam && ESSAYS[essayParam]) {
+        if (essayParam && getEssays()[essayParam]) {
           setSelectedEssayId(essayParam);
           setScreen('entry');
         }
