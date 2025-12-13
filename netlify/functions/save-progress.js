@@ -14,10 +14,6 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Get the store - Netlify automatically provides siteID and token in Functions
-  // No manual configuration needed!
-  const store = getStore("homework-progress");
-
   // ============================================
   // GET - Retrieve in-progress students for teacher dashboard
   // ============================================
@@ -37,16 +33,37 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const { blobs } = await store.list();
+      // Get the store - siteID and token are automatic in Netlify Functions
+      const store = getStore("homework-progress");
+
+      let blobs = [];
+      try {
+        const result = await store.list();
+        blobs = result.blobs || [];
+      } catch (listError) {
+        // Store might not exist yet - return empty
+        console.log('Progress store list error (may be empty):', listError.message);
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            success: true,
+            count: 0,
+            inProgress: []
+          })
+        };
+      }
       
       const inProgress = [];
       for (const blob of blobs) {
         try {
-          // Use type: 'json' for automatic JSON parsing
           const data = await store.get(blob.key, { type: 'json' });
           if (data) {
             // Only include students who haven't completed
-            if (!data.completed && data.percentComplete < 100) {
+            if (!data.completed && (data.percentComplete === undefined || data.percentComplete < 100)) {
               inProgress.push(data);
             }
           }
@@ -57,7 +74,7 @@ exports.handler = async (event, context) => {
 
       // Sort by most recent activity
       inProgress.sort((a, b) => 
-        new Date(b.lastUpdate) - new Date(a.lastUpdate)
+        new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0)
       );
 
       console.log(`Retrieved ${inProgress.length} in-progress students`);
@@ -82,7 +99,10 @@ exports.handler = async (event, context) => {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ error: error.message })
+        body: JSON.stringify({ 
+          error: error.message,
+          stack: error.stack 
+        })
       };
     }
   }
@@ -115,6 +135,9 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Get the store
+    const store = getStore("homework-progress");
+
     const sanitizedName = progressData.studentName.replace(/[^a-zA-Z0-9]/g, '_');
     const essayId = progressData.essayId ? `-${progressData.essayId}` : '';
     const key = `progress-${sanitizedName}${essayId}`;
@@ -126,6 +149,7 @@ exports.handler = async (event, context) => {
         console.log('Progress cleared for completed student:', progressData.studentName);
       } catch (e) {
         // Ignore delete errors
+        console.log('Delete error (may not exist):', e.message);
       }
       
       return {
@@ -141,14 +165,13 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Save progress using setJSON for cleaner code
+    // Save progress
     progressData.lastUpdate = new Date().toISOString();
     await store.setJSON(key, progressData);
     
     console.log('Progress saved:', {
       student: progressData.studentName,
-      percent: progressData.percentComplete,
-      question: progressData.currentQuestion
+      percent: progressData.percentComplete
     });
     
     return {
@@ -170,7 +193,11 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify({ success: false, error: error.message })
+      body: JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack
+      })
     };
   }
 };

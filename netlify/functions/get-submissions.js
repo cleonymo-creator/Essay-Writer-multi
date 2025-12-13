@@ -41,15 +41,33 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the store - Netlify automatically provides siteID and token in Functions
-    // No manual configuration needed!
+    // Get the store - siteID and token are automatic in Netlify Functions
     const store = getStore("homework-submissions");
-    const { blobs } = await store.list();
+    
+    let blobs = [];
+    try {
+      const result = await store.list();
+      blobs = result.blobs || [];
+    } catch (listError) {
+      // Store might not exist yet (no data written) - return empty
+      console.log('Store list error (may be empty):', listError.message);
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          success: true,
+          count: 0,
+          submissions: []
+        })
+      };
+    }
     
     const submissions = [];
     for (const blob of blobs) {
       try {
-        // Use type: 'json' for automatic JSON parsing
         const data = await store.get(blob.key, { type: 'json' });
         if (data) {
           submissions.push(data);
@@ -61,8 +79,8 @@ exports.handler = async (event, context) => {
 
     // Sort by newest first
     submissions.sort((a, b) => 
-      new Date(b.serverTimestamp || b.submittedAt || b.timestamp) - 
-      new Date(a.serverTimestamp || a.submittedAt || a.timestamp)
+      new Date(b.serverTimestamp || b.submittedAt || b.timestamp || 0) - 
+      new Date(a.serverTimestamp || a.submittedAt || a.timestamp || 0)
     );
 
     console.log(`Retrieved ${submissions.length} submissions`);
@@ -90,7 +108,8 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({ 
         error: 'Failed to retrieve submissions',
-        message: error.message 
+        message: error.message,
+        stack: error.stack
       })
     };
   }
