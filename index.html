@@ -4100,7 +4100,158 @@
     }
     
     // =====================================================
+    // PARAGRAPH TRACKER COMPONENT
+    // =====================================================
     
+    function ParagraphTracker({ paragraphs, currentIndex, paragraphStates, onNavigate, previewMode }) {
+      const completedCount = Object.values(paragraphStates).filter(s => s.completed).length;
+      
+      return (
+        <div className="progress-section">
+          <div className="progress-header">
+            <span className="progress-label">Essay Progress</span>
+            <span className="progress-stats">{completedCount} of {paragraphs.length} paragraphs complete</span>
+          </div>
+          
+          <div className="question-tracker">
+            {paragraphs.map((para, index) => {
+              const state = paragraphStates[para.id];
+              const isCompleted = state?.completed;
+              const isInProgress = state?.attempts > 0 && !isCompleted;
+              const isCurrent = index === currentIndex;
+              const isLocked = !previewMode && index > currentIndex && !isCompleted;
+              
+              let className = 'question-tracker-item';
+              if (isCurrent) className += ' current';
+              else if (isCompleted) className += ' correct';
+              else if (isInProgress) className += ' in-progress';
+              if (isLocked) className += ' locked';
+              
+              return (
+                <div
+                  key={para.id}
+                  className={className}
+                  onClick={() => {
+                    if (!isLocked || previewMode) {
+                      onNavigate(index);
+                    }
+                  }}
+                  title={para.title}
+                >
+                  {index + 1}
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="progress-summary">
+            <div className="progress-summary-item">
+              <span className="progress-summary-dot correct"></span>
+              <span>Complete</span>
+            </div>
+            <div className="progress-summary-item">
+              <span className="progress-summary-dot" style={{ background: 'var(--color-info)' }}></span>
+              <span>In Progress</span>
+            </div>
+            <div className="progress-summary-item">
+              <span className="progress-summary-dot pending"></span>
+              <span>Not Started</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // FEEDBACK DISPLAY COMPONENT
+    // =====================================================
+    
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, onRevise, onAccept }) {
+      const scoreClass = getScoreClass(feedback.overallScore);
+      
+      return (
+        <div className="feedback-panel ghost-appear">
+          <div className="feedback-header">
+            <div className={`feedback-score ${scoreClass}`}>
+              {feedback.overallScore}%
+            </div>
+            <div>
+              <h3 style={{ margin: 0 }}>Feedback on Attempt {attemptNumber}</h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                {canRevise ? 'Review the feedback and revise your paragraph' : 'Final feedback on your paragraph'}
+              </p>
+            </div>
+          </div>
+          
+          {feedback.criteriaScores && (
+            <div className="criteria-scores">
+              {Object.entries(feedback.criteriaScores).map(([key, score]) => (
+                <div key={key} className="criteria-item">
+                  <div className="criteria-label">{key}</div>
+                  <div className="criteria-score">{score}%</div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {feedback.strengths && feedback.strengths.length > 0 && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>✨</span> Strengths</div>
+              <ul className="feedback-list strengths">
+                {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
+            </div>
+          )}
+          
+          {feedback.improvements && feedback.improvements.length > 0 && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>🎯</span> Areas to Improve</div>
+              <ul className="feedback-list improvements">
+                {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
+            </div>
+          )}
+          
+          {feedback.detailedFeedback && (
+            <div className="feedback-section">
+              <div className="feedback-section-title"><span>📝</span> Detailed Feedback</div>
+              <div className="detailed-feedback">{feedback.detailedFeedback}</div>
+            </div>
+          )}
+          
+          {feedback.exampleRevision && (
+            <div className="example-revision">
+              <div className="example-revision-label">💡 Example Improvement</div>
+              {feedback.exampleRevision}
+            </div>
+          )}
+          
+          {feedback.nextLevelHint && (
+            <div className="feedback-section" style={{ marginTop: 'var(--space-lg)' }}>
+              <div className="feedback-section-title"><span>🚀</span> To Reach the Next Grade</div>
+              <div className="detailed-feedback">{feedback.nextLevelHint}</div>
+            </div>
+          )}
+          
+          <div className="revision-actions">
+            {canRevise ? (
+              <>
+                <button className="btn btn-primary" onClick={onRevise}>
+                  ✏️ Revise My Paragraph
+                </button>
+                <button className="btn btn-success" onClick={onAccept}>
+                  ✓ Accept & Continue
+                </button>
+              </>
+            ) : (
+              <button className="btn btn-success btn-large" onClick={onAccept} style={{ width: '100%' }}>
+                ✓ Complete & Continue to Next Section
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     // =====================================================
     // TARGET GRADE UTILITIES
