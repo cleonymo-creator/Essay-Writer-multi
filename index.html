@@ -4344,11 +4344,17 @@
           <div className="revision-actions">
             {canRevise ? (
               <>
-                <button className="btn btn-primary" onClick={onRevise}>×</button>
-                <button className="btn btn-success" onClick={onAccept}>×</button>
+                <button className="btn btn-primary" onClick={onRevise}>
+                  ✏️ Revise My Paragraph
+                </button>
+                <button className="btn btn-success" onClick={onAccept}>
+                  ✓ Accept & Continue
+                </button>
               </>
             ) : (
-              <button className="btn btn-success btn-large" onClick={onAccept} style={{ width: '100%' }}>×</button>
+              <button className="btn btn-success btn-large" onClick={onAccept} style={{ width: '100%' }}>
+                ✓ Complete & Continue to Next Section
+              </button>
             )}
           </div>
         </div>
