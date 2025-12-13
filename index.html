@@ -4575,7 +4575,8 @@
                     className="btn btn-secondary"
                     onClick={onBack}
                   >← Back
-                </div>
+                </button>
+              </div>
               </form>
             </div>
           </div>
@@ -5388,7 +5389,7 @@ ${examinerComment}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">?  Your Best Writing</div>
+                      <div className="best-quote-label">🏗  Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -5644,7 +5645,7 @@ ${examinerComment}
                 )}
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>? Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
             </div>
@@ -5872,7 +5873,7 @@ ${examinerComment}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={{ color: 'var(--color-success)' }}>? Improved Version (Final) Strengths</strong>
+                            <strong style={{ color: 'var(--color-success)' }}>✨ Improved Version (Final) Strengths</strong>
                             <ul style={{ margin: 'var(--space-sm) 0 0 var(--space-md)', padding: 0, fontSize: '0.9rem' }}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -5903,7 +5904,7 @@ ${examinerComment}
                           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
                           <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
                         </div>
-                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>?</div>
+                        <div style={{ fontSize: '1.5rem', color: 'var(--color-primary)' }}>📜</div>
                         <div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Final</div>
                           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
