@@ -263,10 +263,9 @@ ${Object.entries(gradingCriteria)
 }` : `{
   "overallScore": <number 0-100>,
   "criteriaScores": {
-    "content": <number 0-100>,
-    "analysis": <number 0-100>,
-    "structure": <number 0-100>,
-    "expression": <number 0-100>
+${Object.entries(gradingCriteria)
+  .map(([key, val]) => `    "${key}": <number 0-100 for ${val.description}>`)
+  .join(",\n")}
   },
   "strengths": ["<specific strength 1>", "<specific strength 2>"],
   "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement with a helpful hint>"' : '"<specific, actionable improvement 1>", "<specific, actionable improvement 2>"'}],
@@ -325,7 +324,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade d
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "⚠️ This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "âš ï¸ This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 

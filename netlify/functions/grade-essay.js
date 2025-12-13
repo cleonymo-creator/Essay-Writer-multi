@@ -213,6 +213,9 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
 }` : `{
   "overallGrade": "<${abilityTier === 'high' ? 'be precise and honest' : abilityTier === 'foundation' ? 'focus on achievement' : 'balanced assessment'}: Excellent|Good|Satisfactory|Needs Improvement>",
   "overallScore": <number 0-100>,
+  "criteriaScores": {
+${Object.entries(gradingCriteria).map(([key, val]) => `    "${key}": <number 0-100 for ${val.description}>`).join(",\n")}
+  },
   "essaySummary": "<${abilityTier === 'foundation' ? '2-3 encouraging sentences celebrating their work' : '2-3 sentences: honest assessment of argument and quality'}>",
   "holisticStrengths": [${abilityTier === 'foundation' ? '"<strength - be generous and specific>", "<another strength>", "<find a third positive>"' : '"<genuine strength>", "<another strength>", "<third strength>"'}],
   "holisticImprovements": [${abilityTier === 'foundation' ? '"<ONE gentle, achievable improvement>"' : abilityTier === 'high' ? '"<sophisticated improvement 1>", "<challenging improvement 2>", "<advanced technique 3>"' : '"<clear improvement 1>", "<actionable improvement 2>"'}],
@@ -223,8 +226,8 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
     }
   ],
   "flowAndCoherence": "<${abilityTier === 'foundation' ? 'positive comment on how their ideas connect' : 'analysis of how paragraphs link together'}>",
-  "argumentStrength": "<${abilityTier === 'foundation' ? 'celebrate their argument, note one way to strengthen it' : 'honest assessment of argument conviction'}>",
-  "bestQuotation": "<quote their BEST analytical sentence - find something to celebrate>",
+  "criteriaAnalysis": "<assessment against the specific criteria: ${Object.keys(gradingCriteria).join(', ')}>",
+  "bestQuotation": "<quote their BEST sentence - find something to celebrate>",
   "pathToNextGrade": "<specific advice on what would lift this essay from grade ${targetGrade} to grade ${nextGrade}>",
   "closingEncouragement": "<${approach.encouragement_style}>"
 }`;
