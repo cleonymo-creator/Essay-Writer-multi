@@ -159,6 +159,7 @@ exports.handler = async (event) => {
   }
 
   try {
+    const requestBody = JSON.parse(event.body);
     const {
       paragraphText,
       paragraphConfig,
@@ -167,11 +168,19 @@ exports.handler = async (event) => {
       previousFeedback,
       essayTitle,
       gradingCriteria,
-      gradeBoundaries,  // NEW: Array of {grade, minMarks, maxMarks, descriptor}
-      totalMarks,       // NEW: Total marks for the essay
+      gradeBoundaries,  // Array of {grade, minMarks, maxMarks, descriptor}
+      totalMarks,       // Total marks for the essay
       targetGrade,
       gradeSystem
-    } = JSON.parse(event.body);
+    } = requestBody;
+    
+    // Debug logging for grade boundaries
+    console.log('[grade-paragraph] Received gradeBoundaries:', {
+      exists: !!gradeBoundaries,
+      isArray: Array.isArray(gradeBoundaries),
+      length: gradeBoundaries?.length,
+      sample: gradeBoundaries?.[0]?.grade
+    });
 
     const isLastAttempt = attemptNumber >= maxAttempts;
     
@@ -182,10 +191,26 @@ exports.handler = async (event) => {
     const nextGrade = getNextGradeUp(targetGrade || "5", gradeSystem || "gcse");
 
     // Check if we have authentic grade descriptors
-    const hasAuthenticDescriptors = gradeBoundaries && Array.isArray(gradeBoundaries) && gradeBoundaries.length > 0;
+    // Validate the gradeBoundaries array structure
+    const isValidGradeBoundaries = gradeBoundaries && 
+      Array.isArray(gradeBoundaries) && 
+      gradeBoundaries.length > 0 &&
+      gradeBoundaries[0]?.grade &&  // Must have grade property
+      gradeBoundaries[0]?.descriptor;  // Must have descriptor property
+    
+    const hasAuthenticDescriptors = isValidGradeBoundaries;
+    
+    console.log('[grade-paragraph] hasAuthenticDescriptors:', hasAuthenticDescriptors);
+    
     const gradeDescriptorsText = hasAuthenticDescriptors 
       ? buildGradeDescriptorsText(gradeBoundaries, totalMarks || 40)
       : null;
+    
+    if (hasAuthenticDescriptors) {
+      console.log('[grade-paragraph] Using authentic descriptors with', gradeBoundaries.length, 'grade levels');
+    } else {
+      console.log('[grade-paragraph] Using fallback criteria:', Object.keys(gradingCriteria || {}).join(', '));
+    }
     
     // Get specific descriptors for target grade and adjacent grades
     const adjacentDescriptors = hasAuthenticDescriptors 
@@ -324,7 +349,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade d
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "âš ï¸ This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "Ã¢Å¡Â Ã¯Â¸Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
@@ -405,6 +430,12 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
       };
       feedback.estimatedGrade = scoreToGrade(feedback.overallScore);
     }
+
+    console.log('[grade-paragraph] Response:', {
+      usedAuthenticDescriptors: hasAuthenticDescriptors,
+      estimatedGrade: feedback.estimatedGrade,
+      criteriaKeys: feedback.criteriaScores ? Object.keys(feedback.criteriaScores) : 'none'
+    });
 
     return {
       statusCode: 200,

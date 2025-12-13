@@ -129,16 +129,25 @@ exports.handler = async (event) => {
   }
 
   try {
+    const requestBody = JSON.parse(event.body);
     const {
       studentName,
       essayTitle,
       paragraphs,
       gradingCriteria,
-      gradeBoundaries,  // NEW: Array of {grade, minMarks, maxMarks, descriptor}
-      totalMarks,       // NEW: Total marks for the essay
+      gradeBoundaries,  // Array of {grade, minMarks, maxMarks, descriptor}
+      totalMarks,       // Total marks for the essay
       targetGrade,
       gradeSystem
-    } = JSON.parse(event.body);
+    } = requestBody;
+    
+    // Debug logging for grade boundaries
+    console.log('[grade-essay] Received gradeBoundaries:', {
+      exists: !!gradeBoundaries,
+      isArray: Array.isArray(gradeBoundaries),
+      length: gradeBoundaries?.length,
+      sample: gradeBoundaries?.[0]?.grade
+    });
 
     // Compile the full essay
     const fullEssay = paragraphs.map(p => p.finalText).join("\n\n");
@@ -163,11 +172,27 @@ exports.handler = async (event) => {
     const nextGrade = getNextGradeUp(targetGrade || "5", gradeSystem || "gcse");
 
     // Check if we have authentic grade descriptors
-    const hasAuthenticDescriptors = gradeBoundaries && Array.isArray(gradeBoundaries) && gradeBoundaries.length > 0;
+    // Validate the gradeBoundaries array structure
+    const isValidGradeBoundaries = gradeBoundaries && 
+      Array.isArray(gradeBoundaries) && 
+      gradeBoundaries.length > 0 &&
+      gradeBoundaries[0]?.grade &&  // Must have grade property
+      gradeBoundaries[0]?.descriptor;  // Must have descriptor property
+    
+    const hasAuthenticDescriptors = isValidGradeBoundaries;
     const actualTotalMarks = totalMarks || 40;
+    
+    console.log('[grade-essay] hasAuthenticDescriptors:', hasAuthenticDescriptors);
+    
     const gradeDescriptorsText = hasAuthenticDescriptors 
       ? buildGradeDescriptorsText(gradeBoundaries, actualTotalMarks)
       : null;
+    
+    if (hasAuthenticDescriptors) {
+      console.log('[grade-essay] Using authentic descriptors with', gradeBoundaries.length, 'grade levels');
+    } else {
+      console.log('[grade-essay] Using fallback criteria:', Object.keys(gradingCriteria || {}).join(', '));
+    }
 
     // Build assessment criteria section
     let assessmentSection;
