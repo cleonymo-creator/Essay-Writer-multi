@@ -1,0 +1,38 @@
+# Netlify Configuration
+# =====================
+
+[build]
+  # No build command needed - static HTML
+  publish = "."
+  functions = "netlify/functions"
+
+# Functions configuration
+[functions]
+  # Use Node.js 18 for all functions
+  node_bundler = "esbuild"
+
+# Headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Don't cache config files (teachers may update them)
+[[headers]]
+  for = "/config/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Redirect /teacher to teacher dashboard
+[[redirects]]
+  from = "/teacher"
+  to = "/#teacher"
+  status = 302

@@ -1,7 +1,79 @@
 // Grade the complete essay with holistic feedback
+// Adapted for student's target grade (Zone of Proximal Development)
 const Anthropic = require("@anthropic-ai/sdk").default;
 
 const client = new Anthropic();
+
+// Define grade systems and their characteristics
+const GRADE_SYSTEMS = {
+  gcse: {
+    name: "GCSE",
+    grades: ["9", "8", "7", "6", "5", "4", "3", "2", "1"],
+    tiers: {
+      high: ["9", "8", "7"],
+      middle: ["6", "5", "4"],
+      foundation: ["3", "2", "1"]
+    }
+  },
+  alevel: {
+    name: "A-Level",
+    grades: ["A*", "A", "B", "C", "D", "E"],
+    tiers: {
+      high: ["A*", "A"],
+      middle: ["B", "C"],
+      foundation: ["D", "E"]
+    }
+  }
+};
+
+function getAbilityTier(targetGrade, gradeSystem) {
+  const system = GRADE_SYSTEMS[gradeSystem] || GRADE_SYSTEMS.gcse;
+  for (const [tier, grades] of Object.entries(system.tiers)) {
+    if (grades.includes(targetGrade)) return tier;
+  }
+  return "middle";
+}
+
+function getNextGradeUp(targetGrade, gradeSystem) {
+  const system = GRADE_SYSTEMS[gradeSystem] || GRADE_SYSTEMS.gcse;
+  const grades = system.grades;
+  const currentIndex = grades.indexOf(targetGrade);
+  if (currentIndex > 0) {
+    return grades[currentIndex - 1];
+  }
+  return targetGrade; // Already at top
+}
+
+function getDifferentiatedApproach(tier, targetGrade, gradeSystem) {
+  const systemName = GRADE_SYSTEMS[gradeSystem]?.name || "GCSE";
+  const nextGrade = getNextGradeUp(targetGrade, gradeSystem);
+  
+  const approaches = {
+    high: {
+      tone: "collegial and intellectually rigorous",
+      summary_style: "sophisticated analysis acknowledging their strong foundation while identifying paths to excellence",
+      encouragement_style: `Direct and honest. Acknowledge their achievement but make clear what separates very good from exceptional. Challenge them: "${nextGrade === targetGrade ? 'You\'re aiming for the top - here\'s what truly outstanding work looks like.' : `You're capable of more than grade ${targetGrade} - here's what grade ${nextGrade} requires.`}"`,
+      improvements_focus: "sophisticated refinements and advanced techniques",
+      praise_level: "measured - acknowledge strengths without over-praising"
+    },
+    middle: {
+      tone: "warm but appropriately challenging",
+      summary_style: "clear overview celebrating strengths while providing a roadmap for improvement",
+      encouragement_style: `Supportive and motivating. "You're working at a solid grade ${targetGrade} level - with these improvements, you could achieve grade ${nextGrade}." Make the next level feel achievable.`,
+      improvements_focus: "concrete, actionable steps toward the next grade",
+      praise_level: "generous but genuine - celebrate real achievements"
+    },
+    foundation: {
+      tone: "enthusiastic, warm, and highly supportive",
+      summary_style: "celebratory overview focusing on what they've achieved, with gentle guidance for growth",
+      encouragement_style: `Effusive and confidence-building. "This is wonderful progress! You should be proud of what you've written. You're absolutely capable of reaching grade ${targetGrade} and beyond - keep going!" Build their belief.`,
+      improvements_focus: "one or two manageable next steps (don't overwhelm)",
+      praise_level: "high - find and celebrate every positive aspect"
+    }
+  };
+  
+  return approaches[tier] || approaches.middle;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -12,8 +84,10 @@ exports.handler = async (event) => {
     const {
       studentName,
       essayTitle,
-      paragraphs, // Array of { config, finalText, attempts, paragraphScore }
-      gradingCriteria
+      paragraphs,
+      gradingCriteria,
+      targetGrade,
+      gradeSystem
     } = JSON.parse(event.body);
 
     // Compile the full essay
@@ -31,15 +105,31 @@ exports.handler = async (event) => {
       paragraphSummary.reduce((sum, p) => sum + p.score, 0) / paragraphSummary.length
     );
 
-    const systemPrompt = `You are an experienced English teacher providing holistic feedback on a complete essay. The student has written this essay paragraph by paragraph with revision opportunities. Now you're assessing the complete piece.
+    // Get differentiated approach
+    const abilityTier = getAbilityTier(targetGrade || "5", gradeSystem || "gcse");
+    const approach = getDifferentiatedApproach(abilityTier, targetGrade || "5", gradeSystem || "gcse");
+    const systemName = GRADE_SYSTEMS[gradeSystem]?.name || "GCSE";
+    const nextGrade = getNextGradeUp(targetGrade || "5", gradeSystem || "gcse");
 
-## Your Role
-- Assess how well the essay works as a unified whole
-- Comment on argument flow and coherence between paragraphs
-- Identify overall strengths and patterns
-- Suggest how the essay could be improved further
-- Provide an encouraging summary of achievement
-- Consider this is a secondary school student
+    const systemPrompt = `You are an experienced English teacher providing holistic feedback on a complete essay. You adapt your feedback style to each student's target grade and ability level.
+
+## THIS STUDENT'S PROFILE
+- **Student Name:** ${studentName}
+- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Ability Tier:** ${abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)}
+- **Your Tone:** ${approach.tone}
+
+## YOUR DIFFERENTIATED APPROACH
+- **Summary Style:** ${approach.summary_style}
+- **Encouragement Style:** ${approach.encouragement_style}
+- **Improvements Focus:** ${approach.improvements_focus}
+- **Praise Level:** ${approach.praise_level}
+
+## KEY PRINCIPLE: Always Push Beyond the Target
+- Don't let the student settle at their target grade
+- Show them what grade ${nextGrade} looks like and how to get there
+- Make exceeding their target feel achievable, not impossible
+- Feedback should inspire growth, not complacency
 
 ## Assessment Criteria
 ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`).join('\n')}
@@ -47,28 +137,31 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
 ## Response Format
 Respond with valid JSON:
 {
-  "overallGrade": "<Excellent|Good|Satisfactory|Needs Improvement>",
+  "overallGrade": "<${abilityTier === 'high' ? 'be precise and honest' : abilityTier === 'foundation' ? 'focus on achievement' : 'balanced assessment'}: Excellent|Good|Satisfactory|Needs Improvement>",
   "overallScore": <number 0-100>,
-  "essaySummary": "<2-3 sentence overview of the essay's argument and quality>",
-  "holisticStrengths": ["<strength about the essay as a whole>", "<another strength>", "<another>"],
-  "holisticImprovements": ["<area for improvement>", "<another area>"],
+  "essaySummary": "<${abilityTier === 'foundation' ? '2-3 encouraging sentences celebrating their work' : '2-3 sentences: honest assessment of argument and quality'}>",
+  "holisticStrengths": [${abilityTier === 'foundation' ? '"<strength - be generous and specific>", "<another strength>", "<find a third positive>"' : '"<genuine strength>", "<another strength>", "<third strength>"'}],
+  "holisticImprovements": [${abilityTier === 'foundation' ? '"<ONE gentle, achievable improvement>"' : abilityTier === 'high' ? '"<sophisticated improvement 1>", "<challenging improvement 2>", "<advanced technique 3>"' : '"<clear improvement 1>", "<actionable improvement 2>"'}],
   "paragraphByParagraph": [
     {
       "title": "<paragraph title>",
-      "comment": "<1-2 sentence comment on this paragraph's contribution to the whole>"
+      "comment": "<${abilityTier === 'foundation' ? 'encouraging 1-sentence comment' : '1-2 sentence comment on contribution to whole'}>"
     }
   ],
-  "flowAndCoherence": "<comment on how well the paragraphs link together>",
-  "argumentStrength": "<comment on the overall argument and how convincing it is>",
-  "bestQuotation": "<quote the best analytical sentence from their essay>",
-  "closingEncouragement": "<encouraging final message to the student>"
+  "flowAndCoherence": "<${abilityTier === 'foundation' ? 'positive comment on how their ideas connect' : 'analysis of how paragraphs link together'}>",
+  "argumentStrength": "<${abilityTier === 'foundation' ? 'celebrate their argument, note one way to strengthen it' : 'honest assessment of argument conviction'}>",
+  "bestQuotation": "<quote their BEST analytical sentence - find something to celebrate>",
+  "pathToNextGrade": "<specific advice on what would lift this essay from grade ${targetGrade} to grade ${nextGrade}>",
+  "closingEncouragement": "<${approach.encouragement_style}>"
 }`;
 
     const userPrompt = `## Essay Question
 "${essayTitle}"
 
-## Student
-${studentName}
+## Student Profile
+- **Name:** ${studentName}
+- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Ability Tier:** ${abilityTier}
 
 ## Paragraph Scores During Writing
 ${paragraphSummary.map(p => `- ${p.title} (${p.type}): ${p.score}% (${p.attempts} attempt${p.attempts > 1 ? 's' : ''})`).join('\n')}
@@ -82,7 +175,13 @@ ${p.finalText}`).join('\n\n')}
 
 ---
 
-Please provide holistic feedback on this complete essay. Assess how well it works as a unified piece of analytical writing, considering flow, argument development, and overall quality.`;
+Please provide holistic feedback on this complete essay, adapting your tone and approach for a student targeting grade ${targetGrade || "5"}. 
+
+Remember:
+- Use a ${approach.tone} tone
+- ${abilityTier === 'foundation' ? 'Be generous with praise and gentle with criticism' : abilityTier === 'high' ? 'Be honest and challenging - they can handle it' : 'Balance praise with constructive challenge'}
+- Always show them the path to grade ${nextGrade}
+- ${abilityTier === 'foundation' ? 'Find and celebrate every positive aspect of their writing' : 'Acknowledge achievements while maintaining high expectations'}`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -124,7 +223,9 @@ Please provide holistic feedback on this complete essay. Assess how well it work
         fullEssay: fullEssay,
         paragraphSummary: paragraphSummary,
         averageParagraphScore: averageScore,
-        finalScore: finalScore
+        finalScore: finalScore,
+        targetGrade: targetGrade,
+        abilityTier: abilityTier
       })
     };
 

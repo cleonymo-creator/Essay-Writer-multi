@@ -26,7 +26,6 @@
   <script src="config/firebase-config.js"></script>
   <script src="config/essay-list.js"></script>
   <script src="config/essays/christmas-carol.js"></script>
-  <script src="config/essays/creativenov23.js"></script>
   <script src="config/essays/mobile-phones-ban.js"></script>
   <!-- Add more essay configs here as you create them -->
   <script src="config/theme.js"></script>
@@ -3510,7 +3509,127 @@
       border-color: var(--color-primary);
       color: var(--color-text-inverse);
     }
-  </style>
+  
+
+    /* =====================================================
+       TARGET GRADE SELECTOR
+       ===================================================== */
+
+    .grade-selector {
+      margin-bottom: var(--space-lg);
+    }
+
+    .grade-selector-label {
+      display: block;
+      margin-bottom: var(--space-sm);
+      font-weight: 600;
+    }
+
+    .grade-selector-hint {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-md);
+      font-style: italic;
+    }
+
+    .grade-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .grade-button {
+      min-width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 30, 50, 0.8);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .grade-button:hover {
+      border-color: var(--color-primary);
+      background: var(--color-surface-hover);
+      transform: translateY(-2px);
+    }
+
+    .grade-button.selected {
+      border-color: var(--color-primary);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      color: var(--color-text-inverse);
+      box-shadow: 0 0 15px var(--color-primary-glow);
+    }
+
+    .grade-button.high-tier {
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .grade-button.high-tier.selected {
+      background: linear-gradient(135deg, var(--color-success) 0%, #34d399 100%);
+      border-color: var(--color-success);
+    }
+
+    .grade-button.foundation-tier {
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .grade-button.foundation-tier.selected {
+      background: linear-gradient(135deg, var(--color-info) 0%, #60a5fa 100%);
+      border-color: var(--color-info);
+    }
+
+    .grade-info-box {
+      margin-top: var(--space-md);
+      padding: var(--space-md);
+      background: var(--color-surface-hover);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-primary);
+    }
+
+    .grade-info-box.high {
+      border-left-color: var(--color-success);
+      background: var(--color-success-bg);
+    }
+
+    .grade-info-box.foundation {
+      border-left-color: var(--color-info);
+      background: var(--color-info-bg);
+    }
+
+    .grade-info-title {
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+      color: var(--color-text);
+    }
+
+    .grade-info-text {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .target-grade-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
+      background: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .target-grade-badge strong {
+      color: var(--color-primary-light);
+    }
+</style>
 
 </head>
 <body>
@@ -3981,51 +4100,125 @@
     }
     
     // =====================================================
-    // ENTRY SCREEN
-    // =====================================================
     
+
+    // =====================================================
+    // TARGET GRADE UTILITIES
+    // =====================================================
+
+    const GRADE_SYSTEMS = {
+      gcse: {
+        name: "GCSE",
+        grades: ["9", "8", "7", "6", "5", "4", "3", "2", "1"],
+        tiers: {
+          high: ["9", "8", "7"],
+          middle: ["6", "5", "4"],
+          foundation: ["3", "2", "1"]
+        },
+        descriptions: {
+          high: "Challenging feedback to push toward excellence",
+          middle: "Balanced support with clear improvement steps",
+          foundation: "Supportive guidance with lots of encouragement"
+        }
+      },
+      alevel: {
+        name: "A-Level",
+        grades: ["A*", "A", "B", "C", "D", "E"],
+        tiers: {
+          high: ["A*", "A"],
+          middle: ["B", "C"],
+          foundation: ["D", "E"]
+        },
+        descriptions: {
+          high: "Challenging feedback to push toward excellence",
+          middle: "Balanced support with clear improvement steps",
+          foundation: "Supportive guidance with lots of encouragement"
+        }
+      }
+    };
+
+    const getAbilityTier = (grade, system) => {
+      const gradeSystem = GRADE_SYSTEMS[system] || GRADE_SYSTEMS.gcse;
+      for (const [tier, grades] of Object.entries(gradeSystem.tiers)) {
+        if (grades.includes(grade)) return tier;
+      }
+      return "middle";
+    };
+
+    const getGradeSystem = (config) => {
+      // Detect from config or default to GCSE
+      if (config?.gradeSystem) return config.gradeSystem;
+      if (config?.qualification?.toLowerCase().includes('a-level') ||
+          config?.qualification?.toLowerCase().includes('alevel')) return 'alevel';
+      if (config?.yearGroup?.includes('12') || config?.yearGroup?.includes('13')) return 'alevel';
+      return 'gcse';
+    };
+// ENTRY SCREEN
+    // =====================================================
+
     function EntryScreen({ config, onStudentStart, onBack }) {
       const [studentName, setStudentName] = useState('');
       const [studentEmail, setStudentEmail] = useState('');
+      const [targetGrade, setTargetGrade] = useState('');
       const [error, setError] = useState('');
-      
+
       const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
-      
+
+      // Determine grade system from config
+      const gradeSystem = getGradeSystem(config);
+      const gradeSystemInfo = GRADE_SYSTEMS[gradeSystem];
+      const abilityTier = targetGrade ? getAbilityTier(targetGrade, gradeSystem) : null;
+
       const handleStudentSubmit = (e) => {
         e.preventDefault();
-        
+
         // Validate name
         if (studentName.trim().length < 2) {
           setError('Please enter your name (at least 2 characters)');
           return;
         }
-        
+
         // Validate email
         const emailLower = studentEmail.trim().toLowerCase();
         if (!emailLower) {
           setError('Please enter your school email address');
           return;
         }
-        
+
         if (!emailLower.endsWith(REQUIRED_EMAIL_DOMAIN)) {
           setError(`Please use your school email (must end with ${REQUIRED_EMAIL_DOMAIN})`);
           return;
         }
-        
+
         // Basic email format check
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(emailLower)) {
           setError('Please enter a valid email address');
           return;
         }
-        
-        onStudentStart(studentName.trim(), emailLower);
+
+        // Validate target grade
+        if (!targetGrade) {
+          setError('Please select your target grade');
+          return;
+        }
+
+        onStudentStart(studentName.trim(), emailLower, targetGrade, gradeSystem);
       };
-      
+
+      const getGradeButtonClass = (grade) => {
+        const tier = getAbilityTier(grade, gradeSystem);
+        let className = 'grade-button';
+        if (targetGrade === grade) className += ' selected';
+        if (tier === 'high') className += ' high-tier';
+        if (tier === 'foundation') className += ' foundation-tier';
+        return className;
+      };
+
       if (!config) {
         return <div className="app-container"><LoadingSpinner text="Loading essay..." /></div>;
       }
-      
+
       return (
         <div className="app-container">
           <div className="card ghost-appear">
@@ -4036,12 +4229,12 @@
                 <p className="essay-title">"{config.essayTitle}"</p>
               )}
             </div>
-            
+
             <div style={{ marginTop: 'var(--space-xl)' }}>
               <p style={{ marginBottom: 'var(--space-lg)', lineHeight: 1.7 }}>
                 {config.instructions}
               </p>
-              
+
               <form onSubmit={handleStudentSubmit}>
                 <div style={{ marginBottom: 'var(--space-lg)' }}>
                   <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
@@ -4057,7 +4250,7 @@
                     autoFocus
                   />
                 </div>
-                
+
                 <div style={{ marginBottom: 'var(--space-lg)' }}>
                   <label style={{ display: 'block', marginBottom: 'var(--space-sm)', fontWeight: 600 }}>
                     Your school email:
@@ -4074,15 +4267,52 @@
                     Must end with {REQUIRED_EMAIL_DOMAIN}
                   </p>
                 </div>
-                
+
+                {/* TARGET GRADE SELECTOR */}
+                <div className="grade-selector">
+                  <label className="grade-selector-label">
+                    🎯 What grade are you aiming for?
+                  </label>
+                  <p className="grade-selector-hint">
+                    This helps us personalise the feedback to support your learning journey
+                  </p>
+
+                  <div className="grade-buttons">
+                    {gradeSystemInfo.grades.map((grade) => (
+                      <button
+                        key={grade}
+                        type="button"
+                        className={getGradeButtonClass(grade)}
+                        onClick={() => { setTargetGrade(grade); setError(''); }}
+                      >
+                        {grade}
+                      </button>
+                    ))}
+                  </div>
+
+                  {abilityTier && (
+                    <div className={`grade-info-box ${abilityTier}`}>
+                      <div className="grade-info-title">
+                        {abilityTier === 'high' ? '🌟 Aiming High!' :
+                         abilityTier === 'foundation' ? '💪 Building Strong Foundations' :
+                         '📈 Solid Progress'}
+                      </div>
+                      <div className="grade-info-text">
+                        {gradeSystemInfo.descriptions[abilityTier]}
+                        {abilityTier !== 'high' && " We'll always push you to exceed your target!"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {error && <p style={{ color: 'var(--color-error)', marginBottom: 'var(--space-md)' }}>{error}</p>}
-                
+
                 <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
                   <button type="submit" className="btn btn-primary btn-large">
                     Start Essay
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={onBack}
                   >
@@ -4095,142 +4325,10 @@
         </div>
       );
     }
-    
-    // =====================================================
-    // PARAGRAPH TRACKER
+// PARAGRAPH SCREEN
     // =====================================================
     
-    function ParagraphTracker({ paragraphs, currentIndex, paragraphStates, onNavigate, previewMode }) {
-      return (
-        <div className="progress-section" style={{ marginBottom: 'var(--space-xl)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-            <span style={{ fontWeight: 600 }}>Essay Progress</span>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-              {Object.values(paragraphStates).filter(s => s.completed).length} of {paragraphs.length} paragraphs
-            </span>
-          </div>
-          
-          <div className="question-tracker">
-            {paragraphs.map((para, index) => {
-              const state = paragraphStates[para.id] || {};
-              let className = 'question-tracker-item';
-              
-              if (index === currentIndex) className += ' current';
-              else if (state.completed) className += ' correct';
-              else if (state.attempts > 0) className += ' in-progress';
-              
-              // In preview mode, all paragraphs are navigable
-              const canNavigate = previewMode || index <= currentIndex || state.completed || 
-                (index > 0 && paragraphStates[paragraphs[index - 1]?.id]?.completed);
-              
-              if (!canNavigate) className += ' locked';
-              
-              return (
-                <div
-                  key={para.id}
-                  className={className}
-                  onClick={() => canNavigate && onNavigate(index)}
-                  title={para.title}
-                >
-                  {index + 1}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-    
-    // =====================================================
-    // FEEDBACK DISPLAY
-    // =====================================================
-    
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, onRevise, onAccept }) {
-      const scoreClass = getScoreClass(feedback.overallScore);
-      
-      return (
-        <div className="feedback-panel">
-          <div className="feedback-header">
-            <div className={`feedback-score ${scoreClass}`}>
-              {feedback.overallScore}%
-            </div>
-            <div>
-              <div style={{ fontWeight: 600 }}>Attempt {attemptNumber} Feedback</div>
-              <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                {canRevise ? 'You can revise based on this feedback' : 'Final assessment'}
-              </div>
-            </div>
-          </div>
-          
-          {feedback.criteriaScores && (
-            <div className="criteria-scores">
-              {Object.entries(feedback.criteriaScores).map(([key, score]) => (
-                <div key={key} className="criteria-item">
-                  <div className="criteria-label">{key}</div>
-                  <div className="criteria-score">{score}%</div>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {feedback.progressNote && (
-            <div className="feedback-section">
-              <div className="feedback-section-title"><span>📈</span> Progress</div>
-              <p style={{ color: 'var(--color-text-secondary)' }}>{feedback.progressNote}</p>
-            </div>
-          )}
-          
-          {feedback.strengths && feedback.strengths.length > 0 && (
-            <div className="feedback-section">
-              <div className="feedback-section-title"><span>✨</span> Strengths</div>
-              <ul className="feedback-list strengths">
-                {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
-              </ul>
-            </div>
-          )}
-          
-          {feedback.improvements && feedback.improvements.length > 0 && (
-            <div className="feedback-section">
-              <div className="feedback-section-title"><span>🎯</span> Areas to Improve</div>
-              <ul className="feedback-list improvements">
-                {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
-              </ul>
-            </div>
-          )}
-          
-          {feedback.detailedFeedback && (
-            <div className="feedback-section">
-              <div className="feedback-section-title"><span>📝</span> Detailed Feedback</div>
-              <div className="detailed-feedback">{feedback.detailedFeedback}</div>
-            </div>
-          )}
-          
-          {feedback.exampleRevision && canRevise && (
-            <div className="example-revision">
-              <div className="example-revision-label">💡 Example Improvement</div>
-              {feedback.exampleRevision}
-            </div>
-          )}
-          
-          <div className="revision-actions">
-            {canRevise ? (
-              <>
-                <button className="btn btn-primary" onClick={onRevise}>✏️ Revise My Writing</button>
-                <button className="btn btn-secondary" onClick={onAccept}>✓ Accept & Continue</button>
-              </>
-            ) : (
-              <button className="btn btn-primary" onClick={onAccept}>Continue to Next Section →</button>
-            )}
-          </div>
-        </div>
-      );
-    }
-    
-    // =====================================================
-    // PARAGRAPH SCREEN
-    // =====================================================
-    
-    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria }) {
+    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria, targetGrade, gradeSystem }) {
       const [text, setText] = useState(paragraphState?.currentText || '');
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
@@ -4267,7 +4365,9 @@
               maxAttempts: maxAttempts,
               previousFeedback: paragraphState?.feedbackHistory || [],
               essayTitle: config?.essayTitle,
-              gradingCriteria: gradingCriteria
+              gradingCriteria: gradingCriteria,
+              targetGrade: targetGrade,
+              gradeSystem: gradeSystem
             })
           });
           
@@ -5507,7 +5607,7 @@ ${examinerComment}
         if (!CONFIG || !studentName || screen !== 'writing' || isPreviewMode) return;
         
         // Save to localStorage
-        const saveData = { studentName, studentEmail, paragraphStates, currentParagraphIndex, savedAt: new Date().toISOString() };
+        const saveData = { studentName, studentEmail, targetGrade, gradeSystem, paragraphStates, currentParagraphIndex, savedAt: new Date().toISOString() };
         localStorage.setItem(CONFIG.LOCAL_STORAGE_KEY, JSON.stringify(saveData));
         
         // Save to server for teacher dashboard
@@ -5518,6 +5618,10 @@ ${examinerComment}
         const progressData = {
           studentName,
           studentEmail,
+          targetGrade,
+          gradeSystem,
+          targetGrade,
+          gradeSystem,
           type: 'essay',
           essayId: selectedEssayId,
           essayTitle: CONFIG.essayTitle,
@@ -5560,6 +5664,8 @@ ${examinerComment}
             if (data.studentName && Object.keys(data.paragraphStates || {}).length > 0) {
               setStudentName(data.studentName);
               setStudentEmail(data.studentEmail || '');
+              setTargetGrade(data.targetGrade || '');
+              setGradeSystem(data.gradeSystem || 'gcse');
               setParagraphStates(data.paragraphStates);
               setCurrentParagraphIndex(data.currentParagraphIndex || 0);
               
@@ -5582,9 +5688,11 @@ ${examinerComment}
         setScreen('entry');
       };
       
-      const handleStudentStart = (name, email) => {
+      const handleStudentStart = (name, email, grade, system) => {
         setStudentName(name);
         setStudentEmail(email);
+        setTargetGrade(grade);
+        setGradeSystem(system);
         setScreen('writing');
       };
       
@@ -5654,7 +5762,9 @@ ${examinerComment}
               studentName,
               essayTitle: CONFIG.essayTitle,
               paragraphs: paragraphData,
-              gradingCriteria: GRADING_CRITERIA
+              gradingCriteria: GRADING_CRITERIA,
+              targetGrade: targetGrade,
+              gradeSystem: gradeSystem
             })
           });
           
@@ -5776,6 +5886,8 @@ ${examinerComment}
         setIsPreviewMode(false);
         setStudentName('');
         setStudentEmail('');
+        setTargetGrade('');
+        setGradeSystem('gcse');
         setParagraphStates({});
         setCurrentParagraphIndex(0);
         setEssayFeedback(null);
@@ -5787,6 +5899,8 @@ ${examinerComment}
         setSelectedEssayId(null);
         setStudentName('');
         setStudentEmail('');
+        setTargetGrade('');
+        setGradeSystem('gcse');
         setParagraphStates({});
         setCurrentParagraphIndex(0);
         setEssayFeedback(null);
@@ -5799,6 +5913,8 @@ ${examinerComment}
         }
         setStudentName('Teacher Preview');
         setStudentEmail('teacher@preview.mode');
+        setTargetGrade('5');
+        setGradeSystem(getGradeSystem(getEssayConfig(essayId || selectedEssayId)));
         setCurrentParagraphIndex(0);
         setParagraphStates({});
         setEssayFeedback(null);
@@ -5855,6 +5971,11 @@ ${examinerComment}
             <h1 className="gold-glow">{CONFIG.title}</h1>
             <p className="subtitle">{CONFIG.subject} • {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
+            {targetGrade && (
+              <div className=\"target-grade-badge\" style={{ marginTop: 'var(--space-sm)' }}>
+                🎯 Target: <strong>Grade {targetGrade}</strong>
+              </div>
+            )}
           </div>
           
           {isPreviewMode && (
@@ -5904,6 +6025,8 @@ ${examinerComment}
                 previewMode={isPreviewMode}
                 config={CONFIG}
                 gradingCriteria={GRADING_CRITERIA}
+              targetGrade={targetGrade}
+              gradeSystem={gradeSystem}
               />
             </div>
             

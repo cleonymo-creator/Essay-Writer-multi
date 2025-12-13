@@ -1,16 +1,5 @@
 const { getStore } = require("@netlify/blobs");
 
-// Get store with manual configuration if env vars are set
-function getBlobStore(name) {
-  const siteID = process.env.NETLIFY_SITE_ID;
-  const token = process.env.NETLIFY_BLOBS_TOKEN;
-  
-  if (siteID && token) {
-    return getStore({ name, siteID, token });
-  }
-  return getStore(name);
-}
-
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -51,7 +40,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const store = getBlobStore("homework-submissions");
+    // Get the store - Netlify automatically provides siteID and token in Functions
+    // No manual configuration needed!
+    const store = getStore("homework-submissions");
     
     // Handle update to existing submission (e.g., adding official grading)
     if (submission.updateOnly) {
@@ -62,8 +53,8 @@ exports.handler = async (event, context) => {
       
       for (const blob of blobs) {
         try {
-          const data = JSON.parse(await store.get(blob.key));
-          if (data.studentName === submission.studentName && 
+          const data = await store.get(blob.key, { type: 'json' });
+          if (data && data.studentName === submission.studentName && 
               data.essayId === submission.essayId) {
             existingKey = blob.key;
             existingSubmission = data;
@@ -83,7 +74,7 @@ exports.handler = async (event, context) => {
           updatedAt: new Date().toISOString()
         };
         
-        await store.set(existingKey, JSON.stringify(updatedSubmission));
+        await store.setJSON(existingKey, updatedSubmission);
         
         console.log('Submission updated:', {
           id: existingSubmission.id,
@@ -128,9 +119,9 @@ exports.handler = async (event, context) => {
     submission.serverTimestamp = new Date().toISOString();
     submission.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Save to Blobs
+    // Save to Blobs using setJSON for cleaner code
     const key = `submission-${submission.id}`;
-    await store.set(key, JSON.stringify(submission));
+    await store.setJSON(key, submission);
 
     console.log('Submission saved:', {
       id: submission.id,
@@ -141,10 +132,10 @@ exports.handler = async (event, context) => {
 
     // Clean up progress entry for this student
     try {
-      const progressStore = getBlobStore("homework-progress");
+      const progressStore = getStore("homework-progress");
       const sanitizedName = submission.studentName.replace(/[^a-zA-Z0-9]/g, '_');
-      const essayId = submission.essayId || '';
-      await progressStore.delete(`progress-${sanitizedName}-${essayId}`);
+      const essayId = submission.essayId ? `-${submission.essayId}` : '';
+      await progressStore.delete(`progress-${sanitizedName}${essayId}`);
       console.log('Progress entry cleaned up for:', submission.studentName);
     } catch (e) {
       // Ignore cleanup errors - not critical

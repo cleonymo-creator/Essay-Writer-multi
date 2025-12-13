@@ -1,16 +1,5 @@
 const { getStore } = require("@netlify/blobs");
 
-// Get store with manual configuration if env vars are set
-function getBlobStore(name) {
-  const siteID = process.env.NETLIFY_SITE_ID;
-  const token = process.env.NETLIFY_BLOBS_TOKEN;
-  
-  if (siteID && token) {
-    return getStore({ name, siteID, token });
-  }
-  return getStore(name);
-}
-
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -52,17 +41,18 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Fetch all submissions from Blobs
-    const store = getBlobStore("homework-submissions");
+    // Get the store - Netlify automatically provides siteID and token in Functions
+    // No manual configuration needed!
+    const store = getStore("homework-submissions");
     const { blobs } = await store.list();
     
     const submissions = [];
     for (const blob of blobs) {
       try {
-        const data = await store.get(blob.key);
+        // Use type: 'json' for automatic JSON parsing
+        const data = await store.get(blob.key, { type: 'json' });
         if (data) {
-          const parsed = JSON.parse(data);
-          submissions.push(parsed);
+          submissions.push(data);
         }
       } catch (e) {
         console.error('Error fetching blob:', blob.key, e.message);

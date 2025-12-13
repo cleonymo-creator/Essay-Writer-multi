@@ -1,16 +1,5 @@
 const { getStore } = require("@netlify/blobs");
 
-// Get store with manual configuration if env vars are set
-function getBlobStore(name) {
-  const siteID = process.env.NETLIFY_SITE_ID;
-  const token = process.env.NETLIFY_BLOBS_TOKEN;
-  
-  if (siteID && token) {
-    return getStore({ name, siteID, token });
-  }
-  return getStore(name);
-}
-
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -24,6 +13,10 @@ exports.handler = async (event, context) => {
       body: ''
     };
   }
+
+  // Get the store - Netlify automatically provides siteID and token in Functions
+  // No manual configuration needed!
+  const store = getStore("homework-progress");
 
   // ============================================
   // GET - Retrieve in-progress students for teacher dashboard
@@ -44,18 +37,17 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const store = getBlobStore("homework-progress");
       const { blobs } = await store.list();
       
       const inProgress = [];
       for (const blob of blobs) {
         try {
-          const data = await store.get(blob.key);
+          // Use type: 'json' for automatic JSON parsing
+          const data = await store.get(blob.key, { type: 'json' });
           if (data) {
-            const parsed = JSON.parse(data);
             // Only include students who haven't completed
-            if (!parsed.completed && parsed.percentComplete < 100) {
-              inProgress.push(parsed);
+            if (!data.completed && data.percentComplete < 100) {
+              inProgress.push(data);
             }
           }
         } catch (e) {
@@ -123,9 +115,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const store = getBlobStore("homework-progress");
     const sanitizedName = progressData.studentName.replace(/[^a-zA-Z0-9]/g, '_');
-    const key = `progress-${sanitizedName}`;
+    const essayId = progressData.essayId ? `-${progressData.essayId}` : '';
+    const key = `progress-${sanitizedName}${essayId}`;
     
     // If completed, delete progress entry
     if (progressData.completed || progressData.percentComplete >= 100) {
@@ -149,9 +141,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Save progress
+    // Save progress using setJSON for cleaner code
     progressData.lastUpdate = new Date().toISOString();
-    await store.set(key, JSON.stringify(progressData));
+    await store.setJSON(key, progressData);
     
     console.log('Progress saved:', {
       student: progressData.studentName,
