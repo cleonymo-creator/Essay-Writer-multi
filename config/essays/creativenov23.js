@@ -1,4 +1,6 @@
-window.ESSAY_CONFIG = {
+window.ESSAYS = window.ESSAYS || {};
+window.ESSAYS['creative-writing-sunset'] = {
+  id: 'creative-writing-sunset',
   title: "AQA GCSE English Language Paper 1 - Creative Writing",
   subject: "GCSE English",
   yearGroup: "Year 11",
@@ -229,6 +231,10 @@ Your conclusion should provide a satisfying ending that brings your description 
     }
   ],
   gradingCriteria: {
+    structure: { 
+      weight: 0, 
+      description: "Clear paragraph structure, logical flow, cohesive writing." 
+    },
     content: { 
       weight: 60, 
       description: "Communication, vocabulary, linguistic devices, tone and register appropriate to creative writing. Engaging writing with clear, connected ideas and effective structural features." 
