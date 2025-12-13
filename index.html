@@ -4304,7 +4304,7 @@
           
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>? Strengths</div>
+              <div className="feedback-section-title"><span>✦</span> Strengths</div>
               <ul className="feedback-list strengths">
                 {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4313,7 +4313,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>👊/span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>👊</span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4329,7 +4329,7 @@
           
           {feedback.exampleRevision && (
             <div className="example-revision">
-              <div className="example-revision-label">? Example Improvement</div>
+              <div className="example-revision-label">✨ Example Improvement</div>
               {feedback.exampleRevision}
             </div>
           )}
@@ -4574,7 +4574,7 @@
                     type="button"
                     className="btn btn-secondary"
                     onClick={onBack}
-                  >?
+                  >← Back
                 </div>
               </form>
             </div>
@@ -5196,7 +5196,7 @@ ${examinerComment}
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
               <div>
-                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>? Strengths</strong>
+                <strong style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>✦ Strengths</strong>
                 <ul style={{ margin: 'var(--space-xs) 0 0 var(--space-md)', padding: 0, fontSize: '0.85rem' }}>
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
@@ -5236,7 +5236,7 @@ ${examinerComment}
                     <div style={{ color: 'var(--color-text-muted)' }}>Grade {initialVersion.grade}</div>
                   </div>
                   
-                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>?</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>📜</div>
                   
                   <div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>Improved</div>
@@ -5396,7 +5396,7 @@ ${examinerComment}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginTop: 'var(--space-xl)' }}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>? Improved Version (Final)</span> Essay Strengths</div>
+                        <div className="feedback-section-title"><span>✨</span> Improved Version (Final)</div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
