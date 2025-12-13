@@ -138,7 +138,7 @@ You must respond with valid JSON in this exact format:
   },
   "comparison": {
     "marksImproved": <number>,
-    "gradeChange": "<e.g. '4 → 6' or 'No change'>",
+    "gradeChange": "<e.g. '4 â†’ 6' or 'No change'>",
     "mostImprovedArea": "<which AO showed most improvement>",
     "improvementSummary": "<2-3 sentences describing what improved and how>",
     "remainingTargets": ["<target 1 for further improvement>", "<target 2>"]
