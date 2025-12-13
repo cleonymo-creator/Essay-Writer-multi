@@ -288,6 +288,31 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `    "${key}": <number 0-1
 
 ${assessmentSection}
 
+
+
+## CRITICAL: "Best Achievement" Marking Principle
+Apply this fundamental principle when assessing the complete essay:
+- **Credit the HIGHEST level of skill demonstrated anywhere in the essay**
+- **Strong paragraphs prove capability** - if 1 paragraph shows Grade 8 analysis, they CAN work at Grade 8
+- **Don't average quality** - variable performance suggests developing skills, not lower capability
+- **Look for evidence of potential** - what's the best analytical point they made? That's their ceiling
+- **Weaknesses are developmental, not definitive** - note them for growth, not as grade anchors
+- **Partial sophistication > complete simplicity** - attempting advanced techniques (even imperfectly) shows more promise
+
+The essay grade should reflect the highest consistent level of skill demonstrated, recognizing that mastery develops through practice.
+
+
+## YOUR PRIMARY TASK: IDENTIFY THE HIGHEST SKILL LEVEL
+When you assess this complete essay, ask yourself:
+1. **What's the BEST paragraph they wrote?** - This proves what they're capable of
+2. **What's the most sophisticated analysis anywhere in the essay?** - Even if only shown once
+3. **Which grade descriptor matches their STRONGEST work?** - Not their most common work
+
+The essay grade should reflect the highest quality demonstrated, recognizing that:
+- Strong work in one area proves capability
+- Inconsistency is normal in developing writers
+- The goal is to encourage reaching their proven ceiling more often
+
 ## Response Format
 Respond with valid JSON:
 ${responseFormat}`;

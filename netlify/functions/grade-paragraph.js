@@ -110,6 +110,33 @@ function getAdjacentGradeDescriptors(gradeBoundaries, targetGrade) {
   return result;
 }
 
+
+// Get differentiated hint based on ability tier
+function getHintForAbilityLevel(tier, targetGrade, nextGrade, adjacentDescriptors, gradeBoundaries) {
+  const hints = {
+    foundation: {
+      level: "Foundation Support",
+      approach: "Step-by-step guidance with clear examples",
+      detail: `Your target is grade ${targetGrade}. Here's ONE focused thing to improve:`,
+      format: "Simple, actionable step with a clear example sentence structure"
+    },
+    middle: {
+      level: "Targeted Advice",
+      approach: "Clear improvement steps with reasoning",
+      detail: `To move from grade ${targetGrade} toward grade ${nextGrade}, focus on:`,
+      format: "2-3 specific improvements with explanation of why they matter"
+    },
+    high: {
+      level: "Advanced Challenge",
+      approach: "Sophisticated refinements for excellence",
+      detail: `To reach grade ${nextGrade} and beyond:`,
+      format: "Advanced techniques and nuanced analytical approaches"
+    }
+  };
+  
+  return hints[tier] || hints.middle;
+}
+
 // Generate differentiated teaching approach based on ability tier
 function getDifferentiatedApproach(tier, targetGrade, gradeSystem) {
   const systemName = GRADE_SYSTEMS[gradeSystem]?.name || "GCSE";
@@ -282,13 +309,33 @@ Your feedback should:
 2. Identify specific evidence that places them at that level
 3. Give concrete steps to move toward the next grade up
 
+
+
+## CRITICAL: "Best Achievement" Marking Principle
+When assessing student work, apply this fundamental principle:
+- **Credit the HIGHEST level of skill demonstrated**, even if shown only once or briefly
+- **Don't average out** high and low performance - if they show Grade 7 analysis in one area, that's evidence of Grade 7 capability
+- **Don't penalize twice** - if you've noted a weakness, don't let it drag the grade down across multiple criteria
+- **Look for the ceiling, not the floor** - What's the best thing they've done? That shows their true capability
+- **Partial achievement of higher grades beats full achievement of lower grades** - A student attempting sophisticated analysis (even imperfectly) shows more promise than perfect basic description
+- **Weaknesses are learning opportunities, not grade anchors** - Note areas for improvement without letting them overshadow demonstrated strengths
+
+### Example:
+If a student writes 4 paragraphs where:
+- 3 paragraphs show basic Grade 5 analysis
+- 1 paragraph demonstrates sophisticated Grade 7 critical thinking
+
+**Award Grade 7 (or Grade 6/7 borderline)** - They've proven they CAN work at that level. The task now is to help them do it consistently, not to penalize them for inconsistency.
+
 ## IMPORTANT: Fair Marking Guidance
-When assessing, apply the "best-fit" principle used by real examiners:
-- If work shows characteristics of TWO adjacent grades, award the HIGHER grade if ANY significant criterion is met at that level
-- Award marks in the UPPER portion of a grade band when work solidly meets the descriptors (not just scraping in)
-- Don't penalise twice: if you've noted a weakness, don't let it drag down marks in multiple areas
-- Recognise potential and effort: strong attempts at sophisticated techniques count positively even if not fully achieved
-- Students are still learning - grade their work fairly, not punitively`;
+When assessing, apply the "best achievement" principle used by expert examiners:
+- **Always credit the HIGHEST skill level demonstrated** - even if shown in just one part of the work
+- If work shows characteristics of TWO adjacent grades, award the HIGHER grade when that level is genuinely demonstrated
+- **Don't average** - A mix of Grade 5 and Grade 7 work suggests Grade 6/7 capability, not Grade 6
+- **Don't penalize twice** - note weaknesses once, don't let them reduce the grade multiple times
+- **Recognize potential** - attempts at sophisticated techniques show capability even if not perfectly executed
+- **Focus on what they CAN do** - the highest skill demonstrated reveals their true capability
+- Students are still learning - assess their best work as evidence of their developing skills`;
     } else {
       // Fallback to generic criteria
       assessmentCriteriaSection = `## Assessment Criteria (weight in brackets)
@@ -299,10 +346,16 @@ ${Object.entries(gradingCriteria)
 
     // Build response format based on whether we have authentic descriptors
     const responseFormat = hasAuthenticDescriptors ? `{
-  "awardedMarks": <number: the marks you would award this paragraph out of ${totalMarks || 40} - use best-fit principle, rounding up when borderline>,
-  "marksJustification": "<1-2 sentences explaining your mark, highlighting what the student has achieved and which descriptor criteria they meet>",
+  "holistic_level": "<which grade descriptor best matches this work overall - use best-fit, crediting highest demonstrated skills>",
+  "levelJustification": "<1-2 sentences explaining why this work fits this grade level, highlighting the highest skills demonstrated>",
   "strengths": ["<specific strength with evidence from their writing>", "<another strength>"],
-  "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement linked to grade descriptors>"' : '"<improvement linked to next grade descriptor>", "<another specific improvement>"'}],
+  "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement linked to grade descriptors>"' : abilityTier === 'high' ? '"<sophisticated improvement 1>", "<advanced technique 2>", "<nuanced refinement 3>"' : '"<clear improvement 1 with explanation>", "<targeted improvement 2 with rationale>"'}],
+  "tieredHint": {
+    "level": "${abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)} Level",
+    "targetGrade": "${targetGrade}",
+    "nextGrade": "${nextGrade}",
+    "hint": "<${abilityTier === 'foundation' ? 'ONE simple, clear step they can take right now with an example' : abilityTier === 'high' ? 'Sophisticated technique or analytical framework to elevate their work' : '2-3 clear steps to move closer to the next grade'}>"
+  },
   "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs referencing what the grade descriptors say' : '2-3 paragraphs linking feedback to grade descriptors'}>",
   "exampleRevision": "<${approach.example_style}>",
   "progressNote": "<if revision: note improvement with reference to grade movement>",
@@ -343,6 +396,26 @@ Your feedback should ALWAYS push the student slightly beyond their current level
 
 ${assessmentCriteriaSection}
 
+
+
+## HOLISTIC ASSESSMENT APPROACH
+You are assessing this paragraph HOLISTICALLY, not by counting up marks:
+- Identify the HIGHEST grade descriptor that this work genuinely demonstrates
+- Look for evidence of sophisticated skills, even if briefly shown
+- Don't average across criteria - credit the best work as evidence of capability
+- The question is: "What's the highest level this student has proven they can work at?"
+
+
+## YOUR PRIMARY TASK: IDENTIFY THE HIGHEST SKILL LEVEL
+When you assess this paragraph, ask yourself:
+1. **What's the BEST analytical point they made?** - This shows their capability
+2. **What's the most sophisticated technique they attempted?** - Even partial success counts
+3. **Which grade descriptor best matches their STRONGEST work?** - Not their average
+
+Then assign the grade that matches that highest demonstrated skill level.
+
+Remember: A student who shows one moment of Grade 8 analysis mixed with Grade 6 work is demonstrating Grade 7/8 capability - they CAN do it, they just need practice doing it consistently. Don't penalize them for being on a learning journey.
+
 ## Response Format
 You must respond with valid JSON in this exact format:
 ${responseFormat}`;
@@ -371,7 +444,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade d
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
