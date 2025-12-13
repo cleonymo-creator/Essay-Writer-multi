@@ -22,13 +22,65 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
-  <!-- Configuration - Multi-Essay System -->
+  <!-- Configuration -->
   <script src="config/firebase-config.js"></script>
-  <script src="config/essay-list.js"></script>
-  <script src="config/essays/christmas-carol.js"></script>
-  <script src="config/essays/mobile-phones-ban.js"></script>
-  <!-- Add more essay configs here as you create them -->
   <script src="config/theme.js"></script>
+  
+  <!-- Essay Auto-Loader: reads manifest.json and loads all essays automatically -->
+  <script>
+    window.ESSAYS = window.ESSAYS || {};
+    window.ESSAY_LIST = window.ESSAY_LIST || [];
+    window.GLOBAL_CONFIG = window.GLOBAL_CONFIG || {};
+    
+    // Load essays from manifest and auto-build ESSAY_LIST
+    window.loadEssays = async function() {
+      try {
+        const response = await fetch('essays/manifest.json');
+        const essayIds = await response.json();
+        
+        // Load each essay file
+        for (const id of essayIds) {
+          await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = `essays/${id}.js`;
+            script.onload = resolve;
+            script.onerror = () => {
+              console.warn(`Failed to load essay: ${id}`);
+              resolve(); // Continue loading others
+            };
+            document.head.appendChild(script);
+          });
+        }
+        
+        // Auto-build ESSAY_LIST from loaded essays
+        // This means essay files don't need to register themselves
+        window.ESSAY_LIST = [];
+        for (const [id, essay] of Object.entries(window.ESSAYS)) {
+          window.ESSAY_LIST.push({
+            id: essay.id || id,
+            title: essay.title || 'Untitled Essay',
+            subject: essay.subject || 'English',
+            yearGroup: essay.yearGroup || '',
+            description: essay.description || essay.instructions || '',
+            icon: essay.icon || '📝',
+            paragraphs: essay.paragraphs?.length || 0,
+            totalMarks: essay.officialMarkScheme?.totalMarks || 
+                       essay.paragraphs?.reduce((sum, p) => sum + (p.points || 0), 0) || 
+                       40
+          });
+        }
+        
+        // Sort by title for consistent ordering
+        window.ESSAY_LIST.sort((a, b) => a.title.localeCompare(b.title));
+        
+        console.log(`Loaded ${window.ESSAY_LIST.length} essays:`, window.ESSAY_LIST.map(e => e.id));
+        return true;
+      } catch (error) {
+        console.error('Failed to load essay manifest:', error);
+        return false;
+      }
+    };
+  </script>
   
   <style>
     /* =====================================================
@@ -4205,7 +4257,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>🎯</span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4214,21 +4266,21 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ“</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>📝</span> Detailed Feedback</div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
           
           {feedback.exampleRevision && (
             <div className="example-revision">
-              <div className="example-revision-label">ðŸ’¡ Example Improvement</div>
+              <div className="example-revision-label">💡 Example Improvement</div>
               {feedback.exampleRevision}
             </div>
           )}
           
           {feedback.nextLevelHint && (
             <div className="feedback-section" style={{ marginTop: 'var(--space-lg)' }}>
-              <div className="feedback-section-title"><span>ðŸš€</span> To Reach the Next Grade</div>
+              <div className="feedback-section-title"><span>🚀</span> To Reach the Next Grade</div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
           )}
@@ -6126,7 +6178,7 @@ ${examinerComment}
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
               <div className="target-grade-badge" style={{ marginTop: 'var(--space-sm)' }}>
-                ðŸŽ¯ Target: <strong>Grade {targetGrade}</strong>
+                🎯 Target: <strong>Grade {targetGrade}</strong>
               </div>
             )}
           </div>
@@ -6204,8 +6256,21 @@ ${examinerComment}
     // RENDER
     // =====================================================
     
+    // Wait for essays to load, then render
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    
+    // Show loading state initially
+    root.render(
+      <div className="app-container" style={{ textAlign: 'center', paddingTop: '100px' }}>
+        <div className="spinner"></div>
+        <p style={{ marginTop: '20px', color: 'var(--color-text-muted)' }}>Loading essays...</p>
+      </div>
+    );
+    
+    // Load essays then render app
+    window.loadEssays().then(() => {
+      root.render(<App />);
+    });
   </script>
 </body>
 </html>
