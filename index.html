@@ -466,7 +466,7 @@
     }
     
     .question-tracker-item.correct::after {
-      content: '✓';
+      content: 'âœ“';
       position: absolute;
       top: -5px;
       right: -5px;
@@ -603,123 +603,6 @@
       line-height: 1.5;
       color: var(--color-text);
       margin-bottom: var(--space-xl);
-    }
-    
-    /* =====================================================
-       OPTIONS (MCQ & True/False)
-       ===================================================== */
-    
-    .options-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    
-    .option-button {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      padding: var(--space-md) var(--space-lg);
-      background: rgba(30, 30, 50, 0.8);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all var(--transition-base);
-      text-align: left;
-      font-size: 1rem;
-      color: var(--color-text);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .option-button::before {
-      display: none;
-    }
-    
-    .option-button:hover:not(:disabled) {
-      border-color: var(--color-primary);
-      background: var(--color-surface-hover);
-      transform: translateX(5px);
-    }
-    
-    .option-button.selected {
-      border-color: var(--color-primary);
-      background: rgba(184, 134, 11, 0.25);
-    }
-    
-    .option-button.correct {
-      border-color: var(--color-success);
-      background: var(--color-success-bg);
-    }
-    
-    .option-button.incorrect {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
-    }
-    
-    .option-button:disabled {
-      cursor: default;
-    }
-    
-    .option-letter {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: rgba(184, 134, 11, 0.2);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-      transition: all var(--transition-base);
-      font-family: var(--font-mono);
-      color: var(--color-primary-light);
-    }
-    
-    .option-button.selected .option-letter {
-      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-      border-color: var(--color-primary);
-      color: var(--color-text-inverse);
-    }
-    
-    .option-button.correct .option-letter {
-      background: var(--color-success);
-      border-color: var(--color-success);
-      color: var(--color-text-inverse);
-    }
-    
-    .option-button.incorrect .option-letter {
-      background: var(--color-error);
-      border-color: var(--color-error);
-      color: var(--color-text-inverse);
-    }
-    
-    .option-text {
-      flex: 1;
-      position: relative;
-      z-index: 1;
-    }
-    
-    /* True/False specific */
-    .tf-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-md);
-    }
-    
-    .tf-button {
-      justify-content: center;
-      padding: var(--space-lg);
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-    
-    .tf-button .option-letter {
-      width: 44px;
-      height: 44px;
-      font-size: 1.25rem;
     }
     
     /* =====================================================
@@ -881,29 +764,6 @@
       line-height: 1.6;
     }
     
-    .correct-answer-reveal {
-      margin-top: var(--space-md);
-      padding: var(--space-md);
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-sm);
-      border-left: 3px solid var(--color-primary);
-      border: 1px solid var(--color-border);
-    }
-    
-    .correct-answer-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .correct-answer-text {
-      color: var(--color-text);
-      font-weight: 500;
-    }
-    
     /* Feedback Details */
     .ai-feedback {
       margin-top: var(--space-lg);
@@ -956,7 +816,7 @@
     }
     
     .ai-feedback-list li::before {
-      content: '•';
+      content: 'â€¢';
       position: absolute;
       left: 0;
       color: var(--color-text-muted);
@@ -969,811 +829,6 @@
       border-left: 2px solid var(--color-info);
     }
     
-    /* =====================================================
-       SUPPLEMENTARY QUESTION
-       ===================================================== */
-    
-    .supplementary-box {
-      margin-top: var(--space-xl);
-      padding: var(--space-xl);
-      background: linear-gradient(145deg, rgba(30, 40, 60, 0.95), rgba(20, 30, 50, 0.98));
-      border: 2px solid var(--color-info);
-      border-radius: var(--radius-lg);
-      animation: supplementarySlide 0.5s ease;
-      position: relative;
-    }
-    
-    @keyframes supplementarySlide {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .supplementary-box::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: var(--space-xl);
-      right: var(--space-xl);
-      height: 4px;
-      background: linear-gradient(90deg, var(--color-info), #60a5fa, var(--color-info));
-      border-radius: var(--radius-full);
-    }
-    
-    .supplementary-box.complete {
-      opacity: 0.9;
-    }
-    
-    .supplementary-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-    
-    .supplementary-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-xs);
-      background: linear-gradient(135deg, var(--color-info), #2563eb);
-      color: white;
-      padding: var(--space-sm) var(--space-md);
-      border-radius: var(--radius-full);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    
-    .supplementary-title {
-      font-weight: 600;
-      color: var(--color-info);
-      font-size: 0.9rem;
-    }
-    
-    .supplementary-question {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      font-weight: 500;
-      color: var(--color-text);
-      margin-bottom: var(--space-lg);
-      line-height: 1.5;
-    }
-    
-    .saved-answer-display {
-      padding: var(--space-md);
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-sm);
-      margin-bottom: var(--space-md);
-      border: 1px solid var(--color-border);
-    }
-    
-    .saved-answer-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .saved-answer-text {
-      color: var(--color-text);
-      font-weight: 500;
-    }
-    
-    .proceed-status {
-      margin-top: var(--space-lg);
-      padding: var(--space-md);
-      border-radius: var(--radius-md);
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-sm);
-    }
-    
-    .proceed-waiting {
-      background: var(--color-warning-bg);
-      color: var(--color-warning);
-      border: 1px solid var(--color-warning-light);
-    }
-    
-    .proceed-ready {
-      background: var(--color-success-bg);
-      color: var(--color-success);
-      border: 1px solid var(--color-success-light);
-    }
-    
-    /* =====================================================
-       RETRY BANNER
-       ===================================================== */
-    
-    .retry-banner {
-      margin-top: var(--space-xl);
-      padding: var(--space-xl);
-      background: linear-gradient(145deg, rgba(40, 20, 20, 0.95), rgba(30, 15, 15, 0.98));
-      border: 2px solid var(--color-error);
-      border-radius: var(--radius-lg);
-      text-align: center;
-      animation: retryPulse 2s ease infinite;
-    }
-    
-    @keyframes retryPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-      50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    }
-    
-    .retry-banner h3 {
-      color: var(--color-error);
-      margin-bottom: var(--space-sm);
-      font-size: 1.25rem;
-    }
-    
-    .retry-banner p {
-      color: var(--color-text-secondary);
-    }
-    
-    /* =====================================================
-       ORDERING QUESTION
-       ===================================================== */
-    
-    .ordering-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    
-    .ordering-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      padding: var(--space-md) var(--space-lg);
-      background: rgba(30, 30, 50, 0.8);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      cursor: grab;
-      transition: all var(--transition-base);
-      user-select: none;
-    }
-    
-    .ordering-item:hover:not(.disabled) {
-      border-color: var(--color-primary);
-      background: var(--color-surface-hover);
-    }
-    
-    .ordering-item.dragging {
-      opacity: 0.5;
-      cursor: grabbing;
-    }
-    
-    .ordering-item.drag-over {
-      border-color: var(--color-primary);
-      background: var(--color-surface-hover);
-      transform: scale(1.02);
-    }
-    
-    .ordering-item.disabled {
-      cursor: default;
-    }
-    
-    .ordering-item.correct-position {
-      border-color: var(--color-success);
-      background: var(--color-success-bg);
-    }
-    
-    .ordering-item.incorrect-position {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
-    }
-    
-    .ordering-handle {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: var(--space-xs);
-      color: var(--color-text-muted);
-    }
-    
-    .ordering-handle span {
-      display: block;
-      width: 18px;
-      height: 2px;
-      background: currentColor;
-      border-radius: 1px;
-    }
-    
-    .ordering-number {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: var(--color-surface);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-full);
-      font-weight: 700;
-      font-size: 0.9rem;
-      font-family: var(--font-mono);
-      flex-shrink: 0;
-    }
-    
-    .ordering-item.correct-position .ordering-number {
-      background: var(--color-success);
-      border-color: var(--color-success);
-      color: white;
-    }
-    
-    .ordering-item.incorrect-position .ordering-number {
-      background: var(--color-error);
-      border-color: var(--color-error);
-      color: white;
-    }
-    
-    .ordering-text {
-      flex: 1;
-    }
-    
-    .ordering-arrows {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    
-    .ordering-arrow-btn {
-      padding: 4px 8px;
-      background: var(--color-bg-alt);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 0.75rem;
-      line-height: 1;
-      transition: all var(--transition-fast);
-    }
-    
-    .ordering-arrow-btn:hover:not(:disabled) {
-      background: var(--color-primary);
-      color: white;
-      border-color: var(--color-primary);
-    }
-    
-    .ordering-arrow-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-    
-    /* =====================================================
-       MATCHING QUESTION
-       ===================================================== */
-    
-    .matching-container {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-    }
-    
-    .matching-columns {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: var(--space-lg);
-      align-items: start;
-    }
-    
-    @media (max-width: 640px) {
-      .matching-columns {
-        grid-template-columns: 1fr;
-        gap: var(--space-md);
-      }
-      
-      .matching-lines {
-        display: none;
-      }
-    }
-    
-    .matching-column {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    
-    .matching-column-header {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted);
-      padding-bottom: var(--space-sm);
-      border-bottom: 1px solid var(--color-border-light);
-      margin-bottom: var(--space-xs);
-    }
-    
-    .matching-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      padding: var(--space-md);
-      background: var(--color-bg);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .matching-item:hover:not(.disabled):not(.matched) {
-      border-color: var(--color-primary-light);
-      background: var(--color-surface);
-    }
-    
-    .matching-item.selected {
-      border-color: var(--color-primary);
-      background: var(--color-info-bg);
-      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
-    }
-    
-    .matching-item.matched {
-      border-color: var(--color-secondary);
-      background: var(--color-info-bg);
-    }
-    
-    .matching-item.correct {
-      border-color: var(--color-success);
-      background: var(--color-success-bg);
-    }
-    
-    .matching-item.incorrect {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
-    }
-    
-    .matching-item.disabled {
-      cursor: default;
-    }
-    
-    .matching-letter {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--color-surface);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-full);
-      font-weight: 700;
-      font-size: 0.8rem;
-      flex-shrink: 0;
-    }
-    
-    .matching-item.selected .matching-letter,
-    .matching-item.matched .matching-letter {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: white;
-    }
-    
-    .matching-item.correct .matching-letter {
-      background: var(--color-success);
-      border-color: var(--color-success);
-    }
-    
-    .matching-item.incorrect .matching-letter {
-      background: var(--color-error);
-      border-color: var(--color-error);
-    }
-    
-    .matching-pair-indicator {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      background: var(--color-accent);
-      color: var(--color-primary-dark);
-      border-radius: var(--radius-sm);
-      margin-left: auto;
-    }
-    
-    .matching-lines {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-muted);
-      font-size: 1.5rem;
-    }
-    
-    .matching-instructions {
-      font-size: 0.9rem;
-      color: var(--color-text-muted);
-      text-align: center;
-      padding: var(--space-sm);
-      background: var(--color-bg-alt);
-      border-radius: var(--radius-sm);
-    }
-    
-    /* =====================================================
-       FILL IN THE BLANKS
-       ===================================================== */
-    
-    .fill-blanks-container {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-    }
-    
-    .fill-blanks-passage {
-      font-size: 1.1rem;
-      line-height: 2.2;
-      padding: var(--space-lg);
-      background: var(--color-bg);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--color-border-light);
-    }
-    
-    .blank-input {
-      display: inline-block;
-      min-width: 120px;
-      padding: var(--space-xs) var(--space-sm);
-      margin: 0 var(--space-xs);
-      border: 2px dashed var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface);
-      font-family: var(--font-body);
-      font-size: 1rem;
-      text-align: center;
-      vertical-align: middle;
-      transition: all var(--transition-fast);
-    }
-    
-    .blank-input:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      border-style: solid;
-      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
-    }
-    
-    .blank-input.correct {
-      border-color: var(--color-success);
-      border-style: solid;
-      background: var(--color-success-bg);
-      color: var(--color-success);
-    }
-    
-    .blank-input.incorrect {
-      border-color: var(--color-error);
-      border-style: solid;
-      background: var(--color-error-bg);
-      color: var(--color-error);
-    }
-    
-    .blank-input:disabled {
-      cursor: default;
-    }
-    
-    .word-bank {
-      padding: var(--space-lg);
-      background: var(--color-bg-alt);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--color-border-light);
-    }
-    
-    .word-bank-header {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-md);
-    }
-    
-    .word-bank-words {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
-    }
-    
-    .word-bank-word {
-      padding: var(--space-sm) var(--space-md);
-      background: var(--color-surface);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-full);
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .word-bank-word:hover:not(.used):not(.disabled) {
-      border-color: var(--color-primary);
-      background: var(--color-info-bg);
-    }
-    
-    .word-bank-word.used {
-      opacity: 0.4;
-      text-decoration: line-through;
-      cursor: default;
-    }
-    
-    .word-bank-word.selected {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: white;
-    }
-    
-    .word-bank-word.disabled {
-      cursor: default;
-    }
-    
-    /* =====================================================
-       CATEGORISATION QUESTION
-       ===================================================== */
-    
-    .categorise-container {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-    }
-    
-    .categorise-items-pool {
-      padding: var(--space-lg);
-      background: var(--color-bg-alt);
-      border-radius: var(--radius-md);
-      border: 2px dashed var(--color-border);
-      min-height: 60px;
-    }
-    
-    .categorise-items-pool.empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-muted);
-      font-style: italic;
-    }
-    
-    .categorise-pool-header {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-md);
-    }
-    
-    .categorise-pool-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
-    }
-    
-    .categorise-item {
-      padding: var(--space-sm) var(--space-md);
-      background: var(--color-surface);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      cursor: grab;
-      transition: all var(--transition-fast);
-      user-select: none;
-    }
-    
-    .categorise-item:hover:not(.disabled) {
-      border-color: var(--color-primary-light);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-    
-    .categorise-item.dragging {
-      opacity: 0.5;
-      cursor: grabbing;
-    }
-    
-    .categorise-item.correct {
-      border-color: var(--color-success);
-      background: var(--color-success-bg);
-    }
-    
-    .categorise-item.incorrect {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
-    }
-    
-    .categorise-item.disabled {
-      cursor: default;
-    }
-    
-    .categorise-categories {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--space-md);
-    }
-    
-    .categorise-category {
-      padding: var(--space-md);
-      background: var(--color-bg);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      min-height: 120px;
-      transition: all var(--transition-fast);
-    }
-    
-    .categorise-category.drag-over {
-      border-color: var(--color-primary);
-      background: var(--color-info-bg);
-    }
-    
-    .categorise-category-header {
-      font-weight: 600;
-      color: var(--color-text);
-      padding-bottom: var(--space-sm);
-      margin-bottom: var(--space-sm);
-      border-bottom: 2px solid var(--color-border-light);
-    }
-    
-    .categorise-category-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-xs);
-      min-height: 40px;
-    }
-    
-    .categorise-category-empty {
-      color: var(--color-text-muted);
-      font-size: 0.85rem;
-      font-style: italic;
-      padding: var(--space-sm);
-    }
-    
-    /* =====================================================
-       MULTIPLE RESPONSE QUESTION
-       ===================================================== */
-    
-    .multiple-response-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-    
-    .multiple-response-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      padding: var(--space-md) var(--space-lg);
-      background: var(--color-bg);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .multiple-response-item:hover:not(.disabled) {
-      border-color: var(--color-primary-light);
-      background: var(--color-surface);
-    }
-    
-    .multiple-response-item.selected {
-      border-color: var(--color-primary);
-      background: var(--color-info-bg);
-    }
-    
-    .multiple-response-item.correct {
-      border-color: var(--color-success);
-      background: var(--color-success-bg);
-    }
-    
-    .multiple-response-item.incorrect {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
-    }
-    
-    .multiple-response-item.missed {
-      border-color: var(--color-warning);
-      background: var(--color-warning-bg);
-    }
-    
-    .multiple-response-item.disabled {
-      cursor: default;
-    }
-    
-    .multiple-response-checkbox {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      background: var(--color-surface);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      flex-shrink: 0;
-      transition: all var(--transition-fast);
-    }
-    
-    .multiple-response-item.selected .multiple-response-checkbox {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: white;
-    }
-    
-    .multiple-response-item.correct .multiple-response-checkbox {
-      background: var(--color-success);
-      border-color: var(--color-success);
-      color: white;
-    }
-    
-    .multiple-response-item.incorrect .multiple-response-checkbox {
-      background: var(--color-error);
-      border-color: var(--color-error);
-      color: white;
-    }
-    
-    .multiple-response-item.missed .multiple-response-checkbox {
-      background: var(--color-warning);
-      border-color: var(--color-warning);
-      color: white;
-    }
-    
-    .multiple-response-hint {
-      font-size: 0.85rem;
-      color: var(--color-text-muted);
-      font-style: italic;
-      margin-top: var(--space-sm);
-    }
-    
-    /* =====================================================
-       CLOZE DROPDOWN QUESTION
-       ===================================================== */
-    
-    .cloze-passage {
-      font-size: 1.1rem;
-      line-height: 2.4;
-      padding: var(--space-lg);
-      background: var(--color-bg);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--color-border-light);
-    }
-    
-    .cloze-dropdown {
-      display: inline-block;
-      padding: var(--space-xs) var(--space-md);
-      padding-right: var(--space-xl);
-      margin: 0 var(--space-xs);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface);
-      font-family: var(--font-body);
-      font-size: 1rem;
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235c5347' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      min-width: 140px;
-      transition: all var(--transition-fast);
-    }
-    
-    .cloze-dropdown:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
-    }
-    
-    .cloze-dropdown.correct {
-      border-color: var(--color-success);
-      background-color: var(--color-success-bg);
-      color: var(--color-success);
-    }
-    
-    .cloze-dropdown.incorrect {
-      border-color: var(--color-error);
-      background-color: var(--color-error-bg);
-      color: var(--color-error);
-    }
-    
-    .cloze-dropdown:disabled {
-      cursor: default;
-      opacity: 0.9;
-    }
-
     /* =====================================================
        BUTTONS
        ===================================================== */
@@ -4052,14 +3107,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? 'âœ“ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
+                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>📝 {essay.subject}</span>
-                        <span>🎓 {essay.yearGroup}</span>
+                        <span>ðŸ“ {essay.subject}</span>
+                        <span>ðŸŽ“ {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -4069,7 +3124,7 @@
                       {savedProgress && !savedProgress.isComplete && (
                         <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);")}>
                           <strong style={parseStyle("color: var(--color-primary-light);")}>{savedProgress.studentName}</strong>
-                          <span> • {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
+                          <span> â€¢ {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
                           <div style={parseStyle("margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
                             <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '2px' }} />
                           </div>
@@ -4141,15 +3196,15 @@
         <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
           <div className="task-panel-header">
             <h3 className="task-panel-title">
-              <span>ðŸ“‹ </span> Reference Materials
+              <span>Ã°Å¸â€œâ€¹ </span> Reference Materials
             </h3>
-            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">×</button>
+            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">Ã—</button>
           </div>
           <div className="task-panel-content">
             {hasTask && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>ðŸ“</span> Exam Question
+                  <span>Ã°Å¸â€œÂ</span> Exam Question
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(config.originalTask) }} />
               </div>
@@ -4158,7 +3213,7 @@
             {hasSource && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>ðŸ“–</span> Source Material
+                  <span>Ã°Å¸â€œâ€“</span> Source Material
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }} />
               </div>
@@ -4178,7 +3233,7 @@
           aria-label="Show original task"
           title="Show original task"
         >
-          Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â
+          ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â
         </button>
       );
     }
@@ -4325,7 +3380,7 @@
           
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>💪</span> Strengths</div>
+              <div className="feedback-section-title"><span>ðŸ’ª</span> Strengths</div>
               <ul className="feedback-list strengths">
                 {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4334,7 +3389,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>👊</span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>ðŸ‘Š</span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4343,7 +3398,7 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>🧑‍🏫</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Detailed Feedback</div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
@@ -4357,7 +3412,7 @@
           
           {feedback.nextLevelHint && (
             <div className="feedback-section" style={parseStyle("margin-top: var(--space-lg);")}>
-              <div className="feedback-section-title"><span>🎯</span> To Reach the Next Grade</div>
+              <div className="feedback-section-title"><span>ðŸŽ¯</span> To Reach the Next Grade</div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
           )}
@@ -4374,7 +3429,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                ✓ Complete & Continue to Next Section
+                âœ“ Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -4504,7 +3559,7 @@
           <div className="card ghost-appear">
             <div className="app-header" style={parseStyle("margin-bottom: 0; border: none; background: transparent; padding: var(--space-lg) 0;")}>
               <h1 className="gold-glow">{config.title}</h1>
-              <p className="subtitle">{config.subject} • {config.yearGroup}</p>
+              <p className="subtitle">{config.subject} â€¢ {config.yearGroup}</p>
               {config.essayTitle && (
                 <p className="essay-title">"{config.essayTitle}"</p>
               )}
@@ -4551,7 +3606,7 @@
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
                   <label className="grade-selector-label">
-                    🎯 What grade are you aiming for? What grade are you aiming for?
+                    ðŸŽ¯ What grade are you aiming for? What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -4573,9 +3628,9 @@
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
                       <div className="grade-info-title">
-                        {abilityTier === 'high' ? '🚀 Aiming High!' :
-                         abilityTier === 'foundation' ? '?Ã¢â‚¬ÂÃ‚Â Building Strong Foundations' :
-                         'Ã°Å¸â€œâ€  Solid Progress'}
+                        {abilityTier === 'high' ? 'ðŸš€ Aiming High!' :
+                         abilityTier === 'foundation' ? '?ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Building Strong Foundations' :
+                         'ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã¢â‚¬Â  Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -4595,7 +3650,7 @@
                     type="button"
                     className="btn btn-secondary"
                     onClick={onBack}
-                  >← Back</button>
+                  >â† Back</button>
                 </div>
               </form>
             </div>
@@ -4942,17 +3997,17 @@
         });
         
         let report = `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
                         ESSAY ASSESSMENT REPORT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 
 Student: ${studentName}
 Date: ${date}
 Subject: ${config?.subject || ''}
 Essay Title: ${config?.essayTitle || ''}
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
                            YOUR ESSAY
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 
 ${fullEssay}
 
@@ -4961,23 +4016,23 @@ ${fullEssay}
         // Add Feedback if available
         if (essayFeedback) {
           report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
                         FEEDBACK
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 
 OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
 GRADE: ${essayFeedback.overallGrade}
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 SUMMARY
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${essayFeedback.essaySummary || 'No summary available.'}
 
 `;
           if (essayFeedback.bestQuotation) {
             report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 YOUR BEST WRITING
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 "${essayFeedback.bestQuotation}"
 
 `;
@@ -4985,9 +4040,9 @@ YOUR BEST WRITING
           
           if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
             report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 STRENGTHS
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -4995,9 +4050,9 @@ ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
             report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 AREAS FOR DEVELOPMENT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -5005,9 +4060,9 @@ ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.closingEncouragement) {
             report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 TEACHER'S ENCOURAGEMENT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${essayFeedback.closingEncouragement}
 
 `;
@@ -5019,13 +4074,13 @@ ${essayFeedback.closingEncouragement}
           const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
           
           report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 IMPROVEMENT SUMMARY
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 
 Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
 Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
@@ -5033,9 +4088,9 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 INITIAL VERSION ASSESSMENT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
 
 Assessment Objectives:
@@ -5048,9 +4103,9 @@ ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 FINAL VERSION ASSESSMENT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
 
 Assessment Objectives:
@@ -5068,27 +4123,27 @@ ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
           
           if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 NEXT STEPS TO IMPROVE FURTHER
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
 `;
           }
           
           report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 EXAMINER'S COMMENT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 ${examinerComment}
 
 `;
         }
         
         report += `
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
                       END OF REPORT
-=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬=Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬
 `;
         
         return report;
@@ -5173,7 +4228,7 @@ ${examinerComment}
                   Grade {version.grade}
                 </div>
                 <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                  Level {version.level} • {version.percentage}%
+                  Level {version.level} â€¢ {version.percentage}%
                 </div>
               </div>
             </div>
@@ -5210,7 +4265,7 @@ ${examinerComment}
                 </ul>
               </div>
               <div>
-                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}>Ã°Å¸â€˜Å To Improve</strong>
+                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ…Â To Improve</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
@@ -5224,9 +4279,9 @@ ${examinerComment}
             <div className="holistic-feedback" style={parseStyle("margin-top: var(--space-xl);")}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Official Mark Scheme Grading</h2>
+                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Official Mark Scheme Grading</h2>
                   <p style={parseStyle("color: var(--color-text-muted);")}>
-                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} • {config.officialMarkScheme.paper}
+                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} â€¢ {config.officialMarkScheme.paper}
                   </p>
                 </div>
               </div>
@@ -5265,14 +4320,14 @@ ${examinerComment}
               
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
-                <VersionCard version={initialVersion} title="Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={initialVersion} title="ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Initial Version (First Attempt)" isImproved={false} />
                 <VersionCard version={improvedVersion} title="? Improved Version (Final) Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}>🎯 What grade are you aiming for? Next Steps to Improve Further</h4>
+                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸŽ¯ What grade are you aiming for? Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={parseStyle("margin-bottom: var(--space-sm);")}>{target}</li>
@@ -5298,20 +4353,20 @@ ${examinerComment}
               className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('essay')}
             >
-              Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Your Essay
+              ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Your Essay
             </button>
             <button 
               className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('feedback')}
             >
-              💬 Feedback Feedback
+              ðŸ’¬ Feedback Feedback
             </button>
             {hasOfficialMarkScheme && (
               <button 
                 className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('official')}
               >
-                🧾 Official Grading Official Grading
+                ðŸ§¾ Official Grading Official Grading
               </button>
             )}
           </div>
@@ -5322,7 +4377,7 @@ ${examinerComment}
               <div className="essay-compilation">
                 <div className="essay-compilation-header">
                   <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
-                  <p className="essay-compilation-meta">By {studentName} • {config?.subject} • {formatDateTime(new Date())}</p>
+                  <p className="essay-compilation-meta">By {studentName} â€¢ {config?.subject} â€¢ {formatDateTime(new Date())}</p>
                 </div>
                 
                 <div className="compiled-essay">
@@ -5333,7 +4388,7 @@ ${examinerComment}
               </div>
               
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; margin-top: var(--space-xl);")}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}>📨 Print Essay</button>
+                <button className="btn btn-primary btn-large" onClick={handlePrint}>ðŸ“¨Â Print Essay</button>
               </div>
             </>
           )}
@@ -5347,7 +4402,7 @@ ${examinerComment}
                     Get feedback on how your essay works as a complete piece of writing.
                   </p>
                   <button className="btn btn-primary btn-large" onClick={onRequestFeedback}>
-                    🧾 Official Grading Get Feedback
+                    ðŸ§¾ Official Grading Get Feedback
                   </button>
                 </div>
               )}
@@ -5362,7 +4417,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Essay Feedback</h2>
+                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Essay Feedback</h2>
                       <p style={parseStyle("color: var(--color-text-muted);")}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -5380,14 +4435,14 @@ ${examinerComment}
                   
                   {essayFeedback.essaySummary && (
                     <div className="feedback-section">
-                      <div className="feedback-section-title"><span>🧑‍🏫</span> Summary</div>
+                      <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Summary</div>
                       <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
                     </div>
                   )}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">?Ã‚Â  Your Best Writing</div>
+                      <div className="best-quote-label">?Ãƒâ€šÃ‚Â  Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -5395,7 +4450,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>✨</span> Improved Version (Final)</div>
+                        <div className="feedback-section-title"><span>âœ¨</span> Improved Version (Final)</div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -5404,7 +4459,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>🎯</span> Areas for Development</div>
+                        <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas for Development</div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -5428,7 +4483,7 @@ ${examinerComment}
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
                   <div className="card" style={parseStyle("max-width: 600px; margin: 0 auto;")}>
-                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}>🧾 Official Grading Official Mark Scheme Grading</h3>
+                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h3>
                     <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                       Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                     </p>
@@ -5436,7 +4491,7 @@ ${examinerComment}
                       This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
                     </p>
                     <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                      Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Get Official Grading
+                      ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Get Official Grading
                     </button>
                   </div>
                 </div>
@@ -5460,16 +4515,16 @@ ${examinerComment}
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
             <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>Ã¢Â¬â€¡Ã¯Â¸ÂÃ‚Â Download Your Full Report</h3>
+              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>ÃƒÂ¢Ã‚Â¬Ã¢â‚¬Â¡ÃƒÂ¯Ã‚Â¸Ã‚ÂÃƒâ€šÃ‚Â Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;")}>
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  📨 Print Full Report
+                  ðŸ“¨Â Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Copy to Clipboard
+                  ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -5625,7 +4680,7 @@ ${examinerComment}
                 )}
               </div>
               <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}>ðŸ”„ Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
             </div>
@@ -5657,7 +4712,7 @@ ${examinerComment}
           
           {/* Preview Essays */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>👨‍🏫 Preview Essays</h4>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ‘¨â€ðŸ« Preview Essays</h4>
             <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
               {getEssayList().map(essay => (
                 <button 
@@ -5673,7 +4728,7 @@ ${examinerComment}
           
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>⚡ In Progress ({filteredInProgress.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>âš¡ In Progress ({filteredInProgress.length})</h3>
             
             {filteredInProgress.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
@@ -5731,7 +4786,7 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Completed Essays ({filteredSubmissions.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Completed Essays ({filteredSubmissions.length})</h3>
             
             {filteredSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl);")}>
@@ -5769,8 +4824,8 @@ ${examinerComment}
                           <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>💬 Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>🧾 Official Grading</span>
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>ðŸ’¬ Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>ðŸ§¾ Official Grading</span>
                           </td>
                           <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
@@ -5801,7 +4856,7 @@ ${examinerComment}
                 <div style={parseStyle("margin-bottom: var(--space-lg); display: flex; gap: var(--space-lg); flex-wrap: wrap;")}>
                   <div>
                     <strong>Score:</strong> {selectedSubmission.score}%
-                    {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                    {selectedSubmission.grade && <> â€¢ <strong>Grade:</strong> {selectedSubmission.grade}</>}
                   </div>
                   {selectedSubmission.officialGrading && (
                     <div style={parseStyle("color: var(--color-success);")}>
@@ -5814,7 +4869,7 @@ ${examinerComment}
                 {/* Essay Text */}
                 {selectedSubmission.essay && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Essay</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Essay</h4>
                     <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.essay.split('\n\n').map((para, i) => (
                         <p key={i} className="compiled-paragraph">{para}</p>
@@ -5826,7 +4881,7 @@ ${examinerComment}
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>💬 Feedback Feedback</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ’¬ Feedback Feedback</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={parseStyle("margin-bottom: var(--space-md);")}>{selectedSubmission.feedback.essaySummary}</p>
@@ -5849,7 +4904,7 @@ ${examinerComment}
                         )}
                         {selectedSubmission.feedback.holisticImprovements && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-warning);")}>Ã°Å¸â€˜Å To Improve</strong>
+                            <strong style={parseStyle("color: var(--color-warning);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ…Â To Improve</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -5863,7 +4918,7 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>🧾 Official Grading Official Mark Scheme Grading</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {/* Improvement Summary */}
                       <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
@@ -6364,7 +5419,7 @@ ${examinerComment}
           <div className="app-container">
             <div className="app-header">
               <h1 className="gold-glow">{CONFIG.title}</h1>
-              <p className="subtitle">Essay Complete • {studentName}</p>
+              <p className="subtitle">Essay Complete â€¢ {studentName}</p>
             </div>
             <EssayCompilationScreen
               studentName={studentName}
@@ -6392,7 +5447,7 @@ ${examinerComment}
         <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
           <div className="app-header">
             <h1 className="gold-glow">{CONFIG.title}</h1>
-            <p className="subtitle">{CONFIG.subject} • {studentName}</p>
+            <p className="subtitle">{CONFIG.subject} â€¢ {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
               <div className="target-grade-badge" style={parseStyle("margin-top: var(--space-sm);")}>
@@ -6404,9 +5459,9 @@ ${examinerComment}
           {isPreviewMode && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg; border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
               <div>
-                <strong style={parseStyle("color: var(--color-primary-light);")}>Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«Ã‚Â Teacher Preview Mode</strong>
+                <strong style={parseStyle("color: var(--color-primary-light);")}>ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¨ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â«Ãƒâ€šÃ‚Â Teacher Preview Mode</strong>
                 <span style={parseStyle("margin-left: var(--space-md); color: var(--color-text-muted);")}>
-                  Paste enabled • Free navigation • Progress not saved
+                  Paste enabled â€¢ Free navigation â€¢ Progress not saved
                 </span>
               </div>
               <button className="btn btn-secondary" onClick={() => {
@@ -6416,7 +5471,7 @@ ${examinerComment}
                 setParagraphStates({});
                 setCurrentParagraphIndex(0);
               }}>
-                ← Exit Preview
+                â† Exit Preview
               </button>
             </div>
           )}
