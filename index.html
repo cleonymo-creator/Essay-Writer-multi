@@ -6442,7 +6442,7 @@ ${examinerComment}
       const currentParagraph = PARAGRAPHS[currentParagraphIndex];
       if (!CONFIG || !currentParagraph) return <LoadingSpinner text="Loading essay..." />;
       const hasOriginalTask = !!CONFIG.originalTask;
-      const hasReferenceContent = hasOriginalTask || !!currentParagraph?.sourceMaterial;
+      const hasReferenceContent = hasOriginalTask || !!CONFIG?.sourceMaterial || !!currentParagraph?.sourceMaterial;
       
       return (
         <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
@@ -6504,12 +6504,12 @@ ${examinerComment}
               />
             </div>
             
-            {(hasOriginalTask || currentParagraph?.sourceMaterial) && (
+            {(hasOriginalTask || CONFIG?.sourceMaterial || currentParagraph?.sourceMaterial) && (
               <TaskPanel 
                 isOpen={taskPanelOpen} 
                 onClose={() => setTaskPanelOpen(false)}
                 config={CONFIG}
-                sourceMaterial={currentParagraph?.sourceMaterial}
+                sourceMaterial={CONFIG?.sourceMaterial || currentParagraph?.sourceMaterial}
               />
             )}
           </div>
