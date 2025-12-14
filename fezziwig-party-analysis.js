@@ -1,19 +1,21 @@
 window.ESSAYS = window.ESSAYS || {};
 window.ESSAYS['fezziwig-party-analysis'] = {
   id: 'fezziwig-party-analysis',
-  title: "Analyzing Dickens' Presentation of Fezziwig's Party",
+  title: "Dickens' Presentation of Fezziwig's Party",
   subject: "GCSE English Literature",
-  yearGroup: "Year 10",
-  totalMarks: 20,
-  essayTitle: "Explore how Dickens presents Fezziwig's party in this extract. Give examples from the text to support your ideas",
-  instructions: "Analyze how Dickens uses language, structure and form to present Fezziwig's party. Focus on the methods Dickens uses and their effects on the reader. Use specific quotations from the extract to support your analysis.",
+  yearGroup: "Year 10/11",
+  essayTitle: "How does Dickens present Fezziwig's party?",
+  instructions: "Analyse how Dickens presents Fezziwig's party in the given extract. Focus on language techniques, structure, and their effects on the reader. Use quotations to support your analysis and include relevant subject terminology.",
   originalTask: `## Exam Question
-Explore how Dickens presents Fezziwig's party in this extract. Give examples from the text to support your ideas
+How does Dickens present Fezziwig's party?
 
 ## Mark Scheme Summary
-AO2: Analyze the language, form and structure used by a writer to create meanings and effects, using relevant subject terminology where appropriate. Responses should show understanding of how language features link to their effect on the reader and use relevant subject terminology accurately.`,
+- Level 5 (17-20): Cohesive evaluation of language, form and structure with precise terminology
+- Level 4 (13-16): Focused analysis of techniques and effects with accurate terminology
+- Level 3 (9-12): Understanding of language features linked to reader effects
+- Focus on AO2: Analysis of language, form and structure using relevant subject terminology`,
   maxAttempts: 3,
-  minWordsPerParagraph: 40,
+  minWordsPerParagraph: 50,
   targetWordsPerParagraph: 100,
   teacherPassword: "teacher123",
   paragraphs: [
@@ -23,194 +25,153 @@ AO2: Analyze the language, form and structure used by a writer to create meaning
       type: "introduction",
       learningMaterial: `## Writing Your Introduction
 
-Your introduction should establish your overall argument about how Dickens presents Fezziwig's party. Consider the dominant impression Dickens creates - is it one of joy, warmth, community, generosity? Think about the key methods he uses such as characterization, imagery, structure, and language techniques.
+Your introduction should establish your overall argument about how Dickens presents Fezziwig's party. Think about the dominant impression created - is it joyful, inclusive, energetic?
 
 ### Key Points to Cover
-- Brief overview of how Dickens presents the party (your main argument)
-- Mention 2-3 key methods you will analyze (e.g., energetic language, inclusive structure, vivid imagery)
-- Set up your essay's direction without going into detailed analysis yet
+- Your main argument about Dickens' presentation
+- Brief mention of 2-3 key techniques you'll analyse
+- Reference to the extract's position in A Christmas Carol
 
 ### Sentence Starters
 - "Dickens presents Fezziwig's party as..."
-- "Through his use of [technique], Dickens creates..."
-- "The extract reveals Fezziwig's party to be..."
-`,
-      writingPrompt: "Write an introduction that establishes how Dickens presents Fezziwig's party overall and mentions the key methods you will analyze.",
-      keyPoints: ["Establish overall argument about Dickens' presentation", "Identify key language/structural methods to be analyzed"],
+- "Through his use of..."
+- "The extract reveals..."
+
+### Key Techniques to Consider
+- Repetition and listing
+- Imagery and metaphor  
+- Structure and pace
+- Characterisation techniques`,
+      writingPrompt: "Write an introduction that clearly states how Dickens presents Fezziwig's party, mentioning the main techniques you will analyse.",
+      keyPoints: ["Clear thesis about Dickens' presentation", "Brief overview of techniques to be analysed"],
       exampleQuotes: [],
       points: 3
     },
     {
       id: 2,
-      title: "Fezziwig's Characterization and Energy",
+      title: "Energy and Preparation",
       type: "body",
-      learningMaterial: `## Analyzing Fezziwig's Character and Energy
+      learningMaterial: `## Analysing Energy and Preparation
 
-Focus on how Dickens presents Fezziwig through his speech, actions and the narrator's descriptions. Look at the energetic language and imagery used to bring him to life.
+Focus on the opening of the extract where the space is prepared for the party.
 
-### Key Language Features to Analyze
-- Exclamatory dialogue: "Yo ho, my boys!" and "Hilli-ho!"
-- Physical descriptions and actions: "skipping down from the high desk, with wonderful agility"
-- Metaphorical language: "A positive light appeared to issue from Fezziwig's calves"
-- Enthusiastic imperatives: "Let's have the shutters up"
+### Key Language Features
+- Repetition of "Clear away!" and "was packed off"
+- Short, energetic sentences
+- List of actions: "swept and watered, the lamps were trimmed, fuel was heaped"
+- Transformation imagery: "warehouse" to "ball-room"
 
-### Effects to Discuss
-- Creates impression of infectious enthusiasm and joy
-- Shows Fezziwig as youthful despite his age
-- Demonstrates his ability to transform ordinary space and time
-- Presents him as almost magical or supernatural in his positive energy
+### Effects to Analyse
+- Creates sense of urgency and excitement
+- Shows community effort and enthusiasm
+- Emphasises magical transformation of ordinary space
+- Builds anticipation for the reader
 
 ### Subject Terminology to Use
-- Exclamatory sentences, imperatives, metaphor, imagery, characterization, dialogue
-`,
-      writingPrompt: "Analyze how Dickens uses language to present Fezziwig's character and energy. Focus on specific quotes and explain their effects.",
-      keyPoints: ["Analyze specific language techniques", "Link techniques to effects on reader", "Use relevant subject terminology"],
-      exampleQuotes: ["Yo ho, my boys!", "skipping down from the high desk, with wonderful agility", "A positive light appeared to issue from Fezziwig's calves"],
+- Imperative verbs
+- Listing/cataloguing
+- Juxtaposition
+- Imagery/metaphor`,
+      writingPrompt: "Analyse how Dickens presents the energy and preparation for the party. Use specific quotations and explain their effects.",
+      keyPoints: ["Analysis of language techniques", "Explanation of effects on reader", "Use of subject terminology"],
+      exampleQuotes: ["Clear away!", "swept and watered, the lamps were trimmed", "as snug, and warm, and dry, and bright a ball-room"],
       points: 5
     },
     {
       id: 3,
-      title: "The Transformation of Space",
+      title: "Inclusivity and Community",
       type: "body",
-      learningMaterial: `## Analyzing the Transformation
+      learningMaterial: `## Analysing Inclusivity and Community
 
-Examine how Dickens presents the physical transformation of the warehouse into a ballroom and what this represents.
+Examine the long passage describing everyone arriving at the party.
 
-### Key Structural and Language Features
-- List structure showing rapid change: "one, two, three" / "four, five, six"
-- Contrast between work space and party space
-- Sensory imagery: "snug, and warm, and dry, and bright"
-- Metaphorical language: "as if it were dismissed from public life for evermore"
+### Key Language Features
+- Anaphora: repetition of "In came"
+- Extensive listing of different social classes
+- Details about individual characters and their relationships
+- Varied descriptions: "shyly, some boldly, some gracefully, some awkwardly"
 
-### Effects to Consider
-- Shows the power of joy and celebration to transform ordinary life
-- Creates sense of rapid, almost magical change
-- Demonstrates Fezziwig's influence over his environment
-- Contrasts work and pleasure, showing balance in life
+### Effects to Analyse
+- Creates inclusive, welcoming atmosphere
+- Shows social equality at the party
+- Builds rhythm and momentum
+- Emphasises diversity and humanity
 
-### Subject Terminology
-- Structure, listing, contrast, imagery, metaphor, transformation, setting
-`,
-      writingPrompt: "Analyze how Dickens presents the transformation of the warehouse space and what effects this creates.",
-      keyPoints: ["Analyze structural techniques", "Examine imagery and language of transformation", "Link to broader themes and effects"],
-      exampleQuotes: ["one, two, three", "snug, and warm, and dry, and bright", "as if it were dismissed from public life for evermore"],
+### Subject Terminology to Use
+- Anaphora
+- Characterisation
+- Social commentary
+- Rhythm and pace`,
+      writingPrompt: "Analyse how Dickens presents the inclusivity and community spirit of the party through his description of the guests arriving.",
+      keyPoints: ["Analysis of repetition and listing", "Discussion of social inclusivity", "Effects on reader engagement"],
+      exampleQuotes: ["In came", "In they all came, one after another", "some shyly, some boldly, some gracefully, some awkwardly"],
       points: 5
     },
     {
       id: 4,
-      title: "Community and Inclusion",
+      title: "Fezziwig as Host",
       type: "body",
-      learningMaterial: `## Analyzing Community and Inclusion
+      learningMaterial: `## Analysing Fezziwig's Character
 
-Focus on how Dickens presents the inclusive nature of the party through structure and characterization.
-
-### Key Structural Features
-- Repetitive structure: "In came..." pattern
-- List of diverse characters from different social backgrounds
-- Details about each person's circumstances and relationships
+Focus on how Dickens presents Fezziwig himself as the ideal host.
 
 ### Key Language Features
-- Varied descriptions of how people enter: "some shyly, some boldly"
-- Inclusive language showing all are welcome
-- Personal details that humanize each character
+- Hyperbolic description: "A positive light appeared to issue from Fezziwig's calves"
+- Metaphor: calves "shone...like moons"
+- Active verbs: "clapping," "cut," "wink with his legs"
+- Narrator's admiration: "If that's not high praise, tell me higher"
 
-### Effects to Analyze
-- Creates sense of genuine community across social boundaries
-- Shows Fezziwig's generosity and lack of class prejudice
-- Builds rhythm and energy through repetitive structure
-- Demonstrates the transformative power of celebration
+### Effects to Analyse
+- Creates larger-than-life, almost magical character
+- Shows energy and enthusiasm
+- Emphasises generosity and joy
+- Makes Fezziwig memorable and admirable
 
-### Subject Terminology
-- Repetition, structure, characterization, inclusion, social class, rhythm
-`,
-      writingPrompt: "Analyze how Dickens uses structure and language to present the inclusive, community spirit of the party.",
-      keyPoints: ["Analyze repetitive structural patterns", "Examine characterization of diverse guests", "Link to themes of community and inclusion"],
-      exampleQuotes: ["In came", "some shyly, some boldly, some gracefully, some awkwardly", "in they all came, anyhow and everyhow"],
+### Subject Terminology to Use
+- Hyperbole
+- Metaphor
+- Characterisation
+- Narrator voice`,
+      writingPrompt: "Analyse how Dickens presents Fezziwig as the ideal host. Focus on language techniques and their effects.",
+      keyPoints: ["Analysis of characterisation techniques", "Discussion of Fezziwig's role", "Effects of hyperbolic language"],
+      exampleQuotes: ["A positive light appeared to issue from Fezziwig's calves", "shone...like moons", "wink with his legs"],
       points: 4
     },
     {
       id: 5,
-      title: "The Dance and Celebration",
+      title: "Structure and Ending",
       type: "body",
-      learningMaterial: `## Analyzing the Dance Scene
+      learningMaterial: `## Analysing Structure and Ending
 
-Examine how Dickens presents the actual dancing and celebration, focusing on the energy, chaos, and joy.
+Examine how Dickens structures the extract and ends the scene.
 
-### Key Language Techniques
-- Energetic movement vocabulary: "Away they all went"
-- Chaotic but joyful descriptions of the dance patterns
-- Focus on Fezziwig's dancing: "cut so deftly, that he appeared to wink with his legs"
-- Musical and rhythmic language
+### Key Structural Features
+- Chronological progression from preparation to ending
+- Contrasting pace: frantic energy to gentle conclusion
+- Circular structure: returns to quiet warehouse
+- Personal farewell: individual handshakes
 
-### Effects to Consider
-- Creates sense of joyful chaos and energy
-- Shows celebration as liberating and transformative
-- Presents Fezziwig as leader who participates fully
-- Uses humor and vivid imagery to engage reader
+### Effects to Analyse
+- Mirrors natural party progression
+- Creates satisfying narrative arc
+- Emphasises personal connection
+- Reinforces themes of generosity and care
 
-### Subject Terminology
-- Imagery, movement, rhythm, humor, vivid description, metaphor
-`,
-      writingPrompt: "Analyze how Dickens presents the dancing and celebration, focusing on the language techniques used and their effects.",
-      keyPoints: ["Analyze vivid imagery of movement and dance", "Examine humorous and energetic language", "Link to overall presentation of celebration"],
-      exampleQuotes: ["Away they all went, twenty couple at once", "cut so deftly, that he appeared to wink with his legs", "all top couples at last, and not a bottom one to help them"],
+### Subject Terminology to Use
+- Structure
+- Contrast/juxtaposition
+- Narrative arc
+- Cyclical structure`,
+      writingPrompt: "Analyse how Dickens structures the extract and presents the ending of the party. Consider the effects of his structural choices.",
+      keyPoints: ["Analysis of structural techniques", "Discussion of pacing and contrast", "Effects on overall presentation"],
+      exampleQuotes: ["When the clock struck eleven", "shaking hands with every person individually", "Merry Christmas"],
       points: 3
     }
   ],
-  gradeBoundaries: [
-    {
-      grade: "Grade 9",
-      minMarks: 17,
-      maxMarks: 20,
-      descriptor: "Response demonstrates cohesive evaluation of the interrelationship of language, form and structure and their effect on the reader. Subject terminology is integrated precisely and analysis is sophisticated and sustained throughout."
-    },
-    {
-      grade: "Grade 8",
-      minMarks: 15,
-      maxMarks: 16,
-      descriptor: "Response shows focused and detailed analysis of language, form and structure features with sustained examination of their effects. Subject terminology is used accurately and appropriately to develop complex ideas."
-    },
-    {
-      grade: "Grade 7",
-      minMarks: 14,
-      maxMarks: 14,
-      descriptor: "Response demonstrates focused analysis of language, form and structure features with clear understanding of their effects on the reader. Subject terminology is used accurately to support well-developed interpretations."
-    },
-    {
-      grade: "Grade 6",
-      minMarks: 13,
-      maxMarks: 13,
-      descriptor: "Response shows understanding of a range of language, form and structure features and makes clear links to their effect on the reader. Relevant subject terminology is used effectively to support examples given."
-    },
-    {
-      grade: "Grade 5",
-      minMarks: 12,
-      maxMarks: 12,
-      descriptor: "Response demonstrates understanding of language, form and structure features with some links to their effects. Subject terminology is used appropriately to support most examples given."
-    },
-    {
-      grade: "Grade 4",
-      minMarks: 10,
-      maxMarks: 11,
-      descriptor: "Response shows some understanding of language, form and structure features with basic links to their effect on the reader. Subject terminology is used with some accuracy to support examples."
-    },
-    {
-      grade: "Grade 3",
-      minMarks: 8,
-      maxMarks: 9,
-      descriptor: "Response is largely descriptive with some comment on language, form and structure. Limited use of relevant subject terminology to support examples, with basic understanding of effects."
-    },
-    {
-      grade: "Grade 2",
-      minMarks: 5,
-      maxMarks: 7,
-      descriptor: "Response is mainly descriptive with minimal comment on language, form and structure. Very limited use of subject terminology and little evidence of understanding effects on reader."
-    },
-    {
-      grade: "Grade 1",
-      minMarks: 1,
-      maxMarks: 4,
-      descriptor: "Response is simple with minimal identification of language, form and structure. Little or no evidence of relevant subject terminology and very basic understanding demonstrated."
-    }
-  ]
+  gradingCriteria: {
+    content: { weight: 30, description: "Understanding of how Dickens presents the party through various techniques" },
+    analysis: { weight: 30, description: "Analysis of language, form and structure with relevant subject terminology" },
+    structure: { weight: 20, description: "Coherent argument with effective use of quotations" },
+    expression: { weight: 20, description: "Clear expression with accurate spelling and punctuation" }
+  }
 };
