@@ -5406,23 +5406,14 @@ ${examinerComment}
           {/* Feedback Tab */}
           {activeTab === 'feedback' && (
             <>
-              {!showFeedback && !isLoadingFeedback && (
-                <div style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
-                  <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
-                    Get feedback on how your essay works as a complete piece of writing.
-                  </p>
-                  <button className="btn btn-primary btn-large" onClick={onRequestFeedback}>
-                    ðŸ§¾ Official Grading Get Feedback
-                  </button>
-                </div>
-              )}
-              
-              {isLoadingFeedback && (
+              {/* Show loading state while auto-grading */}
+              {!showFeedback && isLoadingFeedback && (
                 <div className="card" style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
                   <LoadingSpinner text="Generating feedback on your complete essay..." />
                 </div>
               )}
               
+              {/* Show feedback when ready */}
               {showFeedback && essayFeedback && (
                 <div className="holistic-feedback">
                   <div className="holistic-header">

@@ -205,24 +205,39 @@ Use these authentic exam board descriptors to assess the complete essay:
 
 ${gradeDescriptorsText}
 
-## GRADING INSTRUCTIONS
+## GRADING INSTRUCTIONS - CEILING GRADING (EXAM STANDARD)
 1. Read the complete essay holistically
-2. Identify the HIGHEST level of skill demonstrated anywhere in the essay
-3. Determine which grade descriptor best matches their BEST work
-4. Award a specific mark in the UPPER portion of that grade's range
-5. Provide justification citing the strongest evidence from the essay
+2. Identify the HIGHEST level of skill demonstrated ANYWHERE in the essay
+3. Determine which grade descriptor matches their BEST paragraph
+4. Award that grade (or one level below if borderline)
+5. Award a specific mark in the UPPER portion of that grade's range
 
-## CRITICAL: Ceiling Grading - Exam Standard Practice
-Real GCSE examiners apply this principle, and you must too:
-- **Once a student demonstrates Grade 7 analysis, they ARE a Grade 7 student** - even if only shown once
-- **Inconsistency ≠ Lower grade** - Variable quality is normal in developing writers
-- **Don't penalize twice** - If you've noted a weakness, don't let it drag down the overall grade
-- **Find their ceiling** - What's the best analytical point made? That proves capability
-- **Partial mastery > Complete simplicity** - Attempting sophisticated techniques shows more promise
+**CRITICAL GRADING PRINCIPLES:**
 
-The grade you award should reflect the highest consistent skill level demonstrated, not an average of highs and lows.
+**CEILING GRADING IS MANDATORY:**
+- ONE Grade 8 paragraph → Essay achieves Grade 7/8
+- The BEST paragraph sets the grade, not the average
+- Strong work anywhere proves capability
+- Don't penalize inconsistency
 
-Example: If one paragraph shows clear Grade 8 analysis with sophisticated language, but others are Grade 6, the student has proven Grade 7/8 capability. Award accordingly.`;
+**WEAK PARAGRAPHS HAVE MINIMAL IMPACT:**
+- A Grade 5 paragraph does NOT pull Grade 7 essay to Grade 6  
+- Only if MOST paragraphs are weak should grade be low
+- Weaker sections show development, not inability
+
+**COMPLETELY IGNORE TARGET GRADE:**
+- Target is for motivation/feedback tone only
+- Award ONLY what's demonstrated in the work
+- Student targeting Grade 5 writing Grade 7 work = Gets Grade 7
+- Student targeting Grade 9 writing Grade 5 work = Gets Grade 5
+
+**GRADING EXAMPLES:**
+- Essay with paragraphs: 7, 6, 8, 5 → **Award Grade 7/8** (best = 8)
+- Essay with paragraphs: 6, 6, 6, 9 → **Award Grade 7/8** (one excellent proves capability)
+- Essay: all Grade 7, target is Grade 5 → **Award Grade 7** (ignore target)
+- Essay: all Grade 5, target is Grade 9 → **Award Grade 5** (grade the work)
+
+The grade reflects the highest demonstrated skill level, as real exam marking does.`;
     } else {
       assessmentSection = `## Assessment Criteria
 ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`).join('\n')}`;
@@ -274,9 +289,15 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `    "${key}": <number 0-1
 
     const systemPrompt = `You are an experienced English teacher providing holistic feedback on a complete essay. You adapt your feedback style to each student's target grade and ability level.
 
-## THIS STUDENT'S PROFILE
+⚠️ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
+1. **IGNORE TARGET GRADE COMPLETELY WHEN GRADING** - Target shown only for tone/scaffolding. Work demonstrating Grade 8 gets Grade 8 even if target is Grade 4. Work demonstrating Grade 5 gets Grade 5 even if target is Grade 9.
+2. **USE STRICT CEILING GRADING** - ONE excellent paragraph can set the grade for the entire essay. A Grade 5 paragraph does NOT pull a Grade 7 essay down to Grade 6.
+3. **GRADE THE WORK, NOT THE EXPECTATIONS** - Your job is to assess what's demonstrated, not to match their target or adjust to their ability tier.
+4. **WEAK PARAGRAPHS HAVE MINIMAL IMPACT** - Only award lower grades if the MAJORITY of the essay is weak. One or two weak paragraphs among strong ones is normal development.
+
+## THIS STUDENT'S PROFILE (FOR TONE/STYLE ONLY)
 - **Student Name:** ${studentName}
-- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Target Grade:** ${targetGrade || "5"} (${systemName}) - **USE FOR FEEDBACK TONE ONLY, NOT FOR GRADING**
 - **Ability Tier:** ${abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)}
 - **Your Tone:** ${approach.tone}
 
@@ -296,28 +317,44 @@ ${assessmentSection}
 
 
 
-## CRITICAL: "Best Achievement" Marking Principle
-Apply this fundamental principle when assessing the complete essay:
-- **Credit the HIGHEST level of skill demonstrated anywhere in the essay**
-- **Strong paragraphs prove capability** - if 1 paragraph shows Grade 8 analysis, they CAN work at Grade 8
-- **Don't average quality** - variable performance suggests developing skills, not lower capability
-- **Look for evidence of potential** - what's the best analytical point they made? That's their ceiling
-- **Weaknesses are developmental, not definitive** - note them for growth, not as grade anchors
-- **Partial sophistication > complete simplicity** - attempting advanced techniques (even imperfectly) shows more promise
+## CRITICAL: "Best Achievement" Marking Principle - EXAM STANDARD
+Apply these principles exactly as real GCSE examiners do:
 
-The essay grade should reflect the highest consistent level of skill demonstrated, recognizing that mastery develops through practice.
+**CEILING GRADING (MANDATORY):**
+- **ONE Grade 8 paragraph → Essay achieves Grade 7/8 minimum**
+- **BEST paragraph sets the grade, not the average**
+- Strong work anywhere proves what the student CAN do
+- Inconsistency is normal - don't penalize it
+
+**WEAK SECTIONS HAVE MINIMAL IMPACT:**
+- A Grade 5 paragraph does NOT pull Grade 7 essay to Grade 6
+- Two weak paragraphs among four strong ones = Still strong essay
+- Only if MOST paragraphs are weak should the grade be low
+- Weaknesses are learning opportunities, not grade anchors
+
+**TARGET GRADE MUST NOT INFLUENCE GRADING:**
+- Student targeting Grade 5 but writes all Grade 7 paragraphs → Gets Grade 7
+- Student targeting Grade 9 but writes all Grade 6 paragraphs → Gets Grade 6
+- Award only what's demonstrated, regardless of aspirations
+
+**GRADING EXAMPLES (FOLLOW THESE):**
+- 4 paragraphs: 7, 6, 8, 5 → **Award Grade 7/8** (best paragraph = Grade 8)
+- 3 paragraphs: 6, 6, 9 → **Award Grade 7/8** (one excellent paragraph proves capability)
+- 5 paragraphs: all Grade 7, student targets Grade 5 → **Award Grade 7** (ignore target)
+- 4 paragraphs: all Grade 5, student targets Grade 8 → **Award Grade 5** (grade the work)
 
 
 ## YOUR PRIMARY TASK: IDENTIFY THE HIGHEST SKILL LEVEL
-When you assess this complete essay, ask yourself:
-1. **What's the BEST paragraph they wrote?** - This proves what they're capable of
-2. **What's the most sophisticated analysis anywhere in the essay?** - Even if only shown once
-3. **Which grade descriptor matches their STRONGEST work?** - Not their most common work
+When you assess this complete essay:
+1. **Find the BEST paragraph** - This proves what they're capable of
+2. **Identify the most sophisticated analysis ANYWHERE** - Even if shown only once
+3. **Match that HIGHEST quality to grade descriptors** - Not the most common quality
+4. **Award that grade (or one below if borderline)** - Don't average down
 
-The essay grade should reflect the highest quality demonstrated, recognizing that:
-- Strong work in one area proves capability
-- Inconsistency is normal in developing writers
-- The goal is to encourage reaching their proven ceiling more often
+The essay grade reflects the highest quality demonstrated, because:
+- Strong work proves capability
+- Inconsistency is normal development
+- Goal is consistent excellence, not penalizing growth
 
 ## Response Format
 Respond with valid JSON:
@@ -326,9 +363,9 @@ ${responseFormat}`;
     const userPrompt = `## Essay Question
 "${essayTitle}"
 
-## Student Profile
+## Student Profile (FOR CONTEXT ONLY - DO NOT USE FOR GRADING)
 - **Name:** ${studentName}
-- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Target Grade:** ${targetGrade || "5"} (${systemName}) - **IGNORE WHEN GRADING**
 - **Ability Tier:** ${abilityTier}
 ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 - **Assessment Mode:** Official grade descriptors` : '- **Assessment Mode:** Standard criteria'}
@@ -336,10 +373,11 @@ ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 ## Paragraph Performance During Writing
 ${paragraphSummary.map(p => `- ${p.title} (${p.type}): ${p.score}%${p.estimatedGrade ? ` [Est. Grade ${p.estimatedGrade}]` : ''} (${p.attempts} attempt${p.attempts > 1 ? 's' : ''})`).join('\n')}
 
-**Highest paragraph score:** ${highestParagraphScore}% ← This proves their capability
-**Average paragraph score:** ${averageScore}% (for reference only)
+**GRADING KEY:**
+- **Highest paragraph score:** ${highestParagraphScore}% ← **This sets the baseline for the essay grade**
+- **Average paragraph score:** ${averageScore}% (reference only - DO NOT USE for grading)
 
-IMPORTANT: Grade based on their BEST work (${highestParagraphScore}%), not the average. Strong performance in any paragraph demonstrates true ability.
+⚠️ **CRITICAL:** Grade based on BEST paragraph (${highestParagraphScore}%), NOT the average. One strong paragraph proves capability.
 
 ## Complete Essay
 
@@ -348,19 +386,30 @@ ${p.finalText}`).join('\n\n')}
 
 ---
 
-Please provide holistic feedback on this complete essay${hasAuthenticDescriptors ? ', grading it against the official descriptors' : ''}.
+**GRADING INSTRUCTIONS:**
+${hasAuthenticDescriptors ? `
+⚠️ MANDATORY REQUIREMENTS:
+1. "awardedGrade": GCSE grade for essay (e.g., "6", "7", "8") - CEILING GRADING REQUIRED
+2. "awardedMarks": Mark out of ${actualTotalMarks} reflecting HIGHEST quality shown
+3. Grade based ONLY on demonstrated quality - IGNORE target grade (${targetGrade}) completely
+4. ONE strong paragraph can set the grade for the whole essay
+5. Mark must fall within grade boundaries provided
+6. Justify with evidence from STRONGEST paragraphs
+` : ''}
 
-${hasAuthenticDescriptors ? `IMPORTANT: 
-- Award a specific grade and mark based on the descriptors
-- The mark must fall within the grade boundaries provided
-- Justify your grade with specific evidence from the essay
-- Reference which descriptor criteria are met/not met` : ''}
+**GRADING CHECKLIST - VERIFY BEFORE RESPONDING:**
+✓ Identified the BEST paragraph across the entire essay?
+✓ Awarded grade based on that HIGHEST quality (not average)?
+✓ Ignored the target grade (${targetGrade}) completely?
+✓ Minimized impact of weaker paragraphs (unless MOST are weak)?
+✓ Used ${approach.tone} tone appropriate for feedback?
+✓ Provided specific evidence from the strongest work?
 
 Remember:
-- Use a ${approach.tone} tone
+- Use ${approach.tone} tone FOR FEEDBACK (not for grading)
 - ${abilityTier === 'foundation' ? 'Be generous with praise and gentle with criticism' : abilityTier === 'high' ? 'Be honest and challenging - they can handle it' : 'Balance praise with constructive challenge'}
-- Always show them the path to grade ${nextGrade}
-- ${abilityTier === 'foundation' ? 'Find and celebrate every positive aspect of their writing' : 'Acknowledge achievements while maintaining high expectations'}`;
+- Show them the path to grade ${nextGrade}
+- ${abilityTier === 'foundation' ? 'Celebrate every positive aspect' : 'Acknowledge achievements while maintaining high expectations'}`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
