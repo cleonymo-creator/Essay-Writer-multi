@@ -161,6 +161,9 @@ exports.handler = async (event) => {
       estimatedGrade: p.estimatedGrade || null
     }));
     
+    // CEILING GRADING: Use the highest paragraph score to show capability
+    // This reflects exam marking where strong work in any area proves ability
+    const highestParagraphScore = Math.max(...paragraphSummary.map(p => p.score));
     const averageScore = Math.round(
       paragraphSummary.reduce((sum, p) => sum + p.score, 0) / paragraphSummary.length
     );
@@ -204,19 +207,22 @@ ${gradeDescriptorsText}
 
 ## GRADING INSTRUCTIONS
 1. Read the complete essay holistically
-2. Determine which grade descriptor best matches the overall quality
-3. Award a specific mark within that grade's range
-4. Provide justification citing specific evidence from the essay
-5. Identify what would be needed to reach the next grade up
+2. Identify the HIGHEST level of skill demonstrated anywhere in the essay
+3. Determine which grade descriptor best matches their BEST work
+4. Award a specific mark in the UPPER portion of that grade's range
+5. Provide justification citing the strongest evidence from the essay
 
-## IMPORTANT: Fair Marking Guidance
-When assessing, apply the "best-fit" principle used by real examiners:
-- If work shows characteristics of TWO adjacent grades, award the HIGHER grade if ANY significant criterion is met at that level
-- Award marks in the UPPER portion of a grade band when work solidly meets the descriptors (not just scraping in)
-- Don't penalise twice: if you've noted a weakness, don't let it drag down marks in multiple areas
-- Recognise potential and effort: strong attempts at sophisticated techniques count positively even if not fully achieved
-- This is formative assessment for learning - grade fairly and encouragingly, not punitively
-- When in doubt, round UP rather than down`;
+## CRITICAL: Ceiling Grading - Exam Standard Practice
+Real GCSE examiners apply this principle, and you must too:
+- **Once a student demonstrates Grade 7 analysis, they ARE a Grade 7 student** - even if only shown once
+- **Inconsistency ≠ Lower grade** - Variable quality is normal in developing writers
+- **Don't penalize twice** - If you've noted a weakness, don't let it drag down the overall grade
+- **Find their ceiling** - What's the best analytical point made? That proves capability
+- **Partial mastery > Complete simplicity** - Attempting sophisticated techniques shows more promise
+
+The grade you award should reflect the highest consistent skill level demonstrated, not an average of highs and lows.
+
+Example: If one paragraph shows clear Grade 8 analysis with sophisticated language, but others are Grade 6, the student has proven Grade 7/8 capability. Award accordingly.`;
     } else {
       assessmentSection = `## Assessment Criteria
 ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`).join('\n')}`;
@@ -330,7 +336,10 @@ ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 ## Paragraph Performance During Writing
 ${paragraphSummary.map(p => `- ${p.title} (${p.type}): ${p.score}%${p.estimatedGrade ? ` [Est. Grade ${p.estimatedGrade}]` : ''} (${p.attempts} attempt${p.attempts > 1 ? 's' : ''})`).join('\n')}
 
-**Average paragraph score:** ${averageScore}%
+**Highest paragraph score:** ${highestParagraphScore}% ← This proves their capability
+**Average paragraph score:** ${averageScore}% (for reference only)
+
+IMPORTANT: Grade based on their BEST work (${highestParagraphScore}%), not the average. Strong performance in any paragraph demonstrates true ability.
 
 ## Complete Essay
 
@@ -400,8 +409,10 @@ Remember:
       feedback.awardedMarks = awardedMarks;
       feedback.markBreakdown = `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}`;
     } else {
-      // Calculate final score using the old method (blend of paragraph scores and holistic score)
-      finalScore = Math.round((averageScore * 0.7) + (feedback.overallScore * 0.3));
+      // CEILING GRADING: Use highest paragraph score as the baseline
+      // The holistic assessment can only lift this, not lower it
+      // This reflects that strong work anywhere proves capability
+      finalScore = Math.max(highestParagraphScore, feedback.overallScore || 0);
       finalGrade = feedback.overallGrade;
     }
 
@@ -413,7 +424,8 @@ Remember:
         feedback: feedback,
         fullEssay: fullEssay,
         paragraphSummary: paragraphSummary,
-        averageParagraphScore: averageScore,
+        highestParagraphScore: highestParagraphScore,  // For ceiling grading
+        averageParagraphScore: averageScore,  // For reference only
         finalScore: finalScore,
         finalGrade: finalGrade,
         awardedMarks: hasAuthenticDescriptors ? awardedMarks : null,
@@ -421,7 +433,8 @@ Remember:
         markBreakdown: hasAuthenticDescriptors ? `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}` : null,
         targetGrade: targetGrade,
         abilityTier: abilityTier,
-        usedAuthenticDescriptors: hasAuthenticDescriptors
+        usedAuthenticDescriptors: hasAuthenticDescriptors,
+        gradingMethod: "ceiling" // Explicitly indicate we're using ceiling grading
       })
     };
 

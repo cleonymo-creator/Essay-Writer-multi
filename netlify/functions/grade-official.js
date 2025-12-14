@@ -75,13 +75,22 @@ ${levelDescriptorsText}
 ## Grade Boundaries
 ${officialMarkScheme.gradeBoundaries.map(gb => `Grade ${gb.grade}: ${gb.minMark}+ marks`).join('\n')}
 
-## Important Guidelines
-- Be rigorous and apply the mark scheme consistently
-- Look for evidence of each AO in the student's writing
-- Award the mark that best fits the descriptors - be accurate, not generous
-- The initial version will typically score lower - this is expected
-- Identify specific evidence from the text to justify your marks
-- Consider the whole essay, not just individual paragraphs
+## Important Guidelines - Ceiling Grading Principle
+Real GCSE examiners apply the "Best Achievement" principle - you must too:
+- **Credit the HIGHEST level of skill demonstrated** - if ONE paragraph shows Level 5 analysis, they CAN work at Level 5
+- **Don't average quality** - inconsistency is normal in developing writers, not evidence of lower ability  
+- **Look for the ceiling** - what's the best they achieved anywhere in the essay?
+- **Partial mastery counts** - attempting sophisticated techniques (even imperfectly) shows more promise than simple competence
+- **Don't penalize twice** - note weaknesses for feedback, but don't let them drag down marks across multiple AOs
+
+Assessment Process:
+1. Look for evidence of each AO in the student's writing
+2. For each AO, identify the HIGHEST level demonstrated anywhere in the essay
+3. Award the mark that best fits their STRONGEST work in that AO
+4. Provide specific evidence from the text to justify your marks
+5. Consider the whole essay, recognizing that strong work in any section proves capability
+
+Example: If AO2 shows one paragraph with sophisticated language analysis (Level 5) and others at Level 3, award Level 4-5 marks because they've proven the higher capability.
 
 ## Response Format
 You must respond with valid JSON in this exact format:
@@ -138,7 +147,7 @@ You must respond with valid JSON in this exact format:
   },
   "comparison": {
     "marksImproved": <number>,
-    "gradeChange": "<e.g. '4 â†’ 6' or 'No change'>",
+    "gradeChange": "<e.g. '4 Ã¢â€ â€™ 6' or 'No change'>",
     "mostImprovedArea": "<which AO showed most improvement>",
     "improvementSummary": "<2-3 sentences describing what improved and how>",
     "remainingTargets": ["<target 1 for further improvement>", "<target 2>"]

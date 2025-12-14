@@ -346,8 +346,9 @@ ${Object.entries(gradingCriteria)
 
     // Build response format based on whether we have authentic descriptors
     const responseFormat = hasAuthenticDescriptors ? `{
-  "holistic_level": "<which grade descriptor best matches this work overall - use best-fit, crediting highest demonstrated skills>",
-  "levelJustification": "<1-2 sentences explaining why this work fits this grade level, highlighting the highest skills demonstrated>",
+  "awardedGrade": "<the actual GCSE grade this work achieves (e.g., '6', '7', '8') - use ceiling grading, crediting highest demonstrated skills>",
+  "awardedMarks": <number: specific mark out of ${totalMarks || 40} that reflects the grade awarded>,
+  "levelJustification": "<1-2 sentences explaining why this work achieves this grade, highlighting the highest skills demonstrated>",
   "strengths": ["<specific strength with evidence from their writing>", "<another strength>"],
   "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement linked to grade descriptors>"' : abilityTier === 'high' ? '"<sophisticated improvement 1>", "<advanced technique 2>", "<nuanced refinement 3>"' : '"<clear improvement 1 with explanation>", "<targeted improvement 2 with rationale>"'}],
   "tieredHint": {
@@ -444,7 +445,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade d
 
 ## Attempt Information
 This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
@@ -455,8 +456,15 @@ ${revisionContext}
 
 Please assess this paragraph${hasAuthenticDescriptors ? ' against the official grade descriptors' : ''} and provide differentiated feedback appropriate for a student targeting grade ${targetGrade || "5"}. 
 
+${hasAuthenticDescriptors ? `
+CRITICAL: Your response MUST include:
+- "awardedGrade": The actual GCSE grade (just the number/letter, e.g., "6", "7", "8")
+- "awardedMarks": Specific mark out of ${totalMarks || 40}
+Use ceiling grading - award the grade that matches their BEST demonstrated skill, not their average.
+` : ''}
+
 Remember:
-1. ${hasAuthenticDescriptors ? 'Determine which grade level the work currently matches and cite specific evidence' : 'Score based on the weighted criteria'}
+1. ${hasAuthenticDescriptors ? 'Determine which grade level matches their BEST work (ceiling grading) and cite specific evidence' : 'Score based on the weighted criteria'}
 2. Use the ${approach.tone} tone appropriate for this student
 3. ${abilityTier === 'foundation' ? 'Focus on 1-2 achievable improvements with lots of support' : abilityTier === 'high' ? 'Challenge them with sophisticated improvements' : 'Provide balanced, actionable feedback'}
 4. Always push them toward grade ${nextGrade}
@@ -499,23 +507,31 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
     let awardedMarks, estimatedGrade, overallScore;
     
     if (hasAuthenticDescriptors) {
-      // Use marks-based grading with authentic boundaries
+      // Use the grade awarded directly by the AI (ceiling grading principle)
+      estimatedGrade = feedback.awardedGrade;
       awardedMarks = feedback.awardedMarks;
       
-      if (awardedMarks != null && gradeBoundaries) {
-        // Convert marks to grade using authentic boundaries
-        estimatedGrade = marksToGrade(awardedMarks, gradeBoundaries);
-        // Calculate percentage score from marks
+      // Calculate percentage for internal tracking only
+      if (awardedMarks != null) {
         overallScore = Math.round((awardedMarks / (totalMarks || 40)) * 100);
       } else {
-        // Fallback if AI didn't return marks (shouldn't happen)
-        console.warn('[grade-paragraph] No awardedMarks returned, using fallback');
-        awardedMarks = null;
-        estimatedGrade = null;
-        overallScore = 0;
+        // Fallback: derive marks from grade if needed
+        console.warn('[grade-paragraph] No awardedMarks, deriving from grade');
+        const gradeBoundary = gradeBoundaries.find(gb => 
+          gb.grade === estimatedGrade || 
+          gb.grade === `Grade ${estimatedGrade}` ||
+          gb.grade.includes(estimatedGrade)
+        );
+        awardedMarks = gradeBoundary ? gradeBoundary.minMarks : 0;
+        overallScore = Math.round((awardedMarks / (totalMarks || 40)) * 100);
       }
       
-      // Add derived values to feedback
+      // Ensure grade is in clean format (just number/letter, not "Grade X")
+      if (estimatedGrade && estimatedGrade.startsWith('Grade ')) {
+        estimatedGrade = estimatedGrade.replace('Grade ', '');
+      }
+      
+      // Add derived values to feedback for display
       feedback.estimatedGrade = estimatedGrade;
       feedback.overallScore = overallScore;
       feedback.awardedMarks = awardedMarks;
@@ -556,11 +572,14 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
         targetGrade: targetGrade,
         abilityTier: abilityTier,
         usedAuthenticDescriptors: hasAuthenticDescriptors,
-        // Include marks breakdown for transparency
-        awardedMarks: hasAuthenticDescriptors ? awardedMarks : null,
+        // Primary grade display (for exam-style grading)
+        estimatedGrade: hasAuthenticDescriptors ? (estimatedGrade || null) : null,
+        // Marks breakdown for transparency
+        awardedMarks: hasAuthenticDescriptors ? (awardedMarks || 0) : null,
         totalMarks: hasAuthenticDescriptors ? (totalMarks || 40) : null,
-        estimatedGrade: hasAuthenticDescriptors ? estimatedGrade : null,
-        markBreakdown: hasAuthenticDescriptors ? `${awardedMarks}/${totalMarks || 40} marks = Grade ${estimatedGrade}` : null
+        markBreakdown: hasAuthenticDescriptors && estimatedGrade ? `${awardedMarks}/${totalMarks || 40} marks = Grade ${estimatedGrade}` : null,
+        // For internal tracking and fallback display
+        overallScore: overallScore || 0
       }),
     };
   } catch (error) {
