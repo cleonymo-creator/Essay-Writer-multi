@@ -364,9 +364,6 @@ When assessing, apply the "best achievement" principle used by expert examiners:
 - **Focus on what they CAN do** - the highest skill demonstrated reveals their true capability
 - Students are still learning - assess their best work as evidence of their developing skills`;
     } else {
-${!isLastAttempt ? `5. Help them understand exactly what to change in their next revision` : `5. Summarise their overall achievement and learning`}
-`;
-    } else {
       // Fallback to generic criteria
       assessmentCriteriaSection = `## Assessment Criteria (weight in brackets)
 ${Object.entries(gradingCriteria)
