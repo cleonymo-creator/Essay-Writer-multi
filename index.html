@@ -4732,6 +4732,27 @@
       // Check if we have authentic grade boundaries
       const hasAuthenticDescriptors = gradeBoundaries && Array.isArray(gradeBoundaries) && gradeBoundaries.length > 0;
       
+      // Determine ability tier from target grade
+      const getAbilityTier = (grade) => {
+        const highGrades = ['9', '8', '7', 'A*', 'A'];
+        const foundationGrades = ['3', '2', '1', 'D', 'E'];
+        if (highGrades.includes(grade)) return 'advanced';
+        if (foundationGrades.includes(grade)) return 'foundation';
+        return 'intermediate';
+      };
+      
+      // Get the appropriate learning material for student's level
+      const getLearningMaterial = () => {
+        if (typeof paragraph.learningMaterial === 'string') {
+          return paragraph.learningMaterial;
+        }
+        if (typeof paragraph.learningMaterial === 'object') {
+          const tier = getAbilityTier(targetGrade || '5');
+          return paragraph.learningMaterial[tier] || paragraph.learningMaterial.intermediate || '';
+        }
+        return '';
+      };
+      
       useEffect(() => {
         if (paragraphState?.lastFeedback && !paragraphState?.completed) {
           setCurrentFeedback(paragraphState.lastFeedback);
@@ -4841,7 +4862,7 @@
             </div>
           </div>
           
-          <div className="learning-material" dangerouslySetInnerHTML={{ __html: renderMarkdown(paragraph.learningMaterial) }} />
+          <div className="learning-material" dangerouslySetInnerHTML={{ __html: renderMarkdown(getLearningMaterial()) }} />
           
           <div className="writing-prompt">
             <div className="writing-prompt-label">Your Task</div>
