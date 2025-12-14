@@ -4250,7 +4250,7 @@
     // FEEDBACK DISPLAY COMPONENT
     // =====================================================
     
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, onRevise, onAccept }) {
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept }) {
       const scoreClass = getScoreClass(feedback.overallScore || 0);
       const grade = feedback.estimatedGrade || feedback.awardedGrade;
       const hasAuthenticGrade = Boolean(grade);
@@ -4258,6 +4258,10 @@
       
       // Format grade display
       const displayGrade = grade && !grade.toString().startsWith('Grade') ? `Grade ${grade}` : grade;
+      
+      // Cumulative grading indicator
+      const isCumulative = cumulativeInfo?.isCumulative;
+      const paragraphCount = cumulativeInfo?.paragraphCount;
       
       return (
         <div className="feedback-panel ghost-appear">
@@ -4272,6 +4276,11 @@
                     {feedback.awardedMarks}/{feedback.totalMarks} marks
                   </div>
                 )}
+                {isCumulative && paragraphCount > 1 && (
+                  <div style={parseStyle("font-size: 0.8rem; color: var(--color-info); background: var(--color-info-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 600;")}>
+                    📊 Cumulative ({paragraphCount} paragraphs)
+                  </div>
+                )}
               </div>
             ) : (
               <div className={`feedback-score ${scoreClass}`}>
@@ -4279,9 +4288,14 @@
               </div>
             )}
             <div>
-              <h3 style={parseStyle("margin: 0;")}>Feedback on Attempt {attemptNumber}</h3>
+              <h3 style={parseStyle("margin: 0;")}>
+                {isCumulative ? `Essay Grade So Far (After ${paragraphCount} Paragraph${paragraphCount > 1 ? 's' : ''})` : `Feedback on Attempt ${attemptNumber}`}
+              </h3>
               <p style={parseStyle("margin: 0; font-size: 0.9rem; color: var(--color-text-muted);")}>
-                {canRevise ? 'Review the feedback and revise your paragraph' : 'Final feedback on your paragraph'}
+                {isCumulative 
+                  ? `This grade reflects your complete essay written so far` 
+                  : (canRevise ? 'Review the feedback and revise your paragraph' : 'Final feedback on your paragraph')
+                }
               </p>
             </div>
           </div>
@@ -4715,11 +4729,12 @@
 // PARAGRAPH SCREEN
     // =====================================================
     
-    function ParagraphScreen({ paragraph, paragraphState, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
+    function ParagraphScreen({ paragraph, paragraphState, paragraphStates, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
       const [text, setText] = useState(paragraphState?.currentText || '');
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
       const [currentFeedback, setCurrentFeedback] = useState(null);
+      const [cumulativeInfo, setCumulativeInfo] = useState(null);  // For cumulative grading display
       const textareaRef = useRef(null);
       
       const wordCount = countWords(text);
@@ -4765,11 +4780,23 @@
         setIsSubmitting(true);
         setShowFeedback(false);
         
+        // Collect completed paragraphs for cumulative grading
+        const completedParagraphs = config?.paragraphs
+          ?.filter(p => {
+            const state = paragraphStates?.[p.id];
+            return state?.completed && p.id !== paragraph.id;
+          })
+          .map(p => ({
+            title: p.title,
+            type: p.type,
+            text: paragraphStates[p.id]?.finalText || ''
+          })) || [];
+        
         // Log what we're sending to help debug
-        console.log('[ParagraphScreen] Submitting with gradeBoundaries:', {
-          exists: !!gradeBoundaries,
-          isArray: Array.isArray(gradeBoundaries),
-          length: gradeBoundaries?.length
+        console.log('[ParagraphScreen] Cumulative grading:', {
+          completedCount: completedParagraphs.length,
+          currentParagraph: paragraph.title,
+          hasGradeBoundaries: !!gradeBoundaries
         });
         
         try {
@@ -4779,6 +4806,7 @@
             attemptNumber: attemptNumber,
             maxAttempts: maxAttempts,
             previousFeedback: paragraphState?.feedbackHistory || [],
+            completedParagraphs: completedParagraphs,  // For cumulative grading
             essayTitle: config?.essayTitle,
             gradingCriteria: gradingCriteria,
             gradeBoundaries: gradeBoundaries,  // Pass authentic grade descriptors if available
@@ -4802,6 +4830,11 @@
           
           if (data.success) {
             setCurrentFeedback(data.feedback);
+            setCumulativeInfo({
+              isCumulative: data.isCumulative,
+              paragraphCount: data.paragraphCount,
+              currentParagraphTitle: data.currentParagraphTitle
+            });
             setShowFeedback(true);
             onSubmitAttempt({
               text: text,
@@ -4921,6 +4954,7 @@
               feedback={currentFeedback}
               attemptNumber={paragraphState?.attempts || attemptNumber}
               canRevise={(paragraphState?.attempts || attemptNumber) < maxAttempts}
+              cumulativeInfo={cumulativeInfo}
               onRevise={handleRevise}
               onAccept={handleAccept}
             />
@@ -6456,6 +6490,7 @@ ${examinerComment}
                 key={currentParagraph.id}
                 paragraph={currentParagraph}
                 paragraphState={paragraphStates[currentParagraph.id]}
+                paragraphStates={paragraphStates}
                 onSubmitAttempt={(data) => handleSubmitAttempt(currentParagraph.id, data)}
                 onComplete={(text, feedback) => handleCompleteParagraph(currentParagraph.id, text, feedback)}
                 previewMode={isPreviewMode}

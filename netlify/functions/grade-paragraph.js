@@ -214,6 +214,7 @@ exports.handler = async (event) => {
       attemptNumber,
       maxAttempts,
       previousFeedback,
+      completedParagraphs,  // Previously completed paragraphs for cumulative grading
       essayTitle,
       gradingCriteria,
       gradeBoundaries,  // Array of {grade, minMarks, maxMarks, descriptor}
@@ -222,12 +223,23 @@ exports.handler = async (event) => {
       gradeSystem
     } = requestBody;
     
-    // Debug logging for grade boundaries
-    console.log('[grade-paragraph] Received gradeBoundaries:', {
-      exists: !!gradeBoundaries,
-      isArray: Array.isArray(gradeBoundaries),
-      length: gradeBoundaries?.length,
-      sample: gradeBoundaries?.[0]?.grade
+    // Build cumulative essay (all completed paragraphs + current one)
+    const hasPreviousParagraphs = completedParagraphs && completedParagraphs.length > 0;
+    const cumulativeEssay = hasPreviousParagraphs
+      ? [
+          ...completedParagraphs.map(p => `### ${p.title}\n${p.text}`),
+          `### ${paragraphConfig.title}\n${paragraphText}`
+        ].join('\n\n')
+      : `### ${paragraphConfig.title}\n${paragraphText}`;
+    
+    const paragraphCount = (completedParagraphs?.length || 0) + 1;
+    
+    // Debug logging
+    console.log('[grade-paragraph] Cumulative grading:', {
+      completedParagraphs: completedParagraphs?.length || 0,
+      currentParagraph: paragraphConfig.title,
+      totalParagraphsSoFar: paragraphCount,
+      hasGradeBoundaries: !!gradeBoundaries
     });
 
     const isLastAttempt = attemptNumber >= maxAttempts;
@@ -320,6 +332,21 @@ When assessing student work, apply this fundamental principle:
 - **Partial achievement of higher grades beats full achievement of lower grades** - A student attempting sophisticated analysis (even imperfectly) shows more promise than perfect basic description
 - **Weaknesses are learning opportunities, not grade anchors** - Note areas for improvement without letting them overshadow demonstrated strengths
 
+## CUMULATIVE GRADING APPROACH
+${hasPreviousParagraphs ? `You are grading the essay CUMULATIVELY - assessing the complete work written so far (${paragraphCount} paragraph${paragraphCount > 1 ? 's' : ''}).
+
+**Important:**
+- Grade the WHOLE essay written so far, not just the new paragraph in isolation
+- The new paragraph may lift or maintain the overall grade
+- Look for how the new paragraph contributes to the complete argument
+- Award the grade that reflects the quality of the entire essay so far
+- Strong new work can elevate the overall grade (ceiling grading)
+
+For feedback:
+- Comment on how this paragraph contributes to the whole essay
+- Note whether the essay is strengthening or if they need to maintain quality
+- Guide them on what the next paragraph needs to do` : `This is the student's first paragraph, so you're grading just this opening section. Your grade represents the quality of their essay so far (which is just this introduction).`}
+
 ### Example:
 If a student writes 4 paragraphs where:
 - 3 paragraphs show basic Grade 5 analysis
@@ -337,11 +364,116 @@ When assessing, apply the "best achievement" principle used by expert examiners:
 - **Focus on what they CAN do** - the highest skill demonstrated reveals their true capability
 - Students are still learning - assess their best work as evidence of their developing skills`;
     } else {
+${!isLastAttempt ? `5. Help them understand exactly what to change in their next revision` : `5. Summarise their overall achievement and learning`}
+`;
+    } else {
       // Fallback to generic criteria
       assessmentCriteriaSection = `## Assessment Criteria (weight in brackets)
 ${Object.entries(gradingCriteria)
   .map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`)
   .join("\n")}`;
+    }
+
+    // Build the user prompt - conditional based on whether there are previous paragraphs
+    let userPrompt;
+    
+    if (hasPreviousParagraphs) {
+      // CUMULATIVE GRADING MODE
+      userPrompt = `## Essay Question
+"${essayTitle}"
+
+## Complete Essay Written So Far (${paragraphCount} paragraphs)
+
+${cumulativeEssay}
+
+---
+
+## CUMULATIVE GRADING ASSESSMENT
+You are grading the COMPLETE ESSAY written so far - all ${paragraphCount} paragraphs above.
+
+**Current paragraph being assessed:** ${paragraphConfig.title} (${paragraphConfig.type})
+
+**What you're grading:**
+- The complete work from start to current paragraph
+- How well the essay develops and builds
+- The overall quality across all paragraphs written so far
+
+## Student Profile
+- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Ability Tier:** ${abilityTier}
+${hasAuthenticDescriptors ? `- **Assessment Mode:** CUMULATIVE - Grading entire essay using official descriptors` : '- **Assessment:** Using standard criteria'}
+
+## Attempt Information  
+This is attempt ${attemptNumber} of ${maxAttempts} for the ${paragraphConfig.title} paragraph.
+${isLastAttempt ? "⚠️ FINAL attempt for this paragraph." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
+
+${revisionContext}
+
+---
+
+Grade the COMPLETE ESSAY (${paragraphCount} paragraphs) holistically.
+
+${hasAuthenticDescriptors ? `
+CRITICAL: Your response MUST include:
+- "awardedGrade": GCSE grade for COMPLETE ESSAY SO FAR (e.g., "6", "7", "8")
+- "awardedMarks": Mark out of ${totalMarks || 40} for complete essay
+Use ceiling grading across ALL paragraphs.
+` : ''}
+
+Remember:
+1. Grade the WHOLE essay cumulatively - highest quality across all paragraphs
+2. Use ${approach.tone} tone
+3. ${abilityTier === 'foundation' ? '1-2 achievable improvements' : abilityTier === 'high' ? 'Sophisticated improvements' : 'Balanced feedback'}
+4. Push toward grade ${nextGrade}
+${!isLastAttempt ? `5. Guide next revision` : `5. Summarise achievement`}`;
+    } else {
+      // FIRST PARAGRAPH MODE
+      userPrompt = `## Essay Question
+"${essayTitle}"
+
+## Paragraph Being Written
+**Section:** ${paragraphConfig.title} (${paragraphConfig.type})
+**Writing Prompt:** ${paragraphConfig.writingPrompt}
+
+## What to Look For
+${paragraphConfig.keyPoints.map((p) => `- ${p}`).join("\n")}
+
+${paragraphConfig.exampleQuotes && paragraphConfig.exampleQuotes.length > 0
+    ? `## Suggested Quotations
+${paragraphConfig.exampleQuotes.map((q) => `- "${q}"`).join("\n")}`
+    : ""}
+
+## Student Profile
+- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Ability Tier:** ${abilityTier}
+${hasAuthenticDescriptors ? `- **Assessment:** Official exam board descriptors` : '- **Assessment:** Standard criteria'}
+
+## Attempt Information
+Attempt ${attemptNumber} of ${maxAttempts}.
+${isLastAttempt ? "⚠️ FINAL attempt." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
+
+${revisionContext}
+
+## Student's Writing (Attempt ${attemptNumber})
+"${paragraphText}"
+
+---
+
+Assess this paragraph${hasAuthenticDescriptors ? ' against official grade descriptors' : ''}.
+
+${hasAuthenticDescriptors ? `
+CRITICAL: Must include:
+- "awardedGrade": GCSE grade (e.g., "6", "7", "8")  
+- "awardedMarks": Mark out of ${totalMarks || 40}
+Use ceiling grading.
+` : ''}
+
+Remember:
+1. ${hasAuthenticDescriptors ? 'Ceiling grading - cite evidence' : 'Score by criteria'}
+2. Use ${approach.tone} tone
+3. ${abilityTier === 'foundation' ? '1-2 achievable improvements' : abilityTier === 'high' ? 'Sophisticated improvements' : 'Balanced feedback'}
+4. Push toward grade ${nextGrade}
+${!isLastAttempt ? `5. Guide next revision` : `5. Summarise achievement`}`;
     }
 
     // Build response format based on whether we have authentic descriptors
@@ -420,55 +552,6 @@ Remember: A student who shows one moment of Grade 8 analysis mixed with Grade 6 
 ## Response Format
 You must respond with valid JSON in this exact format:
 ${responseFormat}`;
-
-    const userPrompt = `## Essay Question
-"${essayTitle}"
-
-## Paragraph Being Written
-**Section:** ${paragraphConfig.title} (${paragraphConfig.type})
-**Writing Prompt:** ${paragraphConfig.writingPrompt}
-
-## What to Look For
-${paragraphConfig.keyPoints.map((p) => `- ${p}`).join("\n")}
-
-${
-  paragraphConfig.exampleQuotes && paragraphConfig.exampleQuotes.length > 0
-    ? `## Suggested Quotations
-${paragraphConfig.exampleQuotes.map((q) => `- "${q}"`).join("\n")}`
-    : ""
-}
-
-## Student Profile
-- **Target Grade:** ${targetGrade || "5"} (${systemName})
-- **Ability Tier:** ${abilityTier}
-${hasAuthenticDescriptors ? `- **Assessment:** Using official exam board grade descriptors` : '- **Assessment:** Using standard criteria'}
-
-## Attempt Information
-This is attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â This is the student's FINAL attempt - provide comprehensive feedback for their learning even though they cannot revise further." : `The student has ${maxAttempts - attemptNumber} revision(s) remaining.`}
-
-${revisionContext}
-
-## Student's Writing (Attempt ${attemptNumber})
-"${paragraphText}"
-
----
-
-Please assess this paragraph${hasAuthenticDescriptors ? ' against the official grade descriptors' : ''} and provide differentiated feedback appropriate for a student targeting grade ${targetGrade || "5"}. 
-
-${hasAuthenticDescriptors ? `
-CRITICAL: Your response MUST include:
-- "awardedGrade": The actual GCSE grade (just the number/letter, e.g., "6", "7", "8")
-- "awardedMarks": Specific mark out of ${totalMarks || 40}
-Use ceiling grading - award the grade that matches their BEST demonstrated skill, not their average.
-` : ''}
-
-Remember:
-1. ${hasAuthenticDescriptors ? 'Determine which grade level matches their BEST work (ceiling grading) and cite specific evidence' : 'Score based on the weighted criteria'}
-2. Use the ${approach.tone} tone appropriate for this student
-3. ${abilityTier === 'foundation' ? 'Focus on 1-2 achievable improvements with lots of support' : abilityTier === 'high' ? 'Challenge them with sophisticated improvements' : 'Provide balanced, actionable feedback'}
-4. Always push them toward grade ${nextGrade}
-${!isLastAttempt ? `5. Help them understand exactly what to change in their next revision` : `5. Summarise their overall achievement and learning`}`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -572,6 +655,10 @@ ${!isLastAttempt ? `5. Help them understand exactly what to change in their next
         targetGrade: targetGrade,
         abilityTier: abilityTier,
         usedAuthenticDescriptors: hasAuthenticDescriptors,
+        // Cumulative grading info
+        isCumulative: hasPreviousParagraphs,
+        paragraphCount: paragraphCount,
+        currentParagraphTitle: paragraphConfig.title,
         // Primary grade display (for exam-style grading)
         estimatedGrade: hasAuthenticDescriptors ? (estimatedGrade || null) : null,
         // Marks breakdown for transparency
