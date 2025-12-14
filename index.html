@@ -4971,6 +4971,16 @@
       const [showFeedback, setShowFeedback] = useState(!!essayFeedback);
       const [showOfficialGrading, setShowOfficialGrading] = useState(!!officialGrading);
       const [activeTab, setActiveTab] = useState('essay');
+      const [autoRequestedFeedback, setAutoRequestedFeedback] = useState(false);
+      
+      // Auto-request feedback when compilation screen loads (if not already done)
+      useEffect(() => {
+        if (!essayFeedback && !isLoadingFeedback && !autoRequestedFeedback) {
+          console.log('[EssayCompilationScreen] Auto-requesting essay feedback');
+          setAutoRequestedFeedback(true);
+          onRequestFeedback();
+        }
+      }, [essayFeedback, isLoadingFeedback, autoRequestedFeedback, onRequestFeedback]);
       
       useEffect(() => {
         if (essayFeedback) setShowFeedback(true);
