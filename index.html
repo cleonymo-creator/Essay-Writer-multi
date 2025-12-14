@@ -2636,6 +2636,111 @@
     }
   
 
+    
+    /* =====================================================
+       KEY POINTS AND EXAMPLE QUOTES
+       ===================================================== */
+    
+    .key-points-box {
+      background: linear-gradient(145deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .key-points-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-info);
+      margin-bottom: var(--space-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .key-points-list {
+      margin: 0;
+      padding-left: var(--space-lg);
+      color: var(--color-text-secondary);
+    }
+    
+    .key-points-list li {
+      margin-bottom: var(--space-xs);
+      line-height: 1.5;
+    }
+    
+    .example-quotes-box {
+      background: linear-gradient(145deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05));
+      border: 1px solid rgba(184, 134, 11, 0.3);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .example-quotes-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-primary-light);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .example-quotes-label:hover {
+      color: var(--color-accent);
+    }
+    
+    .example-quotes-list {
+      margin: var(--space-md) 0 0 0;
+      padding-left: var(--space-lg);
+      color: var(--color-text-secondary);
+      font-style: italic;
+    }
+    
+    .example-quotes-list li {
+      margin-bottom: var(--space-sm);
+      line-height: 1.6;
+    }
+    
+    /* =====================================================
+       SOURCE IMAGES
+       ===================================================== */
+    
+    .source-images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--space-lg);
+      margin-top: var(--space-md);
+    }
+    
+    .source-image-figure {
+      margin: 0;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    
+    .source-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: pointer;
+      transition: transform var(--transition-base);
+    }
+    
+    .source-image:hover {
+      transform: scale(1.02);
+    }
+    
+    .source-image-figure figcaption {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      text-align: center;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
     /* =====================================================
        TARGET GRADE SELECTOR
        ===================================================== */
@@ -3186,9 +3291,9 @@
     // TASK PANEL (shows original exam question and source material)
     // =====================================================
     
-    function TaskPanel({ isOpen, onClose, config, sourceMaterial }) {
+    function TaskPanel({ isOpen, onClose, config }) {
       const hasTask = config?.originalTask;
-      const hasSource = sourceMaterial;
+      const hasSource = config?.sourceMaterial;
       
       if (!hasTask && !hasSource) return null;
       
@@ -3215,7 +3320,28 @@
                 <h4 className="task-section-title">
                   <span>Ã°Å¸â€œâ€“</span> Source Material
                 </h4>
-                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }} />
+                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(config.sourceMaterial) }} />
+              </div>
+            )}
+            
+            {/* Source Images */}
+            {config?.sourceImages && config.sourceImages.length > 0 && (
+              <div className="task-section">
+                <h4 className="task-section-title">
+                  <span>&#128444;</span> Source Images
+                </h4>
+                <div className="source-images-grid">
+                  {config.sourceImages.map((img, index) => (
+                    <figure key={index} className="source-image-figure">
+                      <img 
+                        src={`data:${img.type};base64,${img.data}`}
+                        alt={img.caption || img.name}
+                        className="source-image"
+                      />
+                      {img.caption && <figcaption>{img.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -3340,6 +3466,16 @@
               </p>
             </div>
           </div>
+          
+          {/* Grade Descriptor from boundaries */}
+          {feedback.gradeDescriptor && (
+            <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md); border-left: 3px solid var(--color-success);")}>
+              <div style={parseStyle("font-size: 0.8rem; font-weight: 600; color: var(--color-success); margin-bottom: var(--space-xs);")}>
+                Grade {feedback.estimatedGrade || feedback.awardedGrade} Descriptor
+              </div>
+              <p style={parseStyle("margin: 0; font-size: 0.95rem; font-style: italic;")}>{feedback.gradeDescriptor}</p>
+            </div>
+          )}
           
           {/* Grade/Marks Justification - shown when using authentic descriptors */}
           {(feedback.marksJustification || feedback.gradeJustification) && (
@@ -3488,7 +3624,44 @@
       if (config?.yearGroup?.includes('12') || config?.yearGroup?.includes('13')) return 'alevel';
       return 'gcse';
     };
-// ENTRY SCREEN
+
+    // Get learning material tier based on target grade
+    const getLearningMaterialTier = (targetGrade, gradeSystem) => {
+      if (!targetGrade) return 'intermediate'; // Default
+      
+      if (gradeSystem === 'alevel') {
+        if (['A*', 'A'].includes(targetGrade)) return 'advanced';
+        if (['B', 'C'].includes(targetGrade)) return 'intermediate';
+        return 'foundation';
+      }
+      
+      // GCSE (numeric grades)
+      const grade = parseInt(targetGrade);
+      if (isNaN(grade)) return 'intermediate';
+      if (grade >= 7) return 'advanced';
+      if (grade >= 5) return 'intermediate';
+      return 'foundation';
+    };
+    
+    // Get learning material content - handles both string and tiered object formats
+    const getLearningMaterial = (paragraph, targetGrade, gradeSystem) => {
+      const material = paragraph?.learningMaterial;
+      if (!material) return '';
+      
+      // If it's a string (old format), return as-is
+      if (typeof material === 'string') return material;
+      
+      // If it's an object (new tiered format), get the appropriate tier
+      if (typeof material === 'object') {
+        const tier = getLearningMaterialTier(targetGrade, gradeSystem);
+        // Try to get the specific tier, fall back to intermediate, then any available
+        return material[tier] || material.intermediate || material.foundation || material.advanced || '';
+      }
+      
+      return '';
+    };
+
+    // ENTRY SCREEN
     // =====================================================
 
     function EntryScreen({ config, onStudentStart, onBack }) {
@@ -3896,7 +4069,31 @@
             </div>
           </div>
           
-          <div className="learning-material" dangerouslySetInnerHTML={{ __html: renderMarkdown(paragraph.learningMaterial) }} />
+          <div className="learning-material" dangerouslySetInnerHTML={{ __html: renderMarkdown(getLearningMaterial(paragraph, targetGrade, gradeSystem)) }} />
+          
+          {/* Display key points if available */}
+          {paragraph.keyPoints && paragraph.keyPoints.length > 0 && (
+            <div className="key-points-box">
+              <div className="key-points-label">Key Points to Address</div>
+              <ul className="key-points-list">
+                {paragraph.keyPoints.map((point, i) => (
+                  <li key={i}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Display example quotes if available */}
+          {paragraph.exampleQuotes && paragraph.exampleQuotes.length > 0 && (
+            <details className="example-quotes-box">
+              <summary className="example-quotes-label">Useful Quotations (click to expand)</summary>
+              <ul className="example-quotes-list">
+                {paragraph.exampleQuotes.map((quote, i) => (
+                  <li key={i}>"{quote}"</li>
+                ))}
+              </ul>
+            </details>
+          )}
           
           <div className="writing-prompt">
             <div className="writing-prompt-label">Your Task</div>
@@ -5441,7 +5638,7 @@ ${examinerComment}
       const currentParagraph = PARAGRAPHS[currentParagraphIndex];
       if (!CONFIG || !currentParagraph) return <LoadingSpinner text="Loading essay..." />;
       const hasOriginalTask = !!CONFIG.originalTask;
-      const hasReferenceContent = hasOriginalTask || !!currentParagraph?.sourceMaterial;
+      const hasReferenceContent = hasOriginalTask || !!CONFIG?.sourceMaterial || (CONFIG?.sourceImages && CONFIG.sourceImages.length > 0);
       
       return (
         <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
@@ -5507,7 +5704,6 @@ ${examinerComment}
                 isOpen={taskPanelOpen} 
                 onClose={() => setTaskPanelOpen(false)}
                 config={CONFIG}
-                sourceMaterial={currentParagraph?.sourceMaterial}
               />
             )}
           </div>
