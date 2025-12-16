@@ -11,7 +11,13 @@ window.ESSAYS['persuasive-language-analysis'] = {
 Using this extract as a starting point, analyse and evaluate the ways in which either speakers or writers use language to achieve their goals by persuading others.
 
 ## Mark Scheme Summary
-Responses should demonstrate sophisticated methods of analysis using appropriate terminology, show detailed critical understanding of linguistic concepts, and provide confident analysis of contextual factors. Top responses will show perceptive discussion of how meaning is constructed through persuasive language choices.`,
+High-level responses typically:
+- Use accurate, wide-ranging linguistic terminology (lexis, grammar, discourse, pragmatics, register)
+- Analyse *and* evaluate how language choices construct meaning, power and relationships in context
+- Range across relevant contexts (e.g. domestic interaction, politics, charity appeals, advertising/marketing, classroom discourse, legal discourse, online communication)
+- Integrate brief, relevant theory where useful (e.g. Fairclough’s synthetic personalisation; Giles’ Accommodation Theory; Sinclair & Coulthard’s classroom discourse model)
+- Support points with concise textual evidence and clear evaluative judgements about effectiveness
+`,
   sourceMaterial: `Two examples show the importance of language strategies in allowing writers or speakers to achieve their goals:
 
 1. A minister is disturbed by the fact that the public continue to use the church car park while shopping nearby. As a consequence, there are not usually enough parking spaces for those attending church meetings on weekdays. His efforts fail until he comes up with a sign that reads THOU SHALT NOT PARK.
@@ -167,67 +173,67 @@ Demonstrate sophisticated understanding of how linguistic strategies exploit cul
       learningMaterial: {
         foundation: `## Political Language (Foundation)
 
-Politicians use special language techniques to persuade voters. Give some examples you know about.
+Politicians use language carefully to persuade people to agree with them or vote for them. Use examples you know (from speeches, debates, leaflets or campaign slogans).
 
 ### Common Techniques
-- Repeating important words or phrases
-- Using "we" and "us" to include the audience
-- Making promises about the future
-- Using emotional words
+- Repeating key words or phrases (so the message sticks)
+- Using "we" / "our" to create unity with the audience
+- Making promises using the future tense and modal verbs ("will", "can", "must")
+- Using emotive language to trigger feelings like hope or fear
 
 ### What to Write About
-- Give examples from speeches you know
-- Explain how politicians try to connect with people
-- Say whether these techniques work
+- Give one or two short examples and zoom in on the wording
+- Explain how the language positions the audience (e.g. as responsible citizens)
+- Say whether the technique is effective and why (for that audience and context)
 
-### Simple Examples
-- "Yes we can" - includes everyone
-- "Make America Great Again" - appeals to emotions
-- Repeating key phrases in speeches
+### Simple Examples (Any You Know)
+- "Take back control" / "Build back better" - short, memorable, evaluative lexis
+- Repeating a three-part list (a "rule of three") in a speech
 `,
         intermediate: `## Persuasive Language in Political Discourse (Intermediate)
 
-Examine how political speakers employ sophisticated rhetorical strategies to influence public opinion and voting behaviour.
+Examine how political speakers employ rhetorical and pragmatic strategies to influence public opinion and voting behaviour.
 
 ### Key Linguistic Strategies
-- Rhetorical devices (anaphora, epistrophe, tricolon)
-- Inclusive pronouns and national identity construction
-- Metaphorical language and conceptual framing
-- Strategic vagueness and semantic manipulation
+- Rhetorical patterning (anaphora, epistrophe, tricolon, parallelism)
+- Inclusive pronouns and deictic choices to construct national identity ("we", "our country")
+- Metaphor and framing to shape how issues are understood (e.g. "battle", "journey")
+- Modality and evaluative lexis to present viewpoints as necessary or inevitable
+- Presupposition and implicature (what is treated as "already true")
 
 ### Contextual Factors
-- Media constraints and soundbite culture
-- Audience demographics and targeted messaging
-- Historical and cultural references
+- Institutional settings (parliamentary debate, party conference, broadcast interview)
+- Audience design (different language choices for different voter groups)
+- Time pressure and quotability (soundbites, slogans, headlines)
 
 ### Analysis Points
-- How syntax and phonology enhance memorability
-- The role of presupposition in political messaging
-- Evaluation of effectiveness across different contexts
+- How syntax and rhythm support memorability (short clauses, balanced structures)
+- How speakers manage face and authority (politeness vs attack)
+- Evaluation of effectiveness: immediate impact vs long-term credibility
 `,
         advanced: `## Persuasive Language in Political Discourse (Advanced)
 
-Analyse the sophisticated manipulation of linguistic resources in political communication, considering ideological implications and power structures.
+Analyse the manipulation of linguistic resources in political communication, considering ideology, power and the management of public consent.
 
-### Advanced Rhetorical Analysis
-- Examine the construction of political identities through discourse
-- Analyse how metaphorical frameworks shape policy understanding
-- Consider the intersection of linguistic choice and media representation
+### Advanced Rhetorical and Pragmatic Analysis
+- Examine how political identities are constructed through discourse (in-groups/out-groups, "us vs them")
+- Analyse how metaphorical frameworks shape policy understanding and limit alternative readings
+- Consider how institutional constraints (questioning formats, turn-taking, time limits) shape persuasive choices
 
 ### Critical Discourse Perspectives
-- Apply Fairclough's three-dimensional framework
-- Examine how political language reproduces power relations
-- Consider the ideological functions of linguistic strategies
+- Apply Fairclough's three-dimensional framework (text, discursive practice, social practice)
+- Examine how political language reproduces or challenges power relations (e.g. nominalisation, agency deletion)
+- Consider "synthetic personalisation" and how politicians simulate intimacy with mass audiences
 
-### Sophisticated Examples
-- Obama's strategic use of African American Vernacular English features
-- Johnson's classical allusions and their cultural gatekeeping function
-- Trump's syntactic simplification and its populist appeal
+### Sophisticated Examples (Choose Brief, Specific Data)
+- Strategic shifts between formal register and more conversational features to appear both competent and relatable
+- Regional/dialect features or audience accommodation to build solidarity (link to Giles' Accommodation Theory)
+- Attack/defence sequences in interviews: evasion, reframing, and agenda control
 
 ### Evaluation Criteria
-- Immediate persuasive impact vs long-term credibility
-- Audience segmentation and differential reception
-- Cross-cultural effectiveness of rhetorical strategies
+- How different audiences may interpret the same wording differently
+- The ethics of persuasive tactics (misleading presuppositions, scapegoating, euphemism)
+- Cross-context comparison: speeches vs interviews vs campaign writing
 `
       },
       writingPrompt: "Explore how political speakers use language to persuade audiences, providing specific examples and evaluating their effectiveness.",
@@ -239,70 +245,71 @@ Analyse the sophisticated manipulation of linguistic resources in political comm
       title: "Persuasion in Advertising and Marketing",
       type: "body",
       learningMaterial: {
-        foundation: `## Advertising Language (Foundation)
+        foundation: `## Advertising and Campaign Language (Foundation)
 
-Adverts use clever language to make us want to buy things. Think about adverts you see every day.
+Advertising and campaigning use persuasive language to make people *do* something (buy, donate, sign up, click, vote). You can write about commercial adverts *and* charity/public-information campaigns.
 
 ### Common Techniques
-- Short, catchy slogans
-- Words that make things sound better than they are
-- Commands telling you what to do
-- Celebrity endorsements
+- Short, catchy slogans (easy to remember)
+- Positive adjectives and superlatives ("best", "perfect", "new")
+- Imperatives telling you what to do ("Try", "Join", "Donate")
+- Creating urgency ("today", "limited time", "act now")
+- Testimonials and authority claims ("experts say", statistics, awards)
 
 ### What to Write About
-- Give examples of adverts you know
-- Explain how they try to persuade you
-- Say if you think they work
+- Give examples you know (a poster, leaflet, website banner, charity appeal)
+- Explain how the wording influences the reader's choices
+- Say if the language is ethical/effective and why
 
 ### Easy Examples
-- "Just Do It" - simple command
-- "Because you're worth it" - makes you feel special
-- "The best a man can get" - superlative claims
+- "Just do it" - imperative mood
+- "Because you're worth it" - direct address and flattery
+- "Only £1 a week can..." - small-number framing in charity appeals
 `,
         intermediate: `## Persuasion in Advertising and Marketing (Intermediate)
 
-Analyse how commercial discourse employs linguistic strategies to influence consumer behaviour and create brand loyalty.
+Analyse how promotional discourse employs linguistic strategies to influence behaviour and construct identities (consumer, donor, supporter).
 
 ### Linguistic Techniques
-- Imperative mood and direct address
-- Superlative and comparative constructions
-- Semantic fields and connotational meanings
-- Phonological patterns and memorability
+- Imperatives and second-person address (synthetic conversation with the reader)
+- Comparative/superlative constructions and vague evaluators ("better", "premium", "quality")
+- Semantic fields (luxury, health, family, safety) and connotative meanings
+- Modality ("can", "will") and certainty markers to strengthen claims
+- Phonological patterning (alliteration, rhyme, rhythm) to aid recall
 
 ### Contextual Considerations
-- Target demographic and register choices
-- Medium constraints (print, digital, broadcast)
-- Cultural values and aspirational messaging
-- Regulatory frameworks and truth claims
+- Target demographic and register choices (youthful slang vs formal reassurance)
+- Medium constraints (print, packaging, websites, email subject lines)
+- Regulation, disclaimers and "truth claims" (hedging, small print, euphemism)
 
 ### Analysis Framework
-- Examine multimodal interaction between text and image
-- Consider the role of presupposition and implicature
-- Evaluate ethical implications of persuasive strategies
+- Explore presupposition/implicature (what the text assumes you already agree with)
+- Consider stance and evaluation (how positivity/negativity is built into lexis)
+- Evaluate ethical implications: manipulation, fear appeals, guilt, stereotyping
 `,
         advanced: `## Persuasion in Advertising and Marketing (Advanced)
 
-Examine the sophisticated manipulation of linguistic and semiotic resources in commercial discourse, considering ideological and social implications.
+Examine how promotional and campaigning discourse shapes beliefs and actions through lexico-grammatical choice, pragmatic inference and ideological positioning.
 
-### Advanced Semiotic Analysis
-- Barthesian analysis of mythological structures in advertising
-- Examination of how consumer identities are linguistically constructed
-- Analysis of intertextuality and cultural capital exploitation
+### Advanced Linguistic Analysis
+- Analyse how texts construct a "model reader" (the kind of person you are invited to be)
+- Examine agency and responsibility (who is blamed/credited) through transitivity and nominalisation
+- Explore how evaluation is embedded via Appraisal-style resources (attitude, graduation, engagement) and intensification
 
-### Critical Linguistic Perspectives
-- Apply Fairclough's concept of 'marketisation' of discourse
-- Examine how advertising language colonises other discourse domains
-- Consider the role of synthetic personalisation in consumer relationships
+### Critical Perspectives
+- Apply Fairclough's notions of marketisation and synthetic personalisation to show how institutions imitate intimacy
+- Consider how persuasive texts normalise values (consumerism, charity "deservingness", health and body ideals)
+- Use critical stylistics ideas (e.g. how choices hide or foreground power and ideology)
 
-### Sophisticated Case Studies
-- Luxury brand discourse and exclusivity construction
-- Greenwashing and the appropriation of environmental discourse
-- Feminist advertising and the commodification of empowerment
+### Sophisticated Case Studies (Pick One or Two)
+- Charity appeals: storytelling, direct address, quantified impact, moral positioning ("you can change a life")
+- Green/ethical marketing: strategic vagueness ("eco-friendly") and hedging to avoid falsifiable claims
+- Public information campaigns: authority, warnings, and the balance of fear vs reassurance
 
 ### Evaluation Dimensions
-- Short-term sales impact vs long-term brand equity
-- Cross-cultural adaptation and localisation strategies
-- Regulatory effectiveness and consumer protection
+- Short-term compliance vs long-term trust and brand/organisational credibility
+- Differential reception: how social class, age and experience affect interpretation
+- Consumer protection: disclaimers, clarity, and accountability
 `
       },
       writingPrompt: "Examine how advertising and marketing language persuades consumers, analysing specific techniques and their effectiveness.",
@@ -316,67 +323,69 @@ Examine the sophisticated manipulation of linguistic and semiotic resources in c
       learningMaterial: {
         foundation: `## Online Persuasion (Foundation)
 
-People use social media and websites to persuade others. This is becoming very important today.
+People use digital communication (texts, posts, comments, emails) to persuade others every day.
 
 ### Common Online Techniques
-- Hashtags to join movements
-- Sharing posts to spread messages
-- Using emojis to show feelings
-- Comments and likes to influence others
+- Hashtags to join movements and signal stance
+- Tagging/@mentions to directly address people or invite wider audiences
+- Emojis, punctuation and spelling choices to show tone (e.g. !!!, ALL CAPS)
+- Sharing/retweeting to spread messages quickly
+- Likes and comments as social proof ("others agree")
 
 ### What to Write About
-- Give examples from social media you use
-- Explain how people try to persuade online
-- Talk about whether it works
+- Give examples from online language you have seen (a post, a comment thread, a campaign tweet)
+- Explain how the language works *and* how the platform affects it
+- Discuss whether it persuades effectively and why
 
 ### Simple Examples
-- #MeToo movement
-- Influencer product recommendations
-- Viral campaigns and challenges
+- Hashtags like #SaveOur... / #StopThe... to frame an issue
+- Short calls-to-action: "Sign", "Share", "Read this"
+- Polite vs aggressive comment styles and their impact
 `,
         intermediate: `## Digital Communication and Social Media Persuasion (Intermediate)
 
-Explore how digital platforms create new opportunities and challenges for persuasive communication.
+Explore how computer-mediated communication (CMC) shapes persuasive language, creating distinctive patterns of style, interaction and identity.
 
-### Digital-Specific Features
-- Hashtag campaigns and viral spread mechanisms
-- Algorithmic amplification of persuasive content
-- Multimodal persuasion (text, image, video integration)
-- Interactive features and community building
+### Digital-Specific Linguistic Features
+- Graphology/orthography: emoji, capitalization, spacing, repeated letters ("soooo"), non-standard spelling
+- Compression and ellipsis due to character limits and scrolling reading
+- Discourse features: threads, quoting, hyperlinks, hashtags as metadiscourse
+- Speech acts online: requests, directives, challenges, apologies and "call-outs"
+- Stance and alignment: hedging, boosters, evaluative lexis, irony and meme-like phrasing
 
-### Platform Considerations
-- Character limits and compression effects (Twitter)
-- Visual rhetoric and lifestyle persuasion (Instagram)
-- Professional networking and authority construction (LinkedIn)
+### Platform and Context Considerations
+- "Context collapse": one post reaches multiple audiences with different expectations
+- Participation frameworks: public vs private messages, anonymity, moderation rules
+- Institutional persuasion online: school/university emails, public service messaging, workplace communication
 
 ### Analysis Points
-- Speed and reach vs depth of persuasion
-- Echo chambers and confirmation bias
-- Authenticity vs manipulation in influencer culture
+- How politeness and face-work change online (directness, mitigation, threat)
+- How social proof and community norms influence uptake (likes, replies, pile-ons)
+- Evaluation of effectiveness: reach and speed vs clarity, nuance and misunderstanding
 `,
         advanced: `## Digital Communication and Social Media Persuasion (Advanced)
 
-Analyse how digital technologies reshape persuasive discourse, creating new forms of influence and social manipulation.
+Analyse how digital environments reshape persuasive discourse through changes in interaction, audience design and pragmatic meaning-making.
 
-### Algorithmic Persuasion
-- Examine how platform algorithms shape persuasive effectiveness
-- Analyse the role of data analytics in targeted persuasion
-- Consider the implications of personalised persuasive content
+### Pragmatics and Interaction in CMC
+- Examine implicature, presupposition and inference in short-form texts (what is "left unsaid")
+- Analyse turn-taking in comment threads: adjacency pairs, repair, escalation, and conflict management
+- Explore identity performance and audience accommodation (link to Giles' Accommodation Theory and style-shifting)
 
-### Network Effects and Viral Persuasion
-- Study how social proof mechanisms amplify persuasive messages
-- Examine the linguistics of viral content creation
-- Analyse the role of parasocial relationships in digital persuasion
+### Power, Ideology and Gatekeeping
+- Consider how moderation policies, community norms and platform affordances shape what counts as persuasive
+- Examine misinformation strategies linguistically (false certainty, pseudo-evidence, rhetorical questions, loaded terms)
+- Explore how institutional voices adopt informal features to seem relatable (synthetic personalisation)
 
-### Critical Digital Literacy
-- Apply van Dijk's concept of digital inequality to persuasive access
-- Examine how filter bubbles affect persuasive discourse reception
-- Consider the democratic implications of algorithmic persuasion
+### Emerging Issues (Language-Focused)
+- AI-generated persuasive texts and bots: formulaic patterns, repetition, and the imitation of human stance
+- Micro-targeted messaging: how lexical choice and framing adapt to different audiences
+- Ethical evaluation: transparency, manipulation, and digital literacy
 
-### Emerging Phenomena
-- Deepfake technology and persuasive authenticity
-- AI-generated content and automated persuasion
-- Cryptocurrency and financial persuasion discourse
+### Evaluation Criteria
+- Audience diversity and differential reception across communities
+- The balance of emotion, evidence and credibility in online persuasion
+- How platform constraints influence meaning and misunderstanding
 `
       },
       writingPrompt: "Analyse how digital platforms and social media create new forms of persuasive communication, considering both opportunities and challenges.",
