@@ -4951,23 +4951,25 @@
     // =====================================================
     
     function ExpandableLearningMaterial({ content, subject, essayContext, targetGrade }) {
-      const [expandedHints, setExpandedHints] = useState({});
-      const [loadingHint, setLoadingHint] = useState(null);
+      const containerRef = useRef(null);
+      const [expandedHint, setExpandedHint] = useState(null); // { id, text, explanation, element }
+      const [isLoading, setIsLoading] = useState(false);
       
-      // Parse the markdown content and make list items clickable
-      const handleHintClick = async (hintText, hintId) => {
-        // If already expanded, collapse it
-        if (expandedHints[hintId]) {
-          setExpandedHints(prev => {
-            const newState = { ...prev };
-            delete newState[hintId];
-            return newState;
-          });
+      const handleHintClick = async (e) => {
+        const li = e.target.closest('li');
+        if (!li) return;
+        
+        const hintText = li.textContent.trim();
+        const hintId = li.dataset.hintId;
+        
+        // If clicking the same hint, close it
+        if (expandedHint && expandedHint.id === hintId) {
+          setExpandedHint(null);
           return;
         }
         
-        // Expand the hint
-        setLoadingHint(hintId);
+        setIsLoading(true);
+        setExpandedHint({ id: hintId, text: hintText, explanation: null, element: li });
         
         try {
           const response = await fetch('/.netlify/functions/expand-hint', {
@@ -4984,138 +4986,77 @@
           const data = await response.json();
           
           if (data.success) {
-            setExpandedHints(prev => ({
-              ...prev,
-              [hintId]: data.explanation
-            }));
+            setExpandedHint(prev => prev ? { ...prev, explanation: data.explanation } : null);
           } else {
             console.error('Failed to expand hint:', data.error);
+            setExpandedHint(null);
           }
         } catch (error) {
           console.error('Error expanding hint:', error);
+          setExpandedHint(null);
         } finally {
-          setLoadingHint(null);
+          setIsLoading(false);
         }
       };
       
-      const closeHint = (hintId) => {
-        setExpandedHints(prev => {
-          const newState = { ...prev };
-          delete newState[hintId];
-          return newState;
+      // Add hint IDs and click handlers to list items after render
+      useEffect(() => {
+        if (!containerRef.current) return;
+        
+        const listItems = containerRef.current.querySelectorAll('li');
+        listItems.forEach((li, index) => {
+          li.dataset.hintId = `hint-${index}`;
+          li.classList.add('expandable-hint');
         });
+      }, [content]);
+      
+      const closeHint = () => {
+        setExpandedHint(null);
       };
       
-      // Render markdown with clickable list items
-      const renderWithClickableHints = () => {
-        // First render the markdown to HTML
-        const html = renderMarkdown(content);
+      // Render the expansion panel
+      const renderExpansion = () => {
+        if (!expandedHint) return null;
         
-        // Parse and process the HTML to add click handlers to list items
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const listItems = doc.querySelectorAll('li');
-        
-        // Convert to array of elements we can work with
-        const elements = [];
-        let hintCounter = 0;
-        
-        // Process the HTML structure
-        const processNode = (node, depth = 0) => {
-          if (node.nodeType === Node.TEXT_NODE) {
-            return node.textContent;
-          }
-          
-          if (node.nodeType !== Node.ELEMENT_NODE) {
-            return null;
-          }
-          
-          const tagName = node.tagName.toLowerCase();
-          
-          // Handle list items specially - make them clickable
-          if (tagName === 'li') {
-            const hintId = `hint-${hintCounter++}`;
-            const hintText = node.textContent.trim();
-            const isExpanded = !!expandedHints[hintId];
-            const isLoading = loadingHint === hintId;
-            
-            return React.createElement('li', { key: hintId }, [
-              React.createElement('span', {
-                key: `${hintId}-text`,
-                className: `expandable-hint ${isExpanded ? 'expanded' : ''} ${isLoading ? 'loading' : ''}`,
-                onClick: () => handleHintClick(hintText, hintId),
-                title: 'Click for more information'
-              }, node.innerHTML ? React.createElement('span', { dangerouslySetInnerHTML: { __html: node.innerHTML } }) : hintText),
-              isLoading && React.createElement('div', { key: `${hintId}-loading`, className: 'hint-loading' }, [
-                React.createElement('div', { key: 'spinner', className: 'hint-loading-spinner' }),
-                'Getting more information...'
-              ]),
-              isExpanded && expandedHints[hintId] && React.createElement('div', { key: `${hintId}-expansion`, className: 'hint-expansion' }, [
-                React.createElement('div', { key: 'header', className: 'hint-expansion-header' }, [
-                  React.createElement('span', { key: 'title', className: 'hint-expansion-title' }, 'More Information'),
-                  React.createElement('button', { 
-                    key: 'close',
-                    className: 'hint-expansion-close',
-                    onClick: (e) => { e.stopPropagation(); closeHint(hintId); },
-                    title: 'Close'
-                  }, '×')
-                ]),
-                React.createElement('div', { 
-                  key: 'content',
-                  className: 'hint-expansion-content',
-                  dangerouslySetInnerHTML: { __html: renderMarkdown(expandedHints[hintId]) }
-                })
-              ])
-            ]);
-          }
-          
-          // For other elements, recursively process children
-          const children = Array.from(node.childNodes).map((child, i) => {
-            const result = processNode(child, depth + 1);
-            if (typeof result === 'string') return result;
-            if (result && !result.key) {
-              return React.cloneElement(result, { key: `child-${i}` });
-            }
-            return result;
-          }).filter(Boolean);
-          
-          // Create the element with processed children
-          const props = { key: `${tagName}-${depth}-${Math.random()}` };
-          
-          // Copy over class names if present
-          if (node.className) {
-            props.className = node.className;
-          }
-          
-          return React.createElement(tagName, props, children.length > 0 ? children : null);
-        };
-        
-        // Process all body children
-        const result = Array.from(doc.body.childNodes).map((node, i) => {
-          const processed = processNode(node, i);
-          if (typeof processed === 'string') {
-            return React.createElement('span', { key: `text-${i}` }, processed);
-          }
-          return processed;
-        }).filter(Boolean);
-        
-        return result;
+        return (
+          <div className="hint-expansion" style={parseStyle("margin: var(--space-md) 0;")}>
+            <div className="hint-expansion-header">
+              <span className="hint-expansion-title">More Information</span>
+              <button 
+                className="hint-expansion-close"
+                onClick={closeHint}
+                title="Close"
+              >x</button>
+            </div>
+            {isLoading ? (
+              <div className="hint-loading">
+                <div className="hint-loading-spinner"></div>
+                Getting more information...
+              </div>
+            ) : expandedHint.explanation ? (
+              <div 
+                className="hint-expansion-content"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(expandedHint.explanation) }}
+              />
+            ) : null}
+          </div>
+        );
       };
       
-      return React.createElement('div', { className: 'learning-material' }, [
-        React.createElement('p', { 
-          key: 'hint-instruction',
-          style: { 
-            fontSize: '0.8rem', 
-            color: 'var(--color-text-muted)', 
-            marginBottom: 'var(--space-md)',
-            fontStyle: 'italic'
-          }
-        }, '💡 Tip: Click on any bullet point below for more information'),
-        ...renderWithClickableHints()
-      ]);
+      return (
+        <div className="learning-material">
+          <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-md); font-style: italic;")}>
+            Click on any bullet point below for more information
+          </p>
+          <div 
+            ref={containerRef}
+            onClick={handleHintClick}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+          />
+          {renderExpansion()}
+        </div>
+      );
     }
-
 // PARAGRAPH SCREEN
     // =====================================================
     
