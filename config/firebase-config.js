@@ -7,7 +7,7 @@ window.FIREBASE_ENABLED = true; // Changed from false to true
 
 // Your web app's Firebase configuration
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAyyJeOx3AvxqVrO4Dl2HN-Naznk3Y27_w",
+  apiKey: ENV_FIREBASE_API_KEY,
   authDomain: "student-essay-assistant.firebaseapp.com",
   projectId: "student-essay-assistant",
   storageBucket: "student-essay-assistant.firebasestorage.app",
