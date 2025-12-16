@@ -215,7 +215,7 @@ ${gradeDescriptorsText}
 **CRITICAL GRADING PRINCIPLES:**
 
 **CEILING GRADING IS MANDATORY:**
-- ONE Grade 8 paragraph → Essay achieves Grade 7/8
+- ONE Grade 8 paragraph â†’ Essay achieves Grade 7/8
 - The BEST paragraph sets the grade, not the average
 - Strong work anywhere proves capability
 - Don't penalize inconsistency
@@ -232,10 +232,10 @@ ${gradeDescriptorsText}
 - Student targeting Grade 9 writing Grade 5 work = Gets Grade 5
 
 **GRADING EXAMPLES:**
-- Essay with paragraphs: 7, 6, 8, 5 → **Award Grade 7/8** (best = 8)
-- Essay with paragraphs: 6, 6, 6, 9 → **Award Grade 7/8** (one excellent proves capability)
-- Essay: all Grade 7, target is Grade 5 → **Award Grade 7** (ignore target)
-- Essay: all Grade 5, target is Grade 9 → **Award Grade 5** (grade the work)
+- Essay with paragraphs: 7, 6, 8, 5 â†’ **Award Grade 7/8** (best = 8)
+- Essay with paragraphs: 6, 6, 6, 9 â†’ **Award Grade 7/8** (one excellent proves capability)
+- Essay: all Grade 7, target is Grade 5 â†’ **Award Grade 7** (ignore target)
+- Essay: all Grade 5, target is Grade 9 â†’ **Award Grade 5** (grade the work)
 
 The grade reflects the highest demonstrated skill level, as real exam marking does.`;
     } else {
@@ -245,7 +245,7 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
 
     // Build response format based on assessment mode
     const responseFormat = hasAuthenticDescriptors ? `{
-  "awardedGrade": "<the actual GCSE grade (e.g., 'Grade 6' or '6') this essay achieves - use best-fit principle, favouring higher grade when borderline>",
+  "awardedGrade": "<the actual ${systemName} grade (e.g., '${GRADE_SYSTEMS[gradeSystem || 'gcse'].grades.slice(0, 3).join("' or '")}') this essay achieves - use best-fit principle, favouring higher grade when borderline>",
   "awardedMarks": <number: the specific mark out of ${actualTotalMarks} - award in upper portion of band when criteria are solidly met>,
   "gradeJustification": "<2-3 sentences highlighting what the student has achieved and which descriptor criteria they meet, with specific textual evidence>",
   "overallScore": <number 0-100 derived from marks>,
@@ -289,7 +289,7 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `    "${key}": <number 0-1
 
     const systemPrompt = `You are an experienced English teacher providing holistic feedback on a complete essay. You adapt your feedback style to each student's target grade and ability level.
 
-⚠️ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
+âš ï¸ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
 1. **IGNORE TARGET GRADE COMPLETELY WHEN GRADING** - Target shown only for tone/scaffolding. Work demonstrating Grade 8 gets Grade 8 even if target is Grade 4. Work demonstrating Grade 5 gets Grade 5 even if target is Grade 9.
 2. **USE STRICT CEILING GRADING** - ONE excellent paragraph can set the grade for the entire essay. A Grade 5 paragraph does NOT pull a Grade 7 essay down to Grade 6.
 3. **GRADE THE WORK, NOT THE EXPECTATIONS** - Your job is to assess what's demonstrated, not to match their target or adjust to their ability tier.
@@ -321,7 +321,7 @@ ${assessmentSection}
 Apply these principles exactly as real GCSE examiners do:
 
 **CEILING GRADING (MANDATORY):**
-- **ONE Grade 8 paragraph → Essay achieves Grade 7/8 minimum**
+- **ONE Grade 8 paragraph â†’ Essay achieves Grade 7/8 minimum**
 - **BEST paragraph sets the grade, not the average**
 - Strong work anywhere proves what the student CAN do
 - Inconsistency is normal - don't penalize it
@@ -333,15 +333,15 @@ Apply these principles exactly as real GCSE examiners do:
 - Weaknesses are learning opportunities, not grade anchors
 
 **TARGET GRADE MUST NOT INFLUENCE GRADING:**
-- Student targeting Grade 5 but writes all Grade 7 paragraphs → Gets Grade 7
-- Student targeting Grade 9 but writes all Grade 6 paragraphs → Gets Grade 6
+- Student targeting Grade 5 but writes all Grade 7 paragraphs â†’ Gets Grade 7
+- Student targeting Grade 9 but writes all Grade 6 paragraphs â†’ Gets Grade 6
 - Award only what's demonstrated, regardless of aspirations
 
 **GRADING EXAMPLES (FOLLOW THESE):**
-- 4 paragraphs: 7, 6, 8, 5 → **Award Grade 7/8** (best paragraph = Grade 8)
-- 3 paragraphs: 6, 6, 9 → **Award Grade 7/8** (one excellent paragraph proves capability)
-- 5 paragraphs: all Grade 7, student targets Grade 5 → **Award Grade 7** (ignore target)
-- 4 paragraphs: all Grade 5, student targets Grade 8 → **Award Grade 5** (grade the work)
+- 4 paragraphs: 7, 6, 8, 5 â†’ **Award Grade 7/8** (best paragraph = Grade 8)
+- 3 paragraphs: 6, 6, 9 â†’ **Award Grade 7/8** (one excellent paragraph proves capability)
+- 5 paragraphs: all Grade 7, student targets Grade 5 â†’ **Award Grade 7** (ignore target)
+- 4 paragraphs: all Grade 5, student targets Grade 8 â†’ **Award Grade 5** (grade the work)
 
 
 ## YOUR PRIMARY TASK: IDENTIFY THE HIGHEST SKILL LEVEL
@@ -374,10 +374,10 @@ ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 ${paragraphSummary.map(p => `- ${p.title} (${p.type}): ${p.score}%${p.estimatedGrade ? ` [Est. Grade ${p.estimatedGrade}]` : ''} (${p.attempts} attempt${p.attempts > 1 ? 's' : ''})`).join('\n')}
 
 **GRADING KEY:**
-- **Highest paragraph score:** ${highestParagraphScore}% ← **This sets the baseline for the essay grade**
+- **Highest paragraph score:** ${highestParagraphScore}% â† **This sets the baseline for the essay grade**
 - **Average paragraph score:** ${averageScore}% (reference only - DO NOT USE for grading)
 
-⚠️ **CRITICAL:** Grade based on BEST paragraph (${highestParagraphScore}%), NOT the average. One strong paragraph proves capability.
+âš ï¸ **CRITICAL:** Grade based on BEST paragraph (${highestParagraphScore}%), NOT the average. One strong paragraph proves capability.
 
 ## Complete Essay
 
@@ -388,8 +388,8 @@ ${p.finalText}`).join('\n\n')}
 
 **GRADING INSTRUCTIONS:**
 ${hasAuthenticDescriptors ? `
-⚠️ MANDATORY REQUIREMENTS:
-1. "awardedGrade": GCSE grade for essay (e.g., "6", "7", "8") - CEILING GRADING REQUIRED
+âš ï¸ MANDATORY REQUIREMENTS:
+1. "awardedGrade": ${systemName} grade for essay (e.g., "${GRADE_SYSTEMS[gradeSystem || 'gcse'].grades.slice(0, 3).join('", "')}") - CEILING GRADING REQUIRED
 2. "awardedMarks": Mark out of ${actualTotalMarks} reflecting HIGHEST quality shown
 3. Grade based ONLY on demonstrated quality - IGNORE target grade (${targetGrade}) completely
 4. ONE strong paragraph can set the grade for the whole essay
@@ -398,12 +398,12 @@ ${hasAuthenticDescriptors ? `
 ` : ''}
 
 **GRADING CHECKLIST - VERIFY BEFORE RESPONDING:**
-✓ Identified the BEST paragraph across the entire essay?
-✓ Awarded grade based on that HIGHEST quality (not average)?
-✓ Ignored the target grade (${targetGrade}) completely?
-✓ Minimized impact of weaker paragraphs (unless MOST are weak)?
-✓ Used ${approach.tone} tone appropriate for feedback?
-✓ Provided specific evidence from the strongest work?
+âœ“ Identified the BEST paragraph across the entire essay?
+âœ“ Awarded grade based on that HIGHEST quality (not average)?
+âœ“ Ignored the target grade (${targetGrade}) completely?
+âœ“ Minimized impact of weaker paragraphs (unless MOST are weak)?
+âœ“ Used ${approach.tone} tone appropriate for feedback?
+âœ“ Provided specific evidence from the strongest work?
 
 Remember:
 - Use ${approach.tone} tone FOR FEEDBACK (not for grading)
