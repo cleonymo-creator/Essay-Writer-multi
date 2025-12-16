@@ -1,9 +1,6 @@
-const { getStore, connectLambda } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 exports.handler = async (event, context) => {
-  // Connect Lambda context for Blobs access
-  connectLambda(event, context);
-
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -17,58 +14,57 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // ============================================
-  // GET - Retrieve progress (for students or teachers)
-  // ============================================
+  let db;
+  try {
+    db = initializeFirebase();
+  } catch (initError) {
+    console.error('Firebase initialization error:', initError);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        error: 'Firebase initialization failed',
+        details: initError.message
+      })
+    };
+  }
+
+  // GET - Retrieve progress
   if (event.httpMethod === 'GET') {
     try {
       const params = event.queryStringParameters || {};
       const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
       
-      // ----------------------------------------
       // Student progress retrieval by email
-      // ----------------------------------------
       if (params.email) {
-        const store = getStore("homework-progress");
         const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
-        const key = `progress-${sanitizedEmail}${essayId ? `-${essayId}` : ''}`;
+        const docId = `${sanitizedEmail}${essayId ? `-${essayId}` : ''}`;
         
-        console.log('[save-progress] Looking up progress for:', key);
+        console.log('[save-progress] Looking up progress for:', docId);
         
-        try {
-          const data = await store.get(key, { type: 'json' });
-          
-          if (data && !data.completed) {
-            console.log('[save-progress] Found progress for:', params.email, 'Essay:', essayId);
-            return {
-              statusCode: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-              },
-              body: JSON.stringify({
-                success: true,
-                found: true,
-                progress: data
-              })
-            };
-          } else {
-            console.log('[save-progress] No active progress found for:', params.email);
-            return {
-              statusCode: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-              },
-              body: JSON.stringify({
-                success: true,
-                found: false
-              })
-            };
-          }
-        } catch (getError) {
-          console.log('[save-progress] Progress lookup error (may not exist):', getError.message);
+        const docRef = db.collection('progress').doc(docId);
+        const doc = await docRef.get();
+        
+        if (doc.exists && !doc.data().completed) {
+          console.log('[save-progress] Found progress for:', params.email);
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({
+              success: true,
+              found: true,
+              progress: doc.data()
+            })
+          };
+        } else {
+          console.log('[save-progress] No active progress found for:', params.email);
           return {
             statusCode: 200,
             headers: {
@@ -83,9 +79,7 @@ exports.handler = async (event, context) => {
         }
       }
       
-      // ----------------------------------------
       // Teacher dashboard - list all in-progress
-      // ----------------------------------------
       if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
         return {
           statusCode: 401,
@@ -97,67 +91,34 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Get the store
-      const store = getStore("homework-progress");
-
-      let blobs = [];
-      try {
-        const result = await store.list();
-        blobs = result.blobs || [];
-      } catch (listError) {
-        // Store might not exist yet - return empty
-        console.log('Progress store list error (may be empty):', listError.message);
-        return {
-          statusCode: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          body: JSON.stringify({ 
-            success: true,
-            count: 0,
-            inProgress: []
-          })
-        };
-      }
+      // Get all progress documents
+      const snapshot = await db.collection('progress')
+        .orderBy('lastUpdate', 'desc')
+        .get();
       
       const inProgress = [];
-      for (const blob of blobs) {
-        try {
-          const data = await store.get(blob.key, { type: 'json' });
-          if (data) {
-            // Only include students who haven't completed
-            if (!data.completed && (data.percentComplete === undefined || data.percentComplete < 100)) {
-              // For teacher dashboard, exclude the full paragraphStates to reduce payload
-              const summaryData = {
-                studentName: data.studentName,
-                studentEmail: data.studentEmail,
-                essayId: data.essayId,
-                essayTitle: data.essayTitle,
-                targetGrade: data.targetGrade,
-                gradeSystem: data.gradeSystem,
-                currentParagraph: data.currentParagraph,
-                currentParagraphIndex: data.currentParagraphIndex,
-                totalParagraphs: data.totalParagraphs,
-                completedParagraphs: data.completedParagraphs,
-                percentComplete: data.percentComplete,
-                paragraphScores: data.paragraphScores,
-                lastUpdate: data.lastUpdate
-              };
-              inProgress.push(summaryData);
-            }
-          }
-        } catch (e) {
-          console.error('Error fetching progress:', blob.key, e.message);
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.completed && (data.percentComplete === undefined || data.percentComplete < 100)) {
+          inProgress.push({
+            studentName: data.studentName,
+            studentEmail: data.studentEmail,
+            essayId: data.essayId,
+            essayTitle: data.essayTitle,
+            targetGrade: data.targetGrade,
+            gradeSystem: data.gradeSystem,
+            currentParagraph: data.currentParagraph,
+            currentParagraphIndex: data.currentParagraphIndex,
+            totalParagraphs: data.totalParagraphs,
+            completedParagraphs: data.completedParagraphs,
+            percentComplete: data.percentComplete,
+            paragraphScores: data.paragraphScores,
+            lastUpdate: data.lastUpdate
+          });
         }
-      }
+      });
 
-      // Sort by most recent activity
-      inProgress.sort((a, b) => 
-        new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0)
-      );
-
-      console.log(`Retrieved ${inProgress.length} in-progress students`);
+      console.log(`[save-progress] Retrieved ${inProgress.length} in-progress students`);
 
       return {
         statusCode: 200,
@@ -171,6 +132,7 @@ exports.handler = async (event, context) => {
           inProgress: inProgress
         })
       };
+
     } catch (error) {
       console.error('Get progress error:', error);
       return {
@@ -180,16 +142,13 @@ exports.handler = async (event, context) => {
           'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({ 
-          error: error.message,
-          stack: error.stack 
+          error: error.message
         })
       };
     }
   }
 
-  // ============================================
   // POST - Save student progress
-  // ============================================
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -204,7 +163,6 @@ exports.handler = async (event, context) => {
   try {
     const progressData = JSON.parse(event.body);
     
-    // Require email for saving (primary key)
     if (!progressData.studentEmail) {
       return {
         statusCode: 400,
@@ -216,22 +174,17 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the store
-    const store = getStore("homework-progress");
-
-    // Use email as the primary key (sanitized)
     const sanitizedEmail = progressData.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
     const essayId = progressData.essayId ? `-${progressData.essayId}` : '';
-    const key = `progress-${sanitizedEmail}${essayId}`;
+    const docId = `${sanitizedEmail}${essayId}`;
     
     // If completed, delete progress entry
     if (progressData.completed || progressData.percentComplete >= 100) {
       try {
-        await store.delete(key);
-        console.log('Progress cleared for completed student:', progressData.studentEmail);
+        await db.collection('progress').doc(docId).delete();
+        console.log('[save-progress] Progress cleared for completed student:', progressData.studentEmail);
       } catch (e) {
-        // Ignore delete errors
-        console.log('Delete error (may not exist):', e.message);
+        console.log('[save-progress] Delete error (may not exist):', e.message);
       }
       
       return {
@@ -247,15 +200,14 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Save progress with full state for cross-device resume
+    // Save progress
     progressData.lastUpdate = new Date().toISOString();
-    await store.setJSON(key, progressData);
+    await db.collection('progress').doc(docId).set(progressData);
     
-    console.log('Progress saved:', {
+    console.log('[save-progress] Progress saved:', {
       email: progressData.studentEmail,
       student: progressData.studentName,
-      percent: progressData.percentComplete,
-      hasParagraphStates: !!progressData.paragraphStates
+      percent: progressData.percentComplete
     });
     
     return {
@@ -269,6 +221,7 @@ exports.handler = async (event, context) => {
         timestamp: progressData.lastUpdate
       })
     };
+
   } catch (error) {
     console.error('Save progress error:', error);
     return {
@@ -279,8 +232,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({ 
         success: false, 
-        error: error.message,
-        stack: error.stack
+        error: error.message
       })
     };
   }

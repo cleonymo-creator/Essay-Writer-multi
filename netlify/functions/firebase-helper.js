@@ -5,8 +5,6 @@ let db = null;
 function initializeFirebase() {
   if (db) return db;
   
-  // Initialize Firebase Admin SDK
-  // For Netlify, credentials should be set via environment variables
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert({

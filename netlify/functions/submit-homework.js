@@ -1,9 +1,6 @@
-const { getStore, connectLambda } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 exports.handler = async (event, context) => {
-  // Connect Lambda context for Blobs access
-  connectLambda(event, context);
-
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -28,6 +25,24 @@ exports.handler = async (event, context) => {
     };
   }
 
+  let db;
+  try {
+    db = initializeFirebase();
+  } catch (initError) {
+    console.error('Firebase initialization error:', initError);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        error: 'Firebase initialization failed',
+        details: initError.message
+      })
+    };
+  }
+
   try {
     const submission = JSON.parse(event.body);
     
@@ -43,45 +58,29 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the store
-    const store = getStore("homework-submissions");
-    
-    // Handle update to existing submission (e.g., adding official grading)
+    // Handle update to existing submission
     if (submission.updateOnly) {
-      // Find existing submission for this student and essay
-      const { blobs } = await store.list();
-      let existingKey = null;
-      let existingSubmission = null;
+      const snapshot = await db.collection('submissions')
+        .where('studentName', '==', submission.studentName)
+        .where('essayId', '==', submission.essayId)
+        .limit(1)
+        .get();
       
-      for (const blob of blobs) {
-        try {
-          const data = await store.get(blob.key, { type: 'json' });
-          if (data && data.studentName === submission.studentName && 
-              data.essayId === submission.essayId) {
-            existingKey = blob.key;
-            existingSubmission = data;
-            break;
-          }
-        } catch (e) {
-          // Skip invalid entries
-        }
-      }
-      
-      if (existingSubmission && existingKey) {
-        // Merge the new data with existing submission
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const existingData = doc.data();
         const updatedSubmission = {
-          ...existingSubmission,
+          ...existingData,
           ...submission,
-          updateOnly: undefined, // Remove the flag
+          updateOnly: undefined,
           updatedAt: new Date().toISOString()
         };
         
-        await store.setJSON(existingKey, updatedSubmission);
+        await doc.ref.update(updatedSubmission);
         
-        console.log('Submission updated:', {
-          id: existingSubmission.id,
-          student: submission.studentName,
-          addedOfficialGrading: !!submission.officialGrading
+        console.log('[submit-homework] Submission updated:', {
+          id: existingData.id,
+          student: submission.studentName
         });
         
         return {
@@ -96,13 +95,10 @@ exports.handler = async (event, context) => {
             message: 'Submission updated successfully!'
           })
         };
-      } else {
-        console.log('No existing submission found to update for:', submission.studentName);
-        // Fall through to create new if not found
       }
     }
 
-    // Check for either homework answers OR essay content
+    // Check for valid submission content
     const isEssay = submission.type === 'essay';
     const isHomework = submission.answers && Object.keys(submission.answers).length > 0;
     
@@ -113,7 +109,7 @@ exports.handler = async (event, context) => {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ error: 'Submission content is required (answers or essay)' })
+        body: JSON.stringify({ error: 'Submission content is required' })
       };
     }
 
@@ -121,27 +117,27 @@ exports.handler = async (event, context) => {
     submission.serverTimestamp = new Date().toISOString();
     submission.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Save to Blobs using setJSON for cleaner code
-    const key = `submission-${submission.id}`;
-    await store.setJSON(key, submission);
+    // Save to Firestore
+    await db.collection('submissions').doc(submission.id).set(submission);
 
-    console.log('Submission saved:', {
+    console.log('[submit-homework] Submission saved:', {
       id: submission.id,
       student: submission.studentName,
-      score: submission.score,
-      timestamp: submission.serverTimestamp
+      score: submission.score
     });
 
-    // Clean up progress entry for this student
-    try {
-      const progressStore = getStore("homework-progress");
-      const sanitizedName = submission.studentName.replace(/[^a-zA-Z0-9]/g, '_');
+    // Clean up progress entry
+    if (submission.studentEmail) {
+      const sanitizedEmail = submission.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
       const essayId = submission.essayId ? `-${submission.essayId}` : '';
-      await progressStore.delete(`progress-${sanitizedName}${essayId}`);
-      console.log('Progress entry cleaned up for:', submission.studentName);
-    } catch (e) {
-      // Ignore cleanup errors - not critical
-      console.log('Progress cleanup note:', e.message);
+      const progressDocId = `${sanitizedEmail}${essayId}`;
+      
+      try {
+        await db.collection('progress').doc(progressDocId).delete();
+        console.log('[submit-homework] Progress entry cleaned up');
+      } catch (e) {
+        // Ignore cleanup errors
+      }
     }
 
     return {

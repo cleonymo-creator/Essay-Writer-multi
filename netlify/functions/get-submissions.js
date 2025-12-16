@@ -1,9 +1,6 @@
-const { getStore, connectLambda } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 exports.handler = async (event, context) => {
-  // Connect Lambda context for Blobs access
-  connectLambda(event, context);
-
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -29,10 +26,10 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Check authentication
     const params = event.queryStringParameters || {};
     const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
     
+    // Check authentication
     if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
       return {
         statusCode: 401,
@@ -44,49 +41,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the store
-    const store = getStore("homework-submissions");
+    const db = initializeFirebase();
     
-    let blobs = [];
-    try {
-      const result = await store.list();
-      blobs = result.blobs || [];
-    } catch (listError) {
-      // Store might not exist yet (no data written) - return empty
-      console.log('Store list error (may be empty):', listError.message);
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({ 
-          success: true,
-          count: 0,
-          submissions: []
-        })
-      };
-    }
+    // Get all submissions, ordered by newest first
+    const snapshot = await db.collection('submissions')
+      .orderBy('serverTimestamp', 'desc')
+      .get();
     
     const submissions = [];
-    for (const blob of blobs) {
-      try {
-        const data = await store.get(blob.key, { type: 'json' });
-        if (data) {
-          submissions.push(data);
-        }
-      } catch (e) {
-        console.error('Error fetching blob:', blob.key, e.message);
-      }
-    }
+    snapshot.forEach(doc => {
+      submissions.push(doc.data());
+    });
 
-    // Sort by newest first
-    submissions.sort((a, b) => 
-      new Date(b.serverTimestamp || b.submittedAt || b.timestamp || 0) - 
-      new Date(a.serverTimestamp || a.submittedAt || a.timestamp || 0)
-    );
-
-    console.log(`Retrieved ${submissions.length} submissions`);
+    console.log(`[get-submissions] Retrieved ${submissions.length} submissions`);
 
     return {
       statusCode: 200,
@@ -111,8 +78,7 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({ 
         error: 'Failed to retrieve submissions',
-        message: error.message,
-        stack: error.stack
+        message: error.message
       })
     };
   }
