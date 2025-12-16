@@ -1,4 +1,5 @@
 {
+ 
   "name": "homework-template",
   "version": "5.0.0",
   "description": "Interactive homework application with AI grading, supplementary questions, and teacher dashboard",
@@ -9,7 +10,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@netlify/blobs": "^8.1.0"
+    "@netlify/blobs": "^8.1.0",
+    "firebase": "^10.7.0",
+    "firebase-admin": "^12.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,16 +1,17 @@
 /**
- * Firebase Configuration (Optional)
- * Set FIREBASE_ENABLED to true and add your credentials to use Firebase
- * Otherwise, the app uses Netlify Blobs storage
+ * Firebase Configuration
+ * IMPORTANT: Set FIREBASE_ENABLED to true after adding your credentials
  */
 
-window.FIREBASE_ENABLED = false;
+window.FIREBASE_ENABLED = true; // Changed from false to true
 
+// Your web app's Firebase configuration
 window.FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAyyJeOx3AvxqVrO4Dl2HN-Naznk3Y27_w",
+  authDomain: "student-essay-assistant.firebaseapp.com",
+  projectId: "student-essay-assistant",
+  storageBucket: "student-essay-assistant.firebasestorage.app",
+  messagingSenderId: "789341142514",
+  appId: "1:789341142514:web:141dcec29bc829cd05ff6b"
 };
+
