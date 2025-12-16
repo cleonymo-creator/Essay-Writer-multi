@@ -2978,6 +2978,75 @@
       padding: var(--space-sm) 0;
     }
     
+    /* Text-to-Speech styles */
+    .tts-button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      padding: var(--space-xs) var(--space-sm);
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tts-button:hover {
+      background: var(--color-surface-alt);
+      color: var(--color-text);
+      border-color: var(--color-primary);
+    }
+    
+    .tts-button.playing {
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-color: var(--color-primary);
+    }
+    
+    .tts-button.playing:hover {
+      background: var(--color-primary-light);
+    }
+    
+    .tts-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .tts-speed {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+    
+    .tts-speed select {
+      background: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 2px 4px;
+      font-size: 0.75rem;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    
+    .tts-icon {
+      font-size: 1rem;
+    }
+    
+    @keyframes pulse-speaking {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .tts-button.playing .tts-icon {
+      animation: pulse-speaking 1s ease-in-out infinite;
+    }
+    
     .hint-loading-spinner {
       width: 16px;
       height: 16px;
@@ -4103,6 +4172,165 @@
     };
     
     // =====================================================
+    // TEXT-TO-SPEECH COMPONENT
+    // =====================================================
+    
+    function TextToSpeech({ text, label = "Read aloud", targetGrade }) {
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [isPaused, setIsPaused] = useState(false);
+      const [speechRate, setSpeechRate] = useState(null);
+      const utteranceRef = useRef(null);
+      
+      // Check if speech synthesis is available
+      const isSpeechAvailable = typeof window !== 'undefined' && 'speechSynthesis' in window;
+      
+      // Determine default speed based on target grade
+      useEffect(() => {
+        if (speechRate === null) {
+          const getDefaultRate = (grade) => {
+            const foundationGrades = ['1', '2', '3', 'E', 'D'];
+            const highGrades = ['8', '9', 'A*', 'A'];
+            if (foundationGrades.includes(grade)) return 0.8;  // Slower for foundation
+            if (highGrades.includes(grade)) return 1.0;  // Normal for high achievers
+            return 0.9;  // Slightly slower for middle
+          };
+          setSpeechRate(getDefaultRate(targetGrade || '5'));
+        }
+      }, [targetGrade, speechRate]);
+      
+      // Clean up on unmount
+      useEffect(() => {
+        return () => {
+          if (isSpeechAvailable) {
+            window.speechSynthesis.cancel();
+          }
+        };
+      }, []);
+      
+      const stripHtml = (html) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+      };
+      
+      const handlePlay = () => {
+        if (!isSpeechAvailable) {
+          alert('Text-to-speech is not supported in your browser. Please try Chrome, Firefox, Safari, or Edge.');
+          return;
+        }
+        
+        if (isPaused) {
+          window.speechSynthesis.resume();
+          setIsPaused(false);
+          setIsPlaying(true);
+          return;
+        }
+        
+        // Cancel any existing speech
+        window.speechSynthesis.cancel();
+        
+        // Clean the text
+        const cleanText = stripHtml(text);
+        
+        // Create utterance
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = speechRate || 0.9;
+        utterance.pitch = 1;
+        
+        // Try to find a good English voice
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoice = voices.find(v => 
+          v.lang.startsWith('en-GB') || v.lang.startsWith('en-US')
+        ) || voices.find(v => v.lang.startsWith('en'));
+        
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+        }
+        
+        utterance.onend = () => {
+          setIsPlaying(false);
+          setIsPaused(false);
+        };
+        
+        utterance.onerror = () => {
+          setIsPlaying(false);
+          setIsPaused(false);
+        };
+        
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        setIsPlaying(true);
+      };
+      
+      const handlePause = () => {
+        if (isSpeechAvailable && isPlaying) {
+          window.speechSynthesis.pause();
+          setIsPaused(true);
+          setIsPlaying(false);
+        }
+      };
+      
+      const handleStop = () => {
+        if (isSpeechAvailable) {
+          window.speechSynthesis.cancel();
+          setIsPlaying(false);
+          setIsPaused(false);
+        }
+      };
+      
+      const handleRateChange = (e) => {
+        setSpeechRate(parseFloat(e.target.value));
+        // If currently playing, restart with new rate
+        if (isPlaying || isPaused) {
+          handleStop();
+        }
+      };
+      
+      if (!isSpeechAvailable) {
+        return null;
+      }
+      
+      return (
+        <div className="tts-controls">
+          {!isPlaying && !isPaused ? (
+            <button className="tts-button" onClick={handlePlay} title={label}>
+              <span className="tts-icon">🔊</span>
+              <span>{label}</span>
+            </button>
+          ) : (
+            <>
+              {isPlaying ? (
+                <button className="tts-button playing" onClick={handlePause} title="Pause">
+                  <span className="tts-icon">⏸️</span>
+                  <span>Pause</span>
+                </button>
+              ) : (
+                <button className="tts-button" onClick={handlePlay} title="Resume">
+                  <span className="tts-icon">▶️</span>
+                  <span>Resume</span>
+                </button>
+              )}
+              <button className="tts-button" onClick={handleStop} title="Stop">
+                <span className="tts-icon">⏹️</span>
+                <span>Stop</span>
+              </button>
+            </>
+          )}
+          <div className="tts-speed">
+            <label>Speed:</label>
+            <select value={speechRate || 0.9} onChange={handleRateChange}>
+              <option value="0.6">Slower</option>
+              <option value="0.8">Slow</option>
+              <option value="0.9">Normal</option>
+              <option value="1.0">Fast</option>
+              <option value="1.2">Faster</option>
+            </select>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
     // LOADING SPINNER
     // =====================================================
     
@@ -4382,7 +4610,7 @@
     // FEEDBACK DISPLAY COMPONENT
     // =====================================================
     
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept }) {
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade }) {
       const scoreClass = getScoreClass(feedback.overallScore || 0);
       const grade = feedback.estimatedGrade || feedback.awardedGrade;
       const hasAuthenticGrade = Boolean(grade);
@@ -4394,6 +4622,39 @@
       // Cumulative grading indicator
       const isCumulative = cumulativeInfo?.isCumulative;
       const paragraphCount = cumulativeInfo?.paragraphCount;
+      
+      // Build readable feedback text for TTS
+      const buildFeedbackText = () => {
+        let text = '';
+        if (hasAuthenticGrade) {
+          text += `You received ${displayGrade}. `;
+          if (hasMarks) {
+            text += `That's ${feedback.awardedMarks} out of ${feedback.totalMarks} marks. `;
+          }
+        } else if (feedback.overallScore) {
+          text += `You scored ${feedback.overallScore} percent. `;
+        }
+        
+        if (feedback.strengths && feedback.strengths.length > 0) {
+          text += 'Your strengths: ';
+          text += feedback.strengths.join('. ') + '. ';
+        }
+        
+        if (feedback.improvements && feedback.improvements.length > 0) {
+          text += 'Areas to improve: ';
+          text += feedback.improvements.join('. ') + '. ';
+        }
+        
+        if (feedback.detailedFeedback) {
+          text += 'Detailed feedback: ' + feedback.detailedFeedback + ' ';
+        }
+        
+        if (feedback.nextLevelHint) {
+          text += 'To reach the next grade: ' + feedback.nextLevelHint + ' ';
+        }
+        
+        return text;
+      };
       
       return (
         <div className="feedback-panel ghost-appear">
@@ -4430,6 +4691,11 @@
                 }
               </p>
             </div>
+          </div>
+          
+          {/* TTS Button for feedback */}
+          <div style={parseStyle("margin-bottom: var(--space-md);")}>
+            <TextToSpeech text={buildFeedbackText()} label="Read feedback aloud" targetGrade={targetGrade} />
           </div>
           
           {/* Grade/Marks Justification - shown when using authentic descriptors */}
@@ -5045,9 +5311,12 @@
       
       return (
         <div className="learning-material">
-          <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-md); font-style: italic;")}>
-            Click on any bullet point below for more information
-          </p>
+          <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);")}>
+            <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0; font-style: italic;")}>
+              Click on any bullet point below for more information
+            </p>
+            <TextToSpeech text={content} label="Read hints" targetGrade={targetGrade} />
+          </div>
           <div 
             ref={containerRef}
             onClick={handleHintClick}
@@ -5293,6 +5562,7 @@
               cumulativeInfo={cumulativeInfo}
               onRevise={handleRevise}
               onAccept={handleAccept}
+              targetGrade={targetGrade}
             />
           )}
         </div>
