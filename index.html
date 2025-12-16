@@ -6776,25 +6776,122 @@ ${examinerComment}
         });
       };
       
-      const handleCompleteParagraph = (paragraphId, finalText, finalFeedback) => {
-        setParagraphStates(prev => ({
-          ...prev,
-          [paragraphId]: {
-            ...prev[paragraphId],
-            completed: true,
-            finalText: finalText,
-            score: finalFeedback?.overallScore || 0,
-            estimatedGrade: finalFeedback?.estimatedGrade || null
-          }
-        }));
-        
-        const nextIndex = currentParagraphIndex + 1;
-        if (nextIndex >= PARAGRAPHS.length) {
-          setScreen('compilation');
-        } else {
-          setCurrentParagraphIndex(nextIndex);
-        }
+    const handleCompleteParagraph = (paragraphId, finalText, finalFeedback) => {
+  // Update paragraph state
+  const newParagraphStates = {
+    ...paragraphStates,
+    [paragraphId]: {
+      ...paragraphStates[paragraphId],
+      completed: true,
+      finalText: finalText,
+      score: finalFeedback?.overallScore || 0,
+      estimatedGrade: finalFeedback?.estimatedGrade || null
+    }
+  };
+  setParagraphStates(newParagraphStates);
+  
+  const nextIndex = currentParagraphIndex + 1;
+  if (nextIndex >= PARAGRAPHS.length) {
+    // Last paragraph completed - go to compilation and AUTO-REQUEST feedback
+    setScreen('compilation');
+    
+    // Automatically request essay feedback after a brief delay
+    // (allows screen transition to complete)
+    setTimeout(() => {
+      requestEssayFeedbackWithStates(newParagraphStates);
+    }, 500);
+  } else {
+    setCurrentParagraphIndex(nextIndex);
+  }
+};
+
+// Separate function to request feedback with specific paragraph states
+// (needed because setState is async and we need the updated states immediately)
+const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
+  setIsLoadingEssayFeedback(true);
+  
+  try {
+    const paragraphData = PARAGRAPHS.map(p => ({
+      config: p,
+      finalText: currentParagraphStates[p.id]?.finalText || '',
+      attempts: currentParagraphStates[p.id]?.attempts || 0,
+      paragraphScore: currentParagraphStates[p.id]?.score || 0,
+      estimatedGrade: currentParagraphStates[p.id]?.estimatedGrade || null
+    }));
+    
+    // Check if we have authentic grade boundaries
+    const hasAuthenticDescriptors = CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0;
+    
+    const response = await fetch('/.netlify/functions/grade-essay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentName,
+        essayTitle: CONFIG.essayTitle,
+        paragraphs: paragraphData,
+        gradingCriteria: GRADING_CRITERIA,
+        gradeBoundaries: CONFIG.gradeBoundaries || null,
+        totalMarks: CONFIG.totalMarks || null,
+        targetGrade: targetGrade,
+        gradeSystem: gradeSystem
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      setEssayFeedback({ 
+        ...data.feedback, 
+        finalScore: data.finalScore,
+        finalGrade: data.finalGrade,
+        awardedMarks: data.awardedMarks,
+        totalMarks: data.totalMarks,
+        usedAuthenticDescriptors: data.usedAuthenticDescriptors
+      });
+      
+      const submissionData = {
+        type: 'essay',
+        essayId: selectedEssayId,
+        essayTitle: CONFIG.essayTitle,
+        studentName,
+        studentEmail,
+        score: data.finalScore,
+        grade: data.finalGrade || data.feedback.overallGrade,
+        awardedMarks: data.awardedMarks,
+        totalMarks: data.totalMarks,
+        essay: data.fullEssay,
+        paragraphSummary: data.paragraphSummary,
+        feedback: data.feedback,
+        usedAuthenticDescriptors: data.usedAuthenticDescriptors,
+        submittedAt: new Date().toISOString()
       };
+      
+      try {
+        // Save to Firebase if available, otherwise Netlify Blobs
+        if (FIREBASE_ENABLED) {
+          await FirebaseDB.submitEssay(submissionData);
+        } else {
+          await fetch('/.netlify/functions/submit-homework', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submissionData)
+          });
+        }
+      } catch (submitError) {
+        console.error('Failed to save submission:', submitError);
+      }
+      
+      localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+    } else {
+      throw new Error(data.error || 'Failed to grade essay');
+    }
+  } catch (error) {
+    console.error('Essay grading error:', error);
+    alert('Failed to get essay feedback. Please try again.');
+  } finally {
+    setIsLoadingEssayFeedback(false);
+  }
+};
       
       const handleNavigate = (index) => {
         setCurrentParagraphIndex(index);
