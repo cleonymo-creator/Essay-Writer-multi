@@ -466,7 +466,7 @@
     }
     
     .question-tracker-item.correct::after {
-      content: 'âœ…';
+      content: '\2713';
       position: absolute;
       top: -5px;
       right: -5px;
@@ -956,7 +956,7 @@
     }
     
     .ai-feedback-list li::before {
-      content: 'ðŸ”¸';
+      content: '\2022';
       position: absolute;
       left: 0;
       color: var(--color-text-muted);
@@ -2871,7 +2871,7 @@
     }
     
     .expandable-hint::after {
-      content: ' â„¹ï¸';
+      content: ' ';
       font-size: 0.8em;
       opacity: 0;
       transition: opacity 0.2s ease;
@@ -4880,24 +4880,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">ðŸ”Š</span>
+              <span className="tts-icon">&#9658;</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">â¸ï¸</span>
+                  <span className="tts-icon">&#10074;&#10074;</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">â–¶ï¸</span>
+                  <span className="tts-icon">&#9658;</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">â¹ï¸</span>
+                <span className="tts-icon">&#9632;</span>
                 <span>Stop</span>
               </button>
             </>
@@ -6491,14 +6491,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? 'âœ… Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? '&#10003; Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
+                      <div className="essay-card-icon">{essay.icon || '&#128218;'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>ðŸ“ {essay.subject}</span>
-                        <span>ðŸŽ“ {essay.yearGroup}</span>
+                        <span>&#128209; {essay.subject}</span>
+                        <span>&#127891; {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -6508,7 +6508,7 @@
                       {savedProgress && !savedProgress.isComplete && (
                         <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);")}>
                           <strong style={parseStyle("color: var(--color-primary-light);")}>{savedProgress.studentName}</strong>
-                          <span> â€¢ {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
+                          <span> - {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
                           <div style={parseStyle("margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
                             <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '2px' }} />
                           </div>
@@ -6580,15 +6580,15 @@
         <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
           <div className="task-panel-header">
             <h3 className="task-panel-title">
-              <span>ðŸ“‹ </span> Reference Materials
+              <span>&#128203; Reference Materials</span>
             </h3>
-            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">âœ–ï¸</button>
+            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel"></button>
           </div>
           <div className="task-panel-content">
             {hasTask && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>ðŸ“</span> Exam Question
+                  <span>&#128196; Exam Question</span>
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(config.originalTask) }} />
               </div>
@@ -6597,7 +6597,7 @@
             {hasSource && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>ðŸ“–</span> Source Material
+                  <span>&#128214; Source Material</span>
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }} />
               </div>
@@ -6617,7 +6617,7 @@
           aria-label="Show original task"
           title="Show original task"
         >
-          ðŸ‘¨â€ðŸ«
+          
         </button>
       );
     }
@@ -6750,7 +6750,7 @@
                 )}
                 {isCumulative && paragraphCount > 1 && (
                   <div style={parseStyle("font-size: 0.8rem; color: var(--color-info); background: var(--color-info-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 600;")}>
-                    ðŸ“Š Cumulative ({paragraphCount} paragraphs)
+                     &#128202; Cumulative ({paragraphCount} paragraphs)
                   </div>
                 )}
               </div>
@@ -6816,7 +6816,7 @@
           
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ’ª</span> Strengths</div>
+              <div className="feedback-section-title"><span>&#9733; Strengths</span></div>
               <ul className="feedback-list strengths">
                 {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -6825,7 +6825,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ‘Š</span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>&#9650; Areas to Improve</span></div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -6834,21 +6834,21 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>&#9998; Detailed Feedback</span></div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
           
           {feedback.exampleRevision && (
             <div className="example-revision">
-              <div className="example-revision-label">ðŸ› ï¸ Example Improvement</div>
+              <div className="example-revision-label">&#128295; Example Improvement</div>
               {feedback.exampleRevision}
             </div>
           )}
           
           {feedback.nextLevelHint && (
             <div className="feedback-section" style={parseStyle("margin-top: var(--space-lg);")}>
-              <div className="feedback-section-title"><span>ðŸŽ¯</span> To Reach the Next Grade</div>
+              <div className="feedback-section-title"><span>&#9673; To Reach the Next Grade</span></div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
           )}
@@ -6865,7 +6865,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                âœ… Complete & Continue to Next Section
+                  &#10003; Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -7045,7 +7045,7 @@
           <div className="card ghost-appear">
             <div className="app-header" style={parseStyle("margin-bottom: 0; border: none; background: transparent; padding: var(--space-lg) 0;")}>
               <h1 className="gold-glow">{config.title}</h1>
-              <p className="subtitle">{config.subject} â€¢ {config.yearGroup}</p>
+              <p className="subtitle">{config.subject} - {config.yearGroup}</p>
               {config.essayTitle && (
                 <p className="essay-title">"{config.essayTitle}"</p>
               )}
@@ -7130,7 +7130,7 @@
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
                   <label className="grade-selector-label">
-                    ðŸŽ¯ What grade are you aiming for? What grade are you aiming for?
+                     What grade are you aiming for? What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -7152,9 +7152,9 @@
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
                       <div className="grade-info-title">
-                        {abilityTier === 'high' ? 'ðŸš€ Aiming High!' :
-                         abilityTier === 'foundation' ? 'ðŸ§± Building Strong Foundations' :
-                         'ðŸ“† Solid Progress'}
+                        {abilityTier === 'high' ? '&#128640; Aiming High!' :
+                         abilityTier === 'foundation' ? '&#128679; Building Strong Foundations' :
+                         '&#128200; Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -7174,7 +7174,7 @@
                     type="button"
                     className="btn btn-secondary"
                     onClick={onBack}
-                  >â† Back</button>
+                  >&#8592; Back</button>
                 </div>
               </form>
             </div>
@@ -7692,17 +7692,17 @@
         });
         
         let report = `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
                         ESSAY ASSESSMENT REPORT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 
 Student: ${studentName}
 Date: ${date}
 Subject: ${config?.subject || ''}
 Essay Title: ${config?.essayTitle || ''}
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
                            YOUR ESSAY
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 
 ${fullEssay}
 
@@ -7711,23 +7711,23 @@ ${fullEssay}
         // Add Feedback if available
         if (essayFeedback) {
           report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
                         FEEDBACK
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 
 OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
 GRADE: ${essayFeedback.overallGrade}
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 SUMMARY
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${essayFeedback.essaySummary || 'No summary available.'}
 
 `;
           if (essayFeedback.bestQuotation) {
             report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 YOUR BEST WRITING
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 "${essayFeedback.bestQuotation}"
 
 `;
@@ -7735,9 +7735,9 @@ YOUR BEST WRITING
           
           if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
             report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 STRENGTHS
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -7745,9 +7745,9 @@ ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
             report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 AREAS FOR DEVELOPMENT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -7755,9 +7755,9 @@ ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.closingEncouragement) {
             report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 TEACHER'S ENCOURAGEMENT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${essayFeedback.closingEncouragement}
 
 `;
@@ -7769,13 +7769,13 @@ ${essayFeedback.closingEncouragement}
           const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
           
           report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
+========================================================
 IMPROVEMENT SUMMARY
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 
 Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
 Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
@@ -7783,9 +7783,9 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 INITIAL VERSION ASSESSMENT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
 
 Assessment Objectives:
@@ -7798,9 +7798,9 @@ ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 FINAL VERSION ASSESSMENT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
 
 Assessment Objectives:
@@ -7818,27 +7818,27 @@ ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
           
           if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 NEXT STEPS TO IMPROVE FURTHER
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
 `;
           }
           
           report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 EXAMINER'S COMMENT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 ${examinerComment}
 
 `;
         }
         
         report += `
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
                       END OF REPORT
-=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+========================================================
 `;
         
         return report;
@@ -7923,7 +7923,7 @@ ${examinerComment}
                   Grade {version.grade}
                 </div>
                 <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                  Level {version.level} â€¢ {version.percentage}%
+                  Level {version.level}  {version.percentage}%
                 </div>
               </div>
             </div>
@@ -7954,13 +7954,13 @@ ${examinerComment}
             
             <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);")}>
               <div>
-                <strong style={parseStyle("color: var(--color-success); font-size: 0.85rem;")}>âœ… Strengths</strong>
+                <strong style={parseStyle("color: var(--color-success); font-size: 0.85rem;")}> Strengths</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
               <div>
-                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}>ðŸ‘Š To Improve</strong>
+                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}> To Improve</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
@@ -7974,9 +7974,9 @@ ${examinerComment}
             <div className="holistic-feedback" style={parseStyle("margin-top: var(--space-xl);")}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ðŸ‘¨â€ðŸ« Official Mark Scheme Grading</h2>
+                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Official Mark Scheme Grading</h2>
                   <p style={parseStyle("color: var(--color-text-muted);")}>
-                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} â€¢ {config.officialMarkScheme.paper}
+                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification}  {config.officialMarkScheme.paper}
                   </p>
                 </div>
               </div>
@@ -7990,7 +7990,7 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>Grade {initialVersion.grade}</div>
                   </div>
                   
-                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}>âž¡ï¸</div>
+                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}></div>
                   
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Improved</div>
@@ -8015,14 +8015,14 @@ ${examinerComment}
               
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
-                <VersionCard version={initialVersion} title="ðŸ‘¨â€ðŸ« Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={initialVersion} title=" Initial Version (First Attempt)" isImproved={false} />
                 <VersionCard version={improvedVersion} title="? Improved Version (Final) Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸŽ¯ What grade are you aiming for? Next Steps to Improve Further</h4>
+                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}> What grade are you aiming for? Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={parseStyle("margin-bottom: var(--space-sm);")}>{target}</li>
@@ -8048,20 +8048,20 @@ ${examinerComment}
               className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('essay')}
             >
-              ðŸ‘¨â€ðŸ« Your Essay
+               Your Essay
             </button>
             <button 
               className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('feedback')}
             >
-              ðŸ’¬ Feedback Feedback
+               Feedback Feedback
             </button>
             {hasOfficialMarkScheme && (
               <button 
                 className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('official')}
               >
-                ðŸ§¾ Official Grading Official Grading
+                 Official Grading Official Grading
               </button>
             )}
           </div>
@@ -8072,7 +8072,7 @@ ${examinerComment}
               <div className="essay-compilation">
                 <div className="essay-compilation-header">
                   <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
-                  <p className="essay-compilation-meta">By {studentName} â€¢ {config?.subject} â€¢ {formatDateTime(new Date())}</p>
+                  <p className="essay-compilation-meta">By {studentName}  {config?.subject}  {formatDateTime(new Date())}</p>
                 </div>
                 
                 <div className="compiled-essay">
@@ -8083,7 +8083,7 @@ ${examinerComment}
               </div>
               
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; margin-top: var(--space-xl);")}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}>ðŸ–¨ï¸ Print Essay</button>
+                <button className="btn btn-primary btn-large" onClick={handlePrint}> Print Essay</button>
               </div>
             </>
           )}
@@ -8103,7 +8103,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ðŸ‘¨â€ðŸ« Essay Feedback</h2>
+                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Essay Feedback</h2>
                       <p style={parseStyle("color: var(--color-text-muted);")}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -8121,14 +8121,14 @@ ${examinerComment}
                   
                   {essayFeedback.essaySummary && (
                     <div className="feedback-section">
-                      <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Summary</div>
+                      <div className="feedback-section-title"><span>&#9733; Summary</span></div>
                       <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
                     </div>
                   )}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">ðŸ’Ž Your Best Writing</div>
+                      <div className="best-quote-label"> Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -8136,7 +8136,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>âœ¨</span> Improved Version (Final)</div>
+                        <div className="feedback-section-title"><span>&#10003; Improved Version</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8145,7 +8145,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas for Development</div>
+                        <div className="feedback-section-title"><span>&#9650; Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8169,7 +8169,7 @@ ${examinerComment}
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
                   <div className="card" style={parseStyle("max-width: 600px; margin: 0 auto;")}>
-                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h3>
+                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}> Official Grading Official Mark Scheme Grading</h3>
                     <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                       Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                     </p>
@@ -8177,7 +8177,7 @@ ${examinerComment}
                       This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
                     </p>
                     <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                      ðŸ‘¨â€ðŸ« Get Official Grading
+                       Get Official Grading
                     </button>
                   </div>
                 </div>
@@ -8201,16 +8201,16 @@ ${examinerComment}
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
             <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>â¬‡ï¸â“ Download Your Full Report</h3>
+              <h3 style={parseStyle("margin-bottom: var(--space-md);")}> Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;")}>
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  ðŸ–¨ï¸ Print Full Report
+                   Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  ðŸ‘¨â€ðŸ« Copy to Clipboard
+                   Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -8367,7 +8367,7 @@ ${examinerComment}
                 )}
               </div>
               <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>ðŸ”„ Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}> Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
             </div>
@@ -8429,7 +8429,7 @@ ${examinerComment}
           
           {/* Preview Essays */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ‘¨â€ðŸ« Preview Essays</h4>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Preview Essays</h4>
             <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
               {getEssayList().map(essay => (
                 <button 
@@ -8445,7 +8445,7 @@ ${examinerComment}
           
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>âš¡ In Progress ({filteredInProgress.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}> In Progress ({filteredInProgress.length})</h3>
             
             {filteredInProgress.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
@@ -8503,7 +8503,7 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>ðŸ‘¨â€ðŸ« Completed Essays ({filteredSubmissions.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}> Completed Essays ({filteredSubmissions.length})</h3>
             
             {filteredSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl);")}>
@@ -8541,8 +8541,8 @@ ${examinerComment}
                           <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>ðŸ’¬ Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>ðŸ§¾ Official Grading</span>
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}> Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}> Official Grading</span>
                           </td>
                           <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
@@ -8573,7 +8573,7 @@ ${examinerComment}
                 <div style={parseStyle("margin-bottom: var(--space-lg); display: flex; gap: var(--space-lg); flex-wrap: wrap;")}>
                   <div>
                     <strong>Score:</strong> {selectedSubmission.score}%
-                    {selectedSubmission.grade && <> â€¢ <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                    {selectedSubmission.grade && <>  <strong>Grade:</strong> {selectedSubmission.grade}</>}
                   </div>
                   {selectedSubmission.officialGrading && (
                     <div style={parseStyle("color: var(--color-success);")}>
@@ -8586,7 +8586,7 @@ ${examinerComment}
                 {/* Essay Text */}
                 {selectedSubmission.essay && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ‘¨â€ðŸ« Essay</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essay</h4>
                     <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.essay.split('\n\n').map((para, i) => (
                         <p key={i} className="compiled-paragraph">{para}</p>
@@ -8598,7 +8598,7 @@ ${examinerComment}
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ’¬ Feedback Feedback</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Feedback Feedback</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={parseStyle("margin-bottom: var(--space-md);")}>{selectedSubmission.feedback.essaySummary}</p>
@@ -8613,7 +8613,7 @@ ${examinerComment}
                       <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-success);")}>âœ… Improved Version (Final) Strengths</strong>
+                            <strong style={parseStyle("color: var(--color-success);")}> Improved Version (Final) Strengths</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -8621,7 +8621,7 @@ ${examinerComment}
                         )}
                         {selectedSubmission.feedback.holisticImprovements && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-warning);")}>ðŸ‘Š To Improve</strong>
+                            <strong style={parseStyle("color: var(--color-warning);")}> To Improve</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -8635,7 +8635,7 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Official Grading Official Mark Scheme Grading</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {/* Improvement Summary */}
                       <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
@@ -8644,7 +8644,7 @@ ${examinerComment}
                           <div style={parseStyle("font-size: 1.5rem; font-weight: 700;")}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
                           <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
                         </div>
-                        <div style={parseStyle("font-size: 1.5rem; color: var(--color-primary);")}>âž¡ï¸</div>
+                        <div style={parseStyle("font-size: 1.5rem; color: var(--color-primary);")}></div>
                         <div>
                           <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>Final</div>
                           <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-success);")}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
@@ -9391,7 +9391,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
           <div className="app-header">
             <h1 className="gold-glow">{CONFIG.title}</h1>
-            <p className="subtitle">{CONFIG.subject} â€¢ {studentName}</p>
+            <p className="subtitle">{CONFIG.subject}  {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
               <div className="target-grade-badge" style={parseStyle("margin-top: var(--space-sm);")}>
@@ -9403,9 +9403,9 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           {isPreviewMode && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg; border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
               <div>
-                <strong style={parseStyle("color: var(--color-primary-light);")}>ðŸ‘¨â€ðŸ« Teacher Preview Mode</strong>
+                <strong style={parseStyle("color: var(--color-primary-light);")}> Teacher Preview Mode</strong>
                 <span style={parseStyle("margin-left: var(--space-md); color: var(--color-text-muted);")}>
-                  Paste enabled â€¢ Free navigation â€¢ Progress not saved
+                  Paste enabled  Free navigation  Progress not saved
                 </span>
               </div>
               <button className="btn btn-secondary" onClick={() => {
@@ -9415,7 +9415,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
                 setParagraphStates({});
                 setCurrentParagraphIndex(0);
               }}>
-                â† Exit Preview
+                 Exit Preview
               </button>
             </div>
           )}
