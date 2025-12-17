@@ -4411,36 +4411,28 @@
       },
       
       // Import students from CSV data
-      // classIds can be a single classId string or array of classIds
-      async importStudents(students, classIds = null) {
+      // classIds: optional array of class IDs to add ALL students to (from checkboxes)
+      // allClasses: array of all class objects for looking up class names from CSV
+      async importStudents(students, classIds = null, allClasses = []) {
         if (!db) return { success: false };
         
-        // Normalize to array
-        const classIdArray = classIds ? (Array.isArray(classIds) ? classIds : [classIds]) : [];
-        
-        // Fetch class info for all classes
-        const classInfoMap = {};
-        const classNames = [];
-        const teachers = [];
-        let yearGroup = null;
-        
-        for (const cid of classIdArray) {
-          try {
-            const classDoc = await db.collection('classes').doc(cid).get();
-            if (classDoc.exists) {
-              const info = classDoc.data();
-              classInfoMap[cid] = info;
-              classNames.push(info.name);
-              if (info.teacher && !teachers.includes(info.teacher)) {
-                teachers.push(info.teacher);
-              }
-              if (!yearGroup && info.yearGroup) {
-                yearGroup = info.yearGroup;
-              }
-            }
-          } catch (e) {
-            console.log('Error fetching class:', cid, e);
+        // Build a lookup map from class name to class info (case-insensitive)
+        const classNameToInfo = {};
+        for (const cls of allClasses) {
+          const nameLower = (cls.name || '').toLowerCase().trim();
+          if (nameLower) {
+            classNameToInfo[nameLower] = cls;
           }
+        }
+        
+        // Normalize global classIds to array
+        const globalClassIds = classIds ? (Array.isArray(classIds) ? classIds : [classIds]) : [];
+        
+        // Pre-fetch info for global classes
+        const globalClassInfo = {};
+        for (const cid of globalClassIds) {
+          const cls = allClasses.find(c => c.id === cid);
+          if (cls) globalClassInfo[cid] = cls;
         }
         
         const results = { created: [], skipped: [], errors: [] };
@@ -4448,25 +4440,62 @@
         for (const student of students) {
           try {
             const emailLower = student.email.trim().toLowerCase();
+            
+            // Determine this student's classes:
+            // 1. From CSV "class" or "classes" column
+            // 2. Plus any globally selected classes (checkboxes)
+            let studentClassIds = [...globalClassIds];
+            let studentClassNames = Object.values(globalClassInfo).map(c => c.name);
+            let studentTeachers = [...new Set(Object.values(globalClassInfo).map(c => c.teacher).filter(Boolean))];
+            let studentYearGroup = student.yearGroup || null;
+            
+            // Check for class column in CSV (could be single or comma-separated)
+            const csvClassValue = student.class || student.classes || null;
+            if (csvClassValue) {
+              const csvClassNames = csvClassValue.split(',').map(c => c.trim()).filter(Boolean);
+              
+              for (const className of csvClassNames) {
+                const classInfo = classNameToInfo[className.toLowerCase()];
+                if (classInfo) {
+                  if (!studentClassIds.includes(classInfo.id)) {
+                    studentClassIds.push(classInfo.id);
+                    studentClassNames.push(classInfo.name);
+                    if (classInfo.teacher && !studentTeachers.includes(classInfo.teacher)) {
+                      studentTeachers.push(classInfo.teacher);
+                    }
+                    if (!studentYearGroup && classInfo.yearGroup) {
+                      studentYearGroup = classInfo.yearGroup;
+                    }
+                  }
+                }
+                // If class name not found, we silently skip it (class might not exist yet)
+              }
+            }
+            
+            // Deduplicate
+            studentClassIds = [...new Set(studentClassIds)];
+            studentClassNames = [...new Set(studentClassNames)];
+            studentTeachers = [...new Set(studentTeachers)];
+            
             const existing = await db.collection('students').doc(emailLower).get();
             
             if (existing.exists) {
               results.skipped.push({ email: emailLower, name: student.name, reason: 'Already exists' });
               
               // Still add to all classes if needed
-              for (const cid of classIdArray) {
+              for (const cid of studentClassIds) {
                 await db.collection('classes').doc(cid).update({
                   students: firebase.firestore.FieldValue.arrayUnion(emailLower)
                 }).catch(() => {});
               }
               
               // Update existing student to add new classes
-              if (classIdArray.length > 0) {
+              if (studentClassIds.length > 0) {
                 const existingData = existing.data();
                 const existingClassIds = existingData.classIds || (existingData.classId ? [existingData.classId] : []);
-                const mergedClassIds = [...new Set([...existingClassIds, ...classIdArray])];
-                const mergedClassNames = [...new Set([...(existingData.classNames || []), ...classNames])];
-                const mergedTeachers = [...new Set([...(existingData.teachers || []), ...teachers])];
+                const mergedClassIds = [...new Set([...existingClassIds, ...studentClassIds])];
+                const mergedClassNames = [...new Set([...(existingData.classNames || []), ...studentClassNames])];
+                const mergedTeachers = [...new Set([...(existingData.teachers || []), ...studentTeachers])];
                 
                 await db.collection('students').doc(emailLower).update({
                   classIds: mergedClassIds,
@@ -4483,10 +4512,10 @@
             const newStudent = {
               email: emailLower,
               name: student.name.trim(),
-              classIds: classIdArray,
-              classNames: classNames,
-              yearGroup: student.yearGroup || yearGroup || null,
-              teachers: teachers,
+              classIds: studentClassIds,
+              classNames: studentClassNames,
+              yearGroup: studentYearGroup,
+              teachers: studentTeachers,
               individualAssignments: [],
               passwordHash,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -4496,7 +4525,7 @@
             await db.collection('students').doc(emailLower).set(newStudent);
             
             // Add to all class rosters
-            for (const cid of classIdArray) {
+            for (const cid of studentClassIds) {
               await db.collection('classes').doc(cid).update({
                 students: firebase.firestore.FieldValue.arrayUnion(emailLower)
               }).catch(() => {});
@@ -5857,6 +5886,8 @@
           if (student.email && (student.name || student.fullname || student.studentname)) {
             student.name = student.name || student.fullname || student.studentname;
             student.yearGroup = student.yeargroup || student.year || null;
+            // Capture class column (can be "class" or "classes")
+            student.class = student.class || student.classes || null;
             students.push(student);
           }
         }
@@ -5894,7 +5925,12 @@
         try {
           let result;
           if (FIREBASE_ENABLED) {
-            result = await FirebaseDB.importStudents(parsedStudents, selectedClassIds.length > 0 ? selectedClassIds : null);
+            // Pass classes array so importStudents can look up class names from CSV
+            result = await FirebaseDB.importStudents(
+              parsedStudents, 
+              selectedClassIds.length > 0 ? selectedClassIds : null,
+              classes  // All available classes for name lookup
+            );
           } else {
             const response = await fetch('/.netlify/functions/manage-students', {
               method: 'POST',
@@ -5931,8 +5967,11 @@
                   <p style={parseStyle("font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
                     <strong>CSV Format:</strong> Must include columns for <code>email</code> and <code>name</code>.
                   </p>
-                  <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                    Optional columns: <code>yeargroup</code>, <code>password</code>
+                  <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);")}>
+                    Optional: <code>class</code> (assigns to class by name), <code>yeargroup</code>, <code>password</code>
+                  </p>
+                  <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); font-style: italic;")}>
+                    Tip: Include a "class" column to assign different students to different classes in one import.
                   </p>
                 </div>
 
@@ -5951,14 +5990,17 @@
                   <textarea
                     value={csvContent}
                     onChange={(e) => setCsvContent(e.target.value)}
-                    placeholder="email,name,yeargroup&#10;jsmith@bb-hs.co.uk,John Smith,Year 10"
+                    placeholder="email,name,class&#10;jsmith@bb-hs.co.uk,John Smith,10B English&#10;esmith@bb-hs.co.uk,Emma Smith,10A English"
                     className="paragraph-editor"
                     style={parseStyle("min-height: 150px;")}
                   />
                 </div>
 
                 <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Add to Classes (select multiple)</label>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Also add ALL students to these classes:</label>
+                  <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);")}>
+                    (In addition to any class specified in CSV)
+                  </p>
                   <div style={parseStyle("max-height: 120px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm);")}>
                     {classes.length === 0 ? (
                       <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>No classes created yet</p>
