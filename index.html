@@ -5624,11 +5624,7 @@
           }
           
           if (result.success) {
-            alert('Password reset!
-
-New password: ' + result.newPassword + '
-
-Please give this to the student.');
+            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -5767,11 +5763,7 @@ Please give this to the student.');
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!
-
-Password: ' + password + '
-
-Please give this to the student.');
+                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
               }}
             />
           )}
