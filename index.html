@@ -466,7 +466,7 @@
     }
     
     .question-tracker-item.correct::after {
-      content: '✅';
+      content: 'âœ…';
       position: absolute;
       top: -5px;
       right: -5px;
@@ -956,7 +956,7 @@
     }
     
     .ai-feedback-list li::before {
-      content: '🔸';
+      content: 'ðŸ”¸';
       position: absolute;
       left: 0;
       color: var(--color-text-muted);
@@ -2871,7 +2871,7 @@
     }
     
     .expandable-hint::after {
-      content: ' ℹ️';
+      content: ' â„¹ï¸';
       font-size: 0.8em;
       opacity: 0;
       transition: opacity 0.2s ease;
@@ -4078,6 +4078,563 @@
           }, error => {
             console.error('Progress subscription error:', error);
           });
+      },
+      
+      // =====================================================
+      // STUDENT AUTHENTICATION METHODS
+      // =====================================================
+      
+      // Simple hash function for passwords
+      async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      },
+      
+      // Generate random password
+      generatePassword(length = 8) {
+        const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+        let password = '';
+        const array = new Uint8Array(length);
+        crypto.getRandomValues(array);
+        for (let i = 0; i < length; i++) {
+          password += chars[array[i] % chars.length];
+        }
+        return password;
+      },
+      
+      // Student login
+      async studentLogin(email, password) {
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const emailLower = email.trim().toLowerCase();
+          const doc = await db.collection('students').doc(emailLower).get();
+          
+          if (!doc.exists) {
+            return { success: false, error: 'Account not found. Please contact your teacher.' };
+          }
+          
+          const studentData = doc.data();
+          const inputHash = await this.hashPassword(password);
+          
+          if (inputHash !== studentData.passwordHash) {
+            return { success: false, error: 'Incorrect password' };
+          }
+          
+          // Generate session token
+          const tokenArray = new Uint8Array(32);
+          crypto.getRandomValues(tokenArray);
+          const sessionToken = Array.from(tokenArray).map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          // Save session
+          const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          await db.collection('sessions').doc(sessionToken).set({
+            email: emailLower,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt: sessionExpiry
+          });
+          
+          // Update last login
+          await db.collection('students').doc(emailLower).update({
+            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Get assignments from ALL classes (support multiple classes)
+          let classAssignments = [];
+          const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+          
+          for (const cid of classIds) {
+            try {
+              const classDoc = await db.collection('classes').doc(cid).get();
+              if (classDoc.exists) {
+                const classEssays = classDoc.data().assignedEssays || [];
+                classAssignments.push(...classEssays);
+              }
+            } catch (e) {
+              console.log('Error fetching class:', cid, e);
+            }
+          }
+          
+          const allAssignments = [...new Set([
+            ...classAssignments,
+            ...(studentData.individualAssignments || [])
+          ])];
+          
+          const { passwordHash, ...safeData } = studentData;
+          return {
+            success: true,
+            sessionToken,
+            student: { ...safeData, assignedEssays: allAssignments }
+          };
+        } catch (error) {
+          console.error('Login error:', error);
+          return { success: false, error: 'Login failed. Please try again.' };
+        }
+      },
+      
+      // Verify session
+      async verifySession(sessionToken) {
+        if (!db || !sessionToken) return { success: false };
+        try {
+          const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
+          if (!sessionDoc.exists) return { success: false };
+          
+          const session = sessionDoc.data();
+          const expiresAt = session.expiresAt?.toDate?.() || new Date(session.expiresAt);
+          
+          if (expiresAt < new Date()) {
+            await db.collection('sessions').doc(sessionToken).delete();
+            return { success: false, error: 'Session expired' };
+          }
+          
+          const studentDoc = await db.collection('students').doc(session.email).get();
+          if (!studentDoc.exists) return { success: false };
+          
+          const studentData = studentDoc.data();
+          
+          // Get assignments from ALL classes (support multiple classes)
+          let classAssignments = [];
+          const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+          
+          for (const cid of classIds) {
+            try {
+              const classDoc = await db.collection('classes').doc(cid).get();
+              if (classDoc.exists) {
+                const classEssays = classDoc.data().assignedEssays || [];
+                classAssignments.push(...classEssays);
+              }
+            } catch (e) {
+              console.log('Error fetching class:', cid, e);
+            }
+          }
+          
+          const allAssignments = [...new Set([
+            ...classAssignments,
+            ...(studentData.individualAssignments || [])
+          ])];
+          
+          const { passwordHash, ...safeData } = studentData;
+          return {
+            success: true,
+            student: { ...safeData, assignedEssays: allAssignments }
+          };
+        } catch (error) {
+          console.error('Session verify error:', error);
+          return { success: false };
+        }
+      },
+      
+      // Logout
+      async studentLogout(sessionToken) {
+        if (!db || !sessionToken) return;
+        try {
+          await db.collection('sessions').doc(sessionToken).delete();
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      },
+      
+      // Change password
+      async changePassword(sessionToken, currentPassword, newPassword) {
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
+          if (!sessionDoc.exists) return { success: false, error: 'Invalid session' };
+          
+          const email = sessionDoc.data().email;
+          const studentDoc = await db.collection('students').doc(email).get();
+          if (!studentDoc.exists) return { success: false, error: 'Student not found' };
+          
+          const studentData = studentDoc.data();
+          const currentHash = await this.hashPassword(currentPassword);
+          
+          if (currentHash !== studentData.passwordHash) {
+            return { success: false, error: 'Current password is incorrect' };
+          }
+          
+          const newHash = await this.hashPassword(newPassword);
+          await db.collection('students').doc(email).update({
+            passwordHash: newHash,
+            passwordChangedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          return { success: true };
+        } catch (error) {
+          console.error('Change password error:', error);
+          return { success: false, error: 'Failed to change password' };
+        }
+      },
+      
+      // =====================================================
+      // STUDENT MANAGEMENT METHODS
+      // =====================================================
+      
+      // Get all students
+      async getStudents(classId = null) {
+        if (!db) return [];
+        try {
+          let query = db.collection('students');
+          if (classId) {
+            query = query.where('classId', '==', classId);
+          }
+          const snapshot = await query.get();
+          return snapshot.docs.map(doc => {
+            const { passwordHash, ...safeData } = doc.data();
+            return { ...safeData, email: doc.id };
+          }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } catch (error) {
+          console.error('Get students error:', error);
+          return [];
+        }
+      },
+      
+      // Create student
+      async createStudent(studentData) {
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const emailLower = studentData.email.trim().toLowerCase();
+          
+          const existing = await db.collection('students').doc(emailLower).get();
+          if (existing.exists) {
+            return { success: false, error: 'Student already exists' };
+          }
+          
+          const password = studentData.password || this.generatePassword();
+          const passwordHash = await this.hashPassword(password);
+          
+          // Support both single classId and array of classIds
+          const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+          
+          // Fetch class info for display (use first class for backwards compatibility)
+          const classNames = [];
+          const teachers = [];
+          let yearGroup = studentData.yearGroup || null;
+          
+          for (const cid of classIds) {
+            try {
+              const classDoc = await db.collection('classes').doc(cid).get();
+              if (classDoc.exists) {
+                const classInfo = classDoc.data();
+                classNames.push(classInfo.name);
+                if (classInfo.teacher && !teachers.includes(classInfo.teacher)) {
+                  teachers.push(classInfo.teacher);
+                }
+                if (!yearGroup && classInfo.yearGroup) {
+                  yearGroup = classInfo.yearGroup;
+                }
+              }
+            } catch (e) {
+              console.log('Error fetching class:', cid, e);
+            }
+          }
+          
+          const newStudent = {
+            email: emailLower,
+            name: studentData.name.trim(),
+            classIds: classIds,
+            classNames: classNames,
+            yearGroup: yearGroup,
+            teachers: teachers,
+            individualAssignments: [],
+            passwordHash,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLogin: null
+          };
+          
+          await db.collection('students').doc(emailLower).set(newStudent);
+          
+          // Add to all class rosters
+          for (const cid of classIds) {
+            try {
+              await db.collection('classes').doc(cid).update({
+                students: firebase.firestore.FieldValue.arrayUnion(emailLower)
+              });
+            } catch (e) {
+              console.log('Error adding to class roster:', cid, e);
+            }
+          }
+          
+          const { passwordHash: _, ...safeStudent } = newStudent;
+          return { success: true, student: safeStudent, generatedPassword: password };
+        } catch (error) {
+          console.error('Create student error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Delete student
+      async deleteStudent(email) {
+        if (!db) return { success: false };
+        try {
+          const emailLower = email.trim().toLowerCase();
+          const studentDoc = await db.collection('students').doc(emailLower).get();
+          
+          if (studentDoc.exists) {
+            const studentData = studentDoc.data();
+            // Remove from ALL class rosters
+            const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+            for (const cid of classIds) {
+              await db.collection('classes').doc(cid).update({
+                students: firebase.firestore.FieldValue.arrayRemove(emailLower)
+              }).catch(() => {});
+            }
+          }
+          
+          await db.collection('students').doc(emailLower).delete();
+          return { success: true };
+        } catch (error) {
+          console.error('Delete student error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Reset student password
+      async resetStudentPassword(email) {
+        if (!db) return { success: false };
+        try {
+          const emailLower = email.trim().toLowerCase();
+          const newPassword = this.generatePassword();
+          const passwordHash = await this.hashPassword(newPassword);
+          
+          await db.collection('students').doc(emailLower).update({
+            passwordHash,
+            passwordResetAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          return { success: true, newPassword };
+        } catch (error) {
+          console.error('Reset password error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Import students from CSV data
+      // classIds can be a single classId string or array of classIds
+      async importStudents(students, classIds = null) {
+        if (!db) return { success: false };
+        
+        // Normalize to array
+        const classIdArray = classIds ? (Array.isArray(classIds) ? classIds : [classIds]) : [];
+        
+        // Fetch class info for all classes
+        const classInfoMap = {};
+        const classNames = [];
+        const teachers = [];
+        let yearGroup = null;
+        
+        for (const cid of classIdArray) {
+          try {
+            const classDoc = await db.collection('classes').doc(cid).get();
+            if (classDoc.exists) {
+              const info = classDoc.data();
+              classInfoMap[cid] = info;
+              classNames.push(info.name);
+              if (info.teacher && !teachers.includes(info.teacher)) {
+                teachers.push(info.teacher);
+              }
+              if (!yearGroup && info.yearGroup) {
+                yearGroup = info.yearGroup;
+              }
+            }
+          } catch (e) {
+            console.log('Error fetching class:', cid, e);
+          }
+        }
+        
+        const results = { created: [], skipped: [], errors: [] };
+        
+        for (const student of students) {
+          try {
+            const emailLower = student.email.trim().toLowerCase();
+            const existing = await db.collection('students').doc(emailLower).get();
+            
+            if (existing.exists) {
+              results.skipped.push({ email: emailLower, name: student.name, reason: 'Already exists' });
+              
+              // Still add to all classes if needed
+              for (const cid of classIdArray) {
+                await db.collection('classes').doc(cid).update({
+                  students: firebase.firestore.FieldValue.arrayUnion(emailLower)
+                }).catch(() => {});
+              }
+              
+              // Update existing student to add new classes
+              if (classIdArray.length > 0) {
+                const existingData = existing.data();
+                const existingClassIds = existingData.classIds || (existingData.classId ? [existingData.classId] : []);
+                const mergedClassIds = [...new Set([...existingClassIds, ...classIdArray])];
+                const mergedClassNames = [...new Set([...(existingData.classNames || []), ...classNames])];
+                const mergedTeachers = [...new Set([...(existingData.teachers || []), ...teachers])];
+                
+                await db.collection('students').doc(emailLower).update({
+                  classIds: mergedClassIds,
+                  classNames: mergedClassNames,
+                  teachers: mergedTeachers
+                });
+              }
+              continue;
+            }
+            
+            const password = student.password || this.generatePassword();
+            const passwordHash = await this.hashPassword(password);
+            
+            const newStudent = {
+              email: emailLower,
+              name: student.name.trim(),
+              classIds: classIdArray,
+              classNames: classNames,
+              yearGroup: student.yearGroup || yearGroup || null,
+              teachers: teachers,
+              individualAssignments: [],
+              passwordHash,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              lastLogin: null
+            };
+            
+            await db.collection('students').doc(emailLower).set(newStudent);
+            
+            // Add to all class rosters
+            for (const cid of classIdArray) {
+              await db.collection('classes').doc(cid).update({
+                students: firebase.firestore.FieldValue.arrayUnion(emailLower)
+              }).catch(() => {});
+            }
+            
+            results.created.push({ email: emailLower, name: student.name, password });
+          } catch (err) {
+            results.errors.push({ email: student.email, error: err.message });
+          }
+        }
+        
+        return { success: true, results };
+      },
+      
+      // =====================================================
+      // CLASS MANAGEMENT METHODS
+      // =====================================================
+      
+      // Get all classes
+      async getClasses() {
+        if (!db) return [];
+        try {
+          const snapshot = await db.collection('classes').get();
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } catch (error) {
+          console.error('Get classes error:', error);
+          return [];
+        }
+      },
+      
+      // Create class
+      async createClass(classData) {
+        if (!db) return { success: false };
+        try {
+          const classId = classData.name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
+          
+          const newClass = {
+            id: classId,
+            name: classData.name.trim(),
+            subject: classData.subject || 'English',
+            yearGroup: classData.yearGroup || null,
+            teacher: classData.teacher || null,
+            teacherEmail: classData.teacherEmail?.toLowerCase() || null,
+            students: [],
+            assignedEssays: [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('classes').doc(classId).set(newClass);
+          return { success: true, class: newClass };
+        } catch (error) {
+          console.error('Create class error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Delete class
+      async deleteClass(classId) {
+        if (!db) return { success: false };
+        try {
+          const classDoc = await db.collection('classes').doc(classId).get();
+          if (classDoc.exists) {
+            const classData = classDoc.data();
+            // Remove class reference from all students
+            for (const studentEmail of (classData.students || [])) {
+              await db.collection('students').doc(studentEmail).update({
+                classId: null,
+                className: null,
+                teacher: null,
+                teacherEmail: null
+              }).catch(() => {});
+            }
+          }
+          await db.collection('classes').doc(classId).delete();
+          return { success: true };
+        } catch (error) {
+          console.error('Delete class error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Assign essay to class
+      async assignToClass(classId, essayId) {
+        if (!db) return { success: false };
+        try {
+          await db.collection('classes').doc(classId).update({
+            assignedEssays: firebase.firestore.FieldValue.arrayUnion(essayId)
+          });
+          return { success: true };
+        } catch (error) {
+          console.error('Assign to class error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Remove essay from class
+      async unassignFromClass(classId, essayId) {
+        if (!db) return { success: false };
+        try {
+          await db.collection('classes').doc(classId).update({
+            assignedEssays: firebase.firestore.FieldValue.arrayRemove(essayId)
+          });
+          return { success: true };
+        } catch (error) {
+          console.error('Unassign from class error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Assign essay to individual student
+      async assignToStudent(studentEmail, essayId) {
+        if (!db) return { success: false };
+        try {
+          await db.collection('students').doc(studentEmail.toLowerCase()).update({
+            individualAssignments: firebase.firestore.FieldValue.arrayUnion(essayId)
+          });
+          return { success: true };
+        } catch (error) {
+          console.error('Assign to student error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+      
+      // Remove essay from individual student
+      async unassignFromStudent(studentEmail, essayId) {
+        if (!db) return { success: false };
+        try {
+          await db.collection('students').doc(studentEmail.toLowerCase()).update({
+            individualAssignments: firebase.firestore.FieldValue.arrayRemove(essayId)
+          });
+          return { success: true };
+        } catch (error) {
+          console.error('Unassign from student error:', error);
+          return { success: false, error: error.message };
+        }
       }
     };
     
@@ -4294,24 +4851,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">🔊</span>
+              <span className="tts-icon">ðŸ”Š</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">⏸️</span>
+                  <span className="tts-icon">â¸ï¸</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">▶️</span>
+                  <span className="tts-icon">â–¶ï¸</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">⏹️</span>
+                <span className="tts-icon">â¹ï¸</span>
                 <span>Stop</span>
               </button>
             </>
@@ -4339,6 +4896,1486 @@
         <div className="grading-indicator">
           <div className="spinner"></div>
           <span className="grading-text">{text}</span>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // STUDENT LOGIN SCREEN
+    // =====================================================
+    
+    function StudentLoginScreen({ onLoginSuccess, onTeacherLogin }) {
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+      const [showPassword, setShowPassword] = useState(false);
+
+      const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        const emailLower = email.trim().toLowerCase();
+        
+        if (!emailLower) {
+          setError('Please enter your school email');
+          return;
+        }
+
+        if (!emailLower.endsWith(REQUIRED_EMAIL_DOMAIN)) {
+          setError('Please use your school email (must end with ' + REQUIRED_EMAIL_DOMAIN + ')');
+          return;
+        }
+
+        if (!password) {
+          setError('Please enter your password');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.studentLogin(emailLower, password);
+          } else {
+            const response = await fetch('/.netlify/functions/student-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'login', email: emailLower, password })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            localStorage.setItem('studentSession', result.sessionToken);
+            localStorage.setItem('studentData', JSON.stringify(result.student));
+            onLoginSuccess(result.student, result.sessionToken);
+          } else {
+            setError(result.error || 'Login failed');
+          }
+        } catch (err) {
+          console.error('Login error:', err);
+          setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div className="app-container">
+          <div className="card ghost-appear" style={parseStyle("max-width: 480px; margin: 0 auto;")}>
+            <div className="app-header" style={parseStyle("margin-bottom: var(--space-xl); border: none; background: transparent; padding: var(--space-lg) 0;")}>
+              <h1 className="gold-glow">Essay Writing Assistant</h1>
+              <p className="subtitle">Sign in to continue</p>
+            </div>
+
+            <form onSubmit={handleLogin}>
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                  School Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                  placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                  autoFocus
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                  Password
+                </label>
+                <div style={parseStyle("position: relative;")}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                    placeholder="Enter your password"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-md); padding-right: 50px;")}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={parseStyle("position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem;")}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-md); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                style={parseStyle("width: 100%; justify-content: center;")}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+
+            <div style={parseStyle("margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--color-border); text-align: center;")}>
+              <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
+                Forgot your password? Ask your teacher to reset it.
+              </p>
+              <button 
+                type="button"
+                onClick={onTeacherLogin}
+                style={parseStyle("background: none; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 0.9rem; text-decoration: underline;")}
+              >
+                Teacher Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // STUDENT DASHBOARD
+    // =====================================================
+    
+    function StudentDashboard({ student, sessionToken, onSelectEssay, onLogout, onExploreEssay }) {
+      const [essaysLoading, setEssaysLoading] = useState(true);
+      const [progressData, setProgressData] = useState({});
+      const [submissionData, setSubmissionData] = useState({});
+      const [showExplore, setShowExplore] = useState(false);
+      const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+      const assignedEssays = (window.ESSAY_LIST || []).filter(essay => 
+        (student.assignedEssays || []).includes(essay.id)
+      );
+
+      const otherEssays = (window.ESSAY_LIST || []).filter(essay => 
+        !(student.assignedEssays || []).includes(essay.id)
+      );
+
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            // Load progress for assigned essays
+            const progressMap = {};
+            for (const essay of assignedEssays) {
+              try {
+                const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id);
+                const data = await response.json();
+                if (data.success && data.found) {
+                  progressMap[essay.id] = data.progress;
+                }
+              } catch (e) {
+                console.log('Progress load error:', e);
+              }
+            }
+            setProgressData(progressMap);
+
+            // Load submissions
+            let submissions = [];
+            if (FIREBASE_ENABLED) {
+              submissions = await FirebaseDB.getSubmissions() || [];
+            } else {
+              const response = await fetch('/.netlify/functions/get-submissions');
+              const data = await response.json();
+              if (data.success) submissions = data.submissions || [];
+            }
+            
+            const studentSubmissions = {};
+            submissions.forEach(sub => {
+              if (sub.studentEmail === student.email) {
+                studentSubmissions[sub.essayId] = sub;
+              }
+            });
+            setSubmissionData(studentSubmissions);
+          } catch (err) {
+            console.error('Error loading data:', err);
+          } finally {
+            setEssaysLoading(false);
+          }
+        };
+
+        loadData();
+      }, [student.email]);
+
+      const getEssayStatus = (essayId) => {
+        if (submissionData[essayId]) return 'submitted';
+        if (progressData[essayId]?.percentComplete > 0) return 'in-progress';
+        return 'not-started';
+      };
+
+      const handleLogout = async () => {
+        try {
+          if (FIREBASE_ENABLED) {
+            await FirebaseDB.studentLogout(sessionToken);
+          } else {
+            await fetch('/.netlify/functions/student-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'logout', sessionToken })
+            });
+          }
+        } catch (e) {
+          console.log('Logout error:', e);
+        }
+        localStorage.removeItem('studentSession');
+        localStorage.removeItem('studentData');
+        onLogout();
+      };
+
+      const EssayCard = ({ essay, isAssigned }) => {
+        const status = getEssayStatus(essay.id);
+        const progress = progressData[essay.id];
+        const submission = submissionData[essay.id];
+
+        return (
+          <div 
+            className="essay-card"
+            onClick={() => isAssigned ? onSelectEssay(essay.id) : onExploreEssay(essay.id)}
+            style={parseStyle(status === 'submitted' ? "border-color: var(--color-success);" : "")}
+          >
+            {isAssigned && (
+              <div style={parseStyle("position: absolute; top: var(--space-sm); right: var(--space-sm); background: var(--color-primary); color: var(--color-text-inverse); padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600;")}>
+                ASSIGNED
+              </div>
+            )}
+            
+            <h3 className="essay-card-title">{essay.title}</h3>
+            <p className="essay-card-subject">{essay.subject} - {essay.yearGroup}</p>
+            
+            {essay.essayTitle && (
+              <p style={parseStyle("font-style: italic; color: var(--color-text-muted); font-size: 0.9rem; margin-top: var(--space-sm);")}>
+                "{essay.essayTitle}"
+              </p>
+            )}
+
+            <div style={parseStyle("margin-top: var(--space-md);")}>
+              {status === 'submitted' && (
+                <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); color: var(--color-success);")}>
+                  <span>Submitted</span>
+                  {submission?.grade && (
+                    <span style={parseStyle("background: var(--color-success-bg); padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 600;")}>
+                      {submission.grade}
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {status === 'in-progress' && (
+                <div>
+                  <div style={parseStyle("display: flex; justify-content: space-between; margin-bottom: var(--space-xs); font-size: 0.85rem;")}>
+                    <span style={parseStyle("color: var(--color-warning);")}>In Progress</span>
+                    <span>{progress?.percentComplete || 0}%</span>
+                  </div>
+                  <div style={parseStyle("height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
+                    <div style={{ width: (progress?.percentComplete || 0) + '%', height: '100%', background: 'var(--color-warning)' }} />
+                  </div>
+                </div>
+              )}
+              
+              {status === 'not-started' && (
+                <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>
+                  Not started
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="app-container">
+          <div className="card ghost-appear">
+            <div style={parseStyle("display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-xl); flex-wrap: wrap; gap: var(--space-md);")}>
+              <div>
+                <h1 className="gold-glow" style={parseStyle("font-size: 1.8rem; margin-bottom: var(--space-xs);")}>
+                  Welcome, {student.name.split(' ')[0]}!
+                </h1>
+                <p style={parseStyle("color: var(--color-text-muted);")}>
+                  {(student.classNames?.length > 0 || student.className) && (
+                    <span>{(student.classNames || [student.className]).filter(Boolean).join(', ')} - </span>
+                  )}
+                  {student.yearGroup && <span>{student.yearGroup} - </span>}
+                  {(student.teachers?.length > 0 || student.teacher) && (
+                    <span>{(student.teachers || [student.teacher]).filter(Boolean).join(', ')}</span>
+                  )}
+                </p>
+              </div>
+              <div style={parseStyle("display: flex; gap: var(--space-sm);")}>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => setShowPasswordModal(true)}
+                  style={parseStyle("font-size: 0.85rem;")}
+                >
+                  Change Password
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={handleLogout}
+                  style={parseStyle("font-size: 0.85rem;")}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+
+            {assignedEssays.length > 0 && (
+              <div style={parseStyle("margin-bottom: var(--space-2xl);")}>
+                <h2 style={parseStyle("font-family: var(--font-display); font-size: 1.3rem; color: var(--color-primary-light); margin-bottom: var(--space-lg);")}>
+                  Your Assigned Work
+                </h2>
+                
+                {essaysLoading ? (
+                  <p style={parseStyle("color: var(--color-text-muted);")}>Loading...</p>
+                ) : (
+                  <div className="essay-grid">
+                    {assignedEssays.map(essay => (
+                      <EssayCard key={essay.id} essay={essay} isAssigned={true} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {assignedEssays.length === 0 && (
+              <div style={parseStyle("text-align: center; padding: var(--space-2xl); background: var(--glass-bg); border-radius: var(--radius-lg); margin-bottom: var(--space-xl);")}>
+                <p style={parseStyle("font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: var(--space-md);")}>
+                  No work has been assigned to you yet.
+                </p>
+                <p style={parseStyle("color: var(--color-text-muted);")}>
+                  Your teacher will assign essays when they are ready. In the meantime, you can explore available essays below.
+                </p>
+              </div>
+            )}
+
+            {otherEssays.length > 0 && (
+              <div>
+                <div 
+                  onClick={() => setShowExplore(!showExplore)}
+                  style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}
+                >
+                  <h2 style={parseStyle("font-family: var(--font-display); font-size: 1.1rem; color: var(--color-text-muted); margin: 0;")}>
+                    Explore Other Essays ({otherEssays.length})
+                  </h2>
+                  <span style={parseStyle("color: var(--color-text-muted); font-size: 1.2rem;")}>
+                    {showExplore ? '[-]' : '[+]'}
+                  </span>
+                </div>
+                
+                {showExplore && (
+                  <div className="essay-grid">
+                    {otherEssays.map(essay => (
+                      <EssayCard key={essay.id} essay={essay} isAssigned={false} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {showPasswordModal && (
+            <ChangePasswordModal 
+              sessionToken={sessionToken}
+              onClose={() => setShowPasswordModal(false)}
+              onSuccess={() => {
+                setShowPasswordModal(false);
+                alert('Password changed successfully!');
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
+    // CHANGE PASSWORD MODAL
+    // =====================================================
+
+    function ChangePasswordModal({ sessionToken, onClose, onSuccess }) {
+      const [currentPassword, setCurrentPassword] = useState('');
+      const [newPassword, setNewPassword] = useState('');
+      const [confirmPassword, setConfirmPassword] = useState('');
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          setError('Please fill in all fields');
+          return;
+        }
+
+        if (newPassword.length < 6) {
+          setError('New password must be at least 6 characters');
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          setError('New passwords do not match');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.changePassword(sessionToken, currentPassword, newPassword);
+          } else {
+            const response = await fetch('/.netlify/functions/student-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'changePassword',
+                sessionToken,
+                currentPassword,
+                newPassword
+              })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            onSuccess();
+          } else {
+            setError(result.error || 'Failed to change password');
+          }
+        } catch (err) {
+          setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h2>
+            
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                  {error}
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Change Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // STUDENT MANAGEMENT PANEL (Teacher Dashboard)
+    // =====================================================
+    
+    function StudentManagementPanel() {
+      const [students, setStudents] = useState([]);
+      const [classes, setClasses] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedClass, setSelectedClass] = useState('');
+      const [showAddStudent, setShowAddStudent] = useState(false);
+      const [showImportCSV, setShowImportCSV] = useState(false);
+      const [showAddClass, setShowAddClass] = useState(false);
+      const [searchTerm, setSearchTerm] = useState('');
+
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          if (FIREBASE_ENABLED) {
+            const [studentList, classList] = await Promise.all([
+              FirebaseDB.getStudents(),
+              FirebaseDB.getClasses()
+            ]);
+            setStudents(studentList);
+            setClasses(classList);
+          } else {
+            const [studentsRes, classesRes] = await Promise.all([
+              fetch('/.netlify/functions/manage-students'),
+              fetch('/.netlify/functions/manage-classes')
+            ]);
+            const studentsData = await studentsRes.json();
+            const classesData = await classesRes.json();
+            if (studentsData.success) setStudents(studentsData.students || []);
+            if (classesData.success) setClasses(classesData.classes || []);
+          }
+        } catch (err) {
+          console.error('Load error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      const filteredStudents = students.filter(s => {
+        const matchesSearch = !searchTerm || 
+          (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+        // Support both old classId format and new classIds array
+        const studentClassIds = s.classIds || (s.classId ? [s.classId] : []);
+        const matchesClass = !selectedClass || studentClassIds.includes(selectedClass);
+        return matchesSearch && matchesClass;
+      });
+
+      const handleResetPassword = async (email) => {
+        if (!confirm('Reset password for ' + email + '?')) return;
+        
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.resetStudentPassword(email);
+          } else {
+            const response = await fetch('/.netlify/functions/manage-students', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'resetPassword', email })
+            });
+            result = await response.json();
+          }
+          
+          if (result.success) {
+            alert('Password reset!\\n\\nNew password: ' + result.newPassword + '\\n\\nPlease give this to the student.');
+          } else {
+            alert('Failed to reset password: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error resetting password');
+        }
+      };
+
+      const handleDeleteStudent = async (email, name) => {
+        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
+        
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.deleteStudent(email);
+          } else {
+            const response = await fetch('/.netlify/functions/manage-students?email=' + encodeURIComponent(email), {
+              method: 'DELETE'
+            });
+            result = await response.json();
+          }
+          
+          if (result.success) {
+            setStudents(students.filter(s => s.email !== email));
+          } else {
+            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error deleting student');
+        }
+      };
+
+      if (loading) {
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}> Loading students...</p></div>;
+      }
+
+      return (
+        <div className="card">
+          <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin: 0;")}>
+              Students ({filteredStudents.length})
+            </h2>
+            <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+              <button className="btn btn-secondary" onClick={() => setShowAddClass(true)}>
+                + Add Class
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowImportCSV(true)}>
+                Import CSV
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowAddStudent(true)}>
+                + Add Student
+              </button>
+            </div>
+          </div>
+
+          <div style={parseStyle("display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap;")}>
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="paragraph-editor"
+              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+            />
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              style={parseStyle("padding: var(--space-sm) var(--space-md); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={parseStyle("overflow-x: auto;")}>
+            <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+              <thead>
+                <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Last Login</th>
+                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map(student => (
+                  <tr key={student.email} style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                    <td style={parseStyle("padding: var(--space-md);")}>{student.name}</td>
+                    <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>{student.email}</td>
+                    <td style={parseStyle("padding: var(--space-md); font-size: 0.9rem;")}>
+                      {(student.classNames?.length > 0 || student.className) 
+                        ? (student.classNames || [student.className]).filter(Boolean).join(', ')
+                        : '-'}
+                    </td>
+                    <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>
+                      {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td style={parseStyle("padding: var(--space-md); text-align: right;")}>
+                      <button 
+                        onClick={() => handleResetPassword(student.email)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
+                        title="Reset Password"
+                      >
+                        Reset PW
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStudent(student.email, student.name)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); color: var(--color-error);")}
+                        title="Delete Student"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredStudents.length === 0 && (
+            <div style={parseStyle("text-align: center; padding: var(--space-xl); color: var(--color-text-muted);")}>
+              No students found. Add students using the buttons above.
+            </div>
+          )}
+
+          {showAddStudent && (
+            <AddStudentModal 
+              classes={classes}
+              onClose={() => setShowAddStudent(false)}
+              onSuccess={(newStudent, password) => {
+                setStudents([...students, newStudent]);
+                setShowAddStudent(false);
+                alert('Student created!\\n\\nPassword: ' + password + '\\n\\nPlease give this to the student.');
+              }}
+            />
+          )}
+
+          {showImportCSV && (
+            <ImportCSVModal
+              classes={classes}
+              onClose={() => setShowImportCSV(false)}
+              onSuccess={() => {
+                loadData();
+                setShowImportCSV(false);
+              }}
+            />
+          )}
+
+          {showAddClass && (
+            <AddClassModal
+              onClose={() => setShowAddClass(false)}
+              onSuccess={(newClass) => {
+                setClasses([...classes, newClass]);
+                setShowAddClass(false);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ADD STUDENT MODAL
+    // =====================================================
+    
+    function AddStudentModal({ classes, onClose, onSuccess }) {
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [selectedClassIds, setSelectedClassIds] = useState([]);
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const toggleClass = (classId) => {
+        if (selectedClassIds.includes(classId)) {
+          setSelectedClassIds(selectedClassIds.filter(id => id !== classId));
+        } else {
+          setSelectedClassIds([...selectedClassIds, classId]);
+        }
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!name || !email) {
+          setError('Name and email are required');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.createStudent({
+              name, email, classIds: selectedClassIds, password: password || null
+            });
+          } else {
+            const response = await fetch('/.netlify/functions/manage-students', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'create', name, email, classIds: selectedClassIds, password: password || null
+              })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            onSuccess(result.student, result.generatedPassword);
+          } else {
+            setError(result.error || 'Failed to create student');
+          }
+        } catch (err) {
+          setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Student</h2>
+            
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. John Smith"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. jsmith@bb-hs.co.uk"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes (select multiple)</label>
+                <div style={parseStyle("max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm);")}>
+                  {classes.length === 0 ? (
+                    <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>No classes created yet</p>
+                  ) : (
+                    classes.map(c => (
+                      <label key={c.id} style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer;")}>
+                        <input
+                          type="checkbox"
+                          checked={selectedClassIds.includes(c.id)}
+                          onChange={() => toggleClass(c.id)}
+                          style={parseStyle("width: 18px; height: 18px; cursor: pointer;")}
+                        />
+                        <span>{c.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {selectedClassIds.length > 0 && (
+                  <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                    Selected: {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}
+                  </p>
+                )}
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Password (optional)</label>
+                <input
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Leave blank to auto-generate"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                  If left blank, a random password will be generated.
+                </p>
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Creating...' : 'Add Student'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // IMPORT CSV MODAL
+    // =====================================================
+    
+    function ImportCSVModal({ classes, onClose, onSuccess }) {
+      const [csvContent, setCsvContent] = useState('');
+      const [selectedClassIds, setSelectedClassIds] = useState([]);
+      const [results, setResults] = useState(null);
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const toggleClass = (classId) => {
+        if (selectedClassIds.includes(classId)) {
+          setSelectedClassIds(selectedClassIds.filter(id => id !== classId));
+        } else {
+          setSelectedClassIds([...selectedClassIds, classId]);
+        }
+      };
+
+      const parseCSV = (content) => {
+        const lines = content.trim().split(/\\r?\\n/);
+        if (lines.length < 2) return [];
+        
+        const headers = lines[0].split(',').map(h => 
+          h.trim().toLowerCase().replace(/['"]/g, '').replace(/\\s+/g, '')
+        );
+        
+        const students = [];
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+          
+          const student = {};
+          headers.forEach((header, idx) => {
+            if (values[idx]) student[header] = values[idx];
+          });
+          
+          if (student.email && (student.name || student.fullname || student.studentname)) {
+            student.name = student.name || student.fullname || student.studentname;
+            student.yearGroup = student.yeargroup || student.year || null;
+            students.push(student);
+          }
+        }
+        return students;
+      };
+
+      const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCsvContent(event.target.result);
+        };
+        reader.readAsText(file);
+      };
+
+      const handleImport = async () => {
+        setError('');
+        setResults(null);
+
+        if (!csvContent.trim()) {
+          setError('Please paste CSV content or upload a file');
+          return;
+        }
+
+        const parsedStudents = parseCSV(csvContent);
+        if (parsedStudents.length === 0) {
+          setError('No valid students found. CSV must have "email" and "name" columns.');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.importStudents(parsedStudents, selectedClassIds.length > 0 ? selectedClassIds : null);
+          } else {
+            const response = await fetch('/.netlify/functions/manage-students', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'importCSV',
+                csvContent,
+                classIds: selectedClassIds.length > 0 ? selectedClassIds : null
+              })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            setResults(result);
+          } else {
+            setError(result.error || 'Import failed');
+          }
+        } catch (err) {
+          setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow-y: auto;")}>
+          <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Import Students from CSV</h2>
+            
+            {!results ? (
+              <>
+                <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md);")}>
+                  <p style={parseStyle("font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
+                    <strong>CSV Format:</strong> Must include columns for <code>email</code> and <code>name</code>.
+                  </p>
+                  <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
+                    Optional columns: <code>yeargroup</code>, <code>password</code>
+                  </p>
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Upload CSV File</label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    style={parseStyle("width: 100%;")}
+                  />
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Or Paste CSV Content</label>
+                  <textarea
+                    value={csvContent}
+                    onChange={(e) => setCsvContent(e.target.value)}
+                    placeholder="email,name,yeargroup&#10;jsmith@bb-hs.co.uk,John Smith,Year 10"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: 150px;")}
+                  />
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Add to Classes (select multiple)</label>
+                  <div style={parseStyle("max-height: 120px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm);")}>
+                    {classes.length === 0 ? (
+                      <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>No classes created yet</p>
+                    ) : (
+                      classes.map(c => (
+                        <label key={c.id} style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer;")}>
+                          <input
+                            type="checkbox"
+                            checked={selectedClassIds.includes(c.id)}
+                            onChange={() => toggleClass(c.id)}
+                            style={parseStyle("width: 18px; height: 18px; cursor: pointer;")}
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {selectedClassIds.length > 0 && (
+                    <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                      Selected: {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}
+                    </p>
+                  )}
+                </div>
+
+                {error && (
+                  <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                    {error}
+                  </div>
+                )}
+
+                <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                  <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                  <button className="btn btn-primary" onClick={handleImport} disabled={isLoading}>
+                    {isLoading ? 'Importing...' : 'Import'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                  <h3 style={parseStyle("color: var(--color-success); margin-bottom: var(--space-md);")}>
+                    Import Complete
+                  </h3>
+                  <p>
+                    <strong>{results.results.created.length}</strong> students created, 
+                    <strong> {results.results.skipped.length}</strong> skipped (already exist),
+                    <strong> {results.results.errors.length}</strong> errors
+                  </p>
+                </div>
+
+                {results.results.created.length > 0 && (
+                  <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                    <h4 style={parseStyle("margin-bottom: var(--space-sm);")}>Created Students and Passwords</h4>
+                    <div style={parseStyle("max-height: 200px; overflow-y: auto; background: var(--glass-bg); padding: var(--space-md); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.85rem;")}>
+                      {results.results.created.map((s, i) => (
+                        <div key={i} style={parseStyle("margin-bottom: var(--space-xs);")}>
+                          {s.name}: <strong>{s.password}</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={parseStyle("font-size: 0.85rem; color: var(--color-warning); margin-top: var(--space-sm);")}>
+                      Save these passwords! They will not be shown again.
+                    </p>
+                  </div>
+                )}
+
+                <div style={parseStyle("display: flex; justify-content: flex-end;")}>
+                  <button className="btn btn-primary" onClick={() => onSuccess(results)}>
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ADD CLASS MODAL
+    // =====================================================
+    
+    function AddClassModal({ onClose, onSuccess }) {
+      const [name, setName] = useState('');
+      const [subject, setSubject] = useState('English');
+      const [yearGroup, setYearGroup] = useState('');
+      const [teacher, setTeacher] = useState('');
+      const [teacherEmail, setTeacherEmail] = useState('');
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!name) {
+          setError('Class name is required');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          let result;
+          if (FIREBASE_ENABLED) {
+            result = await FirebaseDB.createClass({ name, subject, yearGroup, teacher, teacherEmail });
+          } else {
+            const response = await fetch('/.netlify/functions/manage-classes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'create', name, subject, yearGroup, teacher, teacherEmail })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            onSuccess(result.class);
+          } else {
+            setError(result.error || 'Failed to create class');
+          }
+        } catch (err) {
+          setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Create Class</h2>
+            
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. 10B English"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="e.g. English"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                  <input
+                    type="text"
+                    value={yearGroup}
+                    onChange={(e) => setYearGroup(e.target.value)}
+                    placeholder="e.g. Year 10"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  />
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+                <input
+                  type="text"
+                  value={teacher}
+                  onChange={(e) => setTeacher(e.target.value)}
+                  placeholder="e.g. Mr Davies"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+                <input
+                  type="email"
+                  value={teacherEmail}
+                  onChange={(e) => setTeacherEmail(e.target.value)}
+                  placeholder="e.g. pdavies@bb-hs.co.uk"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Creating...' : 'Create Class'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ASSIGNMENTS PANEL
+    // =====================================================
+    
+    function AssignmentsPanel() {
+      const [classes, setClasses] = useState([]);
+      const [students, setStudents] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedClass, setSelectedClass] = useState(null);
+      const [selectedStudent, setSelectedStudent] = useState(null);
+
+      const essays = window.ESSAY_LIST || [];
+
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            if (FIREBASE_ENABLED) {
+              const [classList, studentList] = await Promise.all([
+                FirebaseDB.getClasses(),
+                FirebaseDB.getStudents()
+              ]);
+              setClasses(classList);
+              setStudents(studentList);
+            } else {
+              const [classesRes, studentsRes] = await Promise.all([
+                fetch('/.netlify/functions/manage-classes'),
+                fetch('/.netlify/functions/manage-students')
+              ]);
+              const classesData = await classesRes.json();
+              const studentsData = await studentsRes.json();
+              if (classesData.success) setClasses(classesData.classes || []);
+              if (studentsData.success) setStudents(studentsData.students || []);
+            }
+          } catch (err) {
+            console.error('Load error:', err);
+          } finally {
+            setLoading(false);
+          }
+        };
+        loadData();
+      }, []);
+
+      const handleAssignToClass = async (classId, essayId, assign) => {
+        try {
+          if (FIREBASE_ENABLED) {
+            if (assign) {
+              await FirebaseDB.assignToClass(classId, essayId);
+            } else {
+              await FirebaseDB.unassignFromClass(classId, essayId);
+            }
+          } else {
+            await fetch('/.netlify/functions/manage-classes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: assign ? 'assignToClass' : 'unassignFromClass',
+                classId, essayId
+              })
+            });
+          }
+          
+          // Reload classes to get updated assignments
+          if (FIREBASE_ENABLED) {
+            const updated = await FirebaseDB.getClasses();
+            setClasses(updated);
+          } else {
+            const res = await fetch('/.netlify/functions/manage-classes');
+            const data = await res.json();
+            if (data.success) setClasses(data.classes || []);
+          }
+        } catch (err) {
+          console.error('Assignment error:', err);
+        }
+      };
+
+      const handleAssignToStudent = async (studentEmail, essayId, assign) => {
+        try {
+          if (FIREBASE_ENABLED) {
+            if (assign) {
+              await FirebaseDB.assignToStudent(studentEmail, essayId);
+            } else {
+              await FirebaseDB.unassignFromStudent(studentEmail, essayId);
+            }
+          } else {
+            await fetch('/.netlify/functions/manage-classes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: assign ? 'assignToStudent' : 'unassignFromStudent',
+                studentEmail, essayId
+              })
+            });
+          }
+          
+          // Reload students
+          if (FIREBASE_ENABLED) {
+            const updated = await FirebaseDB.getStudents();
+            setStudents(updated);
+          } else {
+            const res = await fetch('/.netlify/functions/manage-students');
+            const data = await res.json();
+            if (data.success) setStudents(data.students || []);
+          }
+        } catch (err) {
+          console.error('Assignment error:', err);
+        }
+      };
+
+      if (loading) {
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);">}>Loading...</p></div>;
+      }
+
+      return (
+        <div className="card">
+          <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>
+            Assign Work
+          </h2>
+
+          <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl);")}>
+            {/* Class Assignments */}
+            <div>
+              <h3 style={parseStyle("color: var(--color-primary-light); margin-bottom: var(--space-md);")}>
+                Assign to Class
+              </h3>
+              
+              <select
+                value={selectedClass || ''}
+                onChange={(e) => setSelectedClass(e.target.value || null)}
+                style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); margin-bottom: var(--space-md);")}
+              >
+                <option value="">Select a class...</option>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+
+              {selectedClass && (
+                <div>
+                  {essays.map(essay => {
+                    const classData = classes.find(c => c.id === selectedClass);
+                    const isAssigned = (classData?.assignedEssays || []).includes(essay.id);
+                    
+                    return (
+                      <div 
+                        key={essay.id}
+                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
+                      >
+                        <span style={parseStyle("font-size: 0.9rem;")}>{essay.title}</span>
+                        <button
+                          onClick={() => handleAssignToClass(selectedClass, essay.id, !isAssigned)}
+                          className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
+                          style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                        >
+                          {isAssigned ? 'Remove' : 'Assign'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Individual Assignments */}
+            <div>
+              <h3 style={parseStyle("color: var(--color-primary-light); margin-bottom: var(--space-md);")}>
+                Assign to Individual
+              </h3>
+              
+              <select
+                value={selectedStudent || ''}
+                onChange={(e) => setSelectedStudent(e.target.value || null)}
+                style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); margin-bottom: var(--space-md);")}
+              >
+                <option value="">Select a student...</option>
+                {students.map(s => (
+                  <option key={s.email} value={s.email}>{s.name} ({s.className || 'No class'})</option>
+                ))}
+              </select>
+
+              {selectedStudent && (
+                <div>
+                  {essays.map(essay => {
+                    const studentData = students.find(s => s.email === selectedStudent);
+                    const isAssigned = (studentData?.individualAssignments || []).includes(essay.id);
+                    
+                    return (
+                      <div 
+                        key={essay.id}
+                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
+                      >
+                        <span style={parseStyle("font-size: 0.9rem;")}>{essay.title}</span>
+                        <button
+                          onClick={() => handleAssignToStudent(selectedStudent, essay.id, !isAssigned)}
+                          className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
+                          style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                        >
+                          {isAssigned ? 'Remove' : 'Assign'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       );
     }
@@ -4412,14 +6449,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? '✅ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? 'âœ… Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
+                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>📝 {essay.subject}</span>
-                        <span>🎓 {essay.yearGroup}</span>
+                        <span>ðŸ“ {essay.subject}</span>
+                        <span>ðŸŽ“ {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -4429,7 +6466,7 @@
                       {savedProgress && !savedProgress.isComplete && (
                         <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);")}>
                           <strong style={parseStyle("color: var(--color-primary-light);")}>{savedProgress.studentName}</strong>
-                          <span> • {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
+                          <span> â€¢ {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
                           <div style={parseStyle("margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
                             <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '2px' }} />
                           </div>
@@ -4501,15 +6538,15 @@
         <div className={`task-panel ${isOpen ? 'mobile-open' : ''}`}>
           <div className="task-panel-header">
             <h3 className="task-panel-title">
-              <span>📋 </span> Reference Materials
+              <span>ðŸ“‹ </span> Reference Materials
             </h3>
-            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">✖️</button>
+            <button className="task-panel-close" onClick={onClose} aria-label="Close task panel">âœ–ï¸</button>
           </div>
           <div className="task-panel-content">
             {hasTask && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>📝</span> Exam Question
+                  <span>ðŸ“</span> Exam Question
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(config.originalTask) }} />
               </div>
@@ -4518,7 +6555,7 @@
             {hasSource && (
               <div className="task-section">
                 <h4 className="task-section-title">
-                  <span>📖</span> Source Material
+                  <span>ðŸ“–</span> Source Material
                 </h4>
                 <div dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }} />
               </div>
@@ -4538,7 +6575,7 @@
           aria-label="Show original task"
           title="Show original task"
         >
-          👨‍🏫
+          ðŸ‘¨â€ðŸ«
         </button>
       );
     }
@@ -4671,7 +6708,7 @@
                 )}
                 {isCumulative && paragraphCount > 1 && (
                   <div style={parseStyle("font-size: 0.8rem; color: var(--color-info); background: var(--color-info-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 600;")}>
-                    📊 Cumulative ({paragraphCount} paragraphs)
+                    ðŸ“Š Cumulative ({paragraphCount} paragraphs)
                   </div>
                 )}
               </div>
@@ -4737,7 +6774,7 @@
           
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>💪</span> Strengths</div>
+              <div className="feedback-section-title"><span>ðŸ’ª</span> Strengths</div>
               <ul className="feedback-list strengths">
                 {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4746,7 +6783,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>👊</span> Areas to Improve</div>
+              <div className="feedback-section-title"><span>ðŸ‘Š</span> Areas to Improve</div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -4755,21 +6792,21 @@
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>🧑‍🏫</span> Detailed Feedback</div>
+              <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Detailed Feedback</div>
               <div className="detailed-feedback">{feedback.detailedFeedback}</div>
             </div>
           )}
           
           {feedback.exampleRevision && (
             <div className="example-revision">
-              <div className="example-revision-label">🛠️ Example Improvement</div>
+              <div className="example-revision-label">ðŸ› ï¸ Example Improvement</div>
               {feedback.exampleRevision}
             </div>
           )}
           
           {feedback.nextLevelHint && (
             <div className="feedback-section" style={parseStyle("margin-top: var(--space-lg);")}>
-              <div className="feedback-section-title"><span>🎯</span> To Reach the Next Grade</div>
+              <div className="feedback-section-title"><span>ðŸŽ¯</span> To Reach the Next Grade</div>
               <div className="detailed-feedback">{feedback.nextLevelHint}</div>
             </div>
           )}
@@ -4786,7 +6823,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                ✅ Complete & Continue to Next Section
+                âœ… Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -4966,7 +7003,7 @@
           <div className="card ghost-appear">
             <div className="app-header" style={parseStyle("margin-bottom: 0; border: none; background: transparent; padding: var(--space-lg) 0;")}>
               <h1 className="gold-glow">{config.title}</h1>
-              <p className="subtitle">{config.subject} • {config.yearGroup}</p>
+              <p className="subtitle">{config.subject} â€¢ {config.yearGroup}</p>
               {config.essayTitle && (
                 <p className="essay-title">"{config.essayTitle}"</p>
               )}
@@ -5051,7 +7088,7 @@
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
                   <label className="grade-selector-label">
-                    🎯 What grade are you aiming for? What grade are you aiming for?
+                    ðŸŽ¯ What grade are you aiming for? What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -5073,9 +7110,9 @@
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
                       <div className="grade-info-title">
-                        {abilityTier === 'high' ? '🚀 Aiming High!' :
-                         abilityTier === 'foundation' ? '🧱 Building Strong Foundations' :
-                         '📆 Solid Progress'}
+                        {abilityTier === 'high' ? 'ðŸš€ Aiming High!' :
+                         abilityTier === 'foundation' ? 'ðŸ§± Building Strong Foundations' :
+                         'ðŸ“† Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -5095,7 +7132,7 @@
                     type="button"
                     className="btn btn-secondary"
                     onClick={onBack}
-                  >← Back</button>
+                  >â† Back</button>
                 </div>
               </form>
             </div>
@@ -5613,17 +7650,17 @@
         });
         
         let report = `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
                         ESSAY ASSESSMENT REPORT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 
 Student: ${studentName}
 Date: ${date}
 Subject: ${config?.subject || ''}
 Essay Title: ${config?.essayTitle || ''}
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
                            YOUR ESSAY
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 
 ${fullEssay}
 
@@ -5632,23 +7669,23 @@ ${fullEssay}
         // Add Feedback if available
         if (essayFeedback) {
           report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
                         FEEDBACK
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 
 OVERALL SCORE: ${essayFeedback.finalScore || essayFeedback.overallScore}%
 GRADE: ${essayFeedback.overallGrade}
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 SUMMARY
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${essayFeedback.essaySummary || 'No summary available.'}
 
 `;
           if (essayFeedback.bestQuotation) {
             report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 YOUR BEST WRITING
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 "${essayFeedback.bestQuotation}"
 
 `;
@@ -5656,9 +7693,9 @@ YOUR BEST WRITING
           
           if (essayFeedback.holisticStrengths && essayFeedback.holisticStrengths.length > 0) {
             report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 STRENGTHS
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -5666,9 +7703,9 @@ ${essayFeedback.holisticStrengths.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.holisticImprovements && essayFeedback.holisticImprovements.length > 0) {
             report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 AREAS FOR DEVELOPMENT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 `;
@@ -5676,9 +7713,9 @@ ${essayFeedback.holisticImprovements.map((s, i) => `${i + 1}. ${s}`).join('\n')}
           
           if (essayFeedback.closingEncouragement) {
             report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 TEACHER'S ENCOURAGEMENT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${essayFeedback.closingEncouragement}
 
 `;
@@ -5690,13 +7727,13 @@ ${essayFeedback.closingEncouragement}
           const { initialVersion, improvedVersion, comparison, examinerComment } = officialGrading;
           
           report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 IMPROVEMENT SUMMARY
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 
 Initial Version:  ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${initialVersion.grade})
 Final Version:    ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} (Grade ${improvedVersion.grade})
@@ -5704,9 +7741,9 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 INITIAL VERSION ASSESSMENT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
 
 Assessment Objectives:
@@ -5719,9 +7756,9 @@ ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 FINAL VERSION ASSESSMENT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
 
 Assessment Objectives:
@@ -5739,27 +7776,27 @@ ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
           
           if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 NEXT STEPS TO IMPROVE FURTHER
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${comparison.remainingTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
 `;
           }
           
           report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 EXAMINER'S COMMENT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 ${examinerComment}
 
 `;
         }
         
         report += `
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
                       END OF REPORT
-=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€=❓€
+=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬=â“â‚¬
 `;
         
         return report;
@@ -5844,7 +7881,7 @@ ${examinerComment}
                   Grade {version.grade}
                 </div>
                 <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                  Level {version.level} • {version.percentage}%
+                  Level {version.level} â€¢ {version.percentage}%
                 </div>
               </div>
             </div>
@@ -5875,13 +7912,13 @@ ${examinerComment}
             
             <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);")}>
               <div>
-                <strong style={parseStyle("color: var(--color-success); font-size: 0.85rem;")}>✅ Strengths</strong>
+                <strong style={parseStyle("color: var(--color-success); font-size: 0.85rem;")}>âœ… Strengths</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
               <div>
-                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}>👊 To Improve</strong>
+                <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}>ðŸ‘Š To Improve</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
@@ -5895,9 +7932,9 @@ ${examinerComment}
             <div className="holistic-feedback" style={parseStyle("margin-top: var(--space-xl);")}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>👨‍🏫 Official Mark Scheme Grading</h2>
+                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ðŸ‘¨â€ðŸ« Official Mark Scheme Grading</h2>
                   <p style={parseStyle("color: var(--color-text-muted);")}>
-                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} • {config.officialMarkScheme.paper}
+                    {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification} â€¢ {config.officialMarkScheme.paper}
                   </p>
                 </div>
               </div>
@@ -5911,7 +7948,7 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>Grade {initialVersion.grade}</div>
                   </div>
                   
-                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}>➡️</div>
+                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}>âž¡ï¸</div>
                   
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Improved</div>
@@ -5936,14 +7973,14 @@ ${examinerComment}
               
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
-                <VersionCard version={initialVersion} title="👨‍🏫 Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={initialVersion} title="ðŸ‘¨â€ðŸ« Initial Version (First Attempt)" isImproved={false} />
                 <VersionCard version={improvedVersion} title="? Improved Version (Final) Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}>🎯 What grade are you aiming for? Next Steps to Improve Further</h4>
+                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸŽ¯ What grade are you aiming for? Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={parseStyle("margin-bottom: var(--space-sm);")}>{target}</li>
@@ -5969,20 +8006,20 @@ ${examinerComment}
               className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('essay')}
             >
-              👨‍🏫 Your Essay
+              ðŸ‘¨â€ðŸ« Your Essay
             </button>
             <button 
               className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('feedback')}
             >
-              💬 Feedback Feedback
+              ðŸ’¬ Feedback Feedback
             </button>
             {hasOfficialMarkScheme && (
               <button 
                 className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setActiveTab('official')}
               >
-                🧾 Official Grading Official Grading
+                ðŸ§¾ Official Grading Official Grading
               </button>
             )}
           </div>
@@ -5993,7 +8030,7 @@ ${examinerComment}
               <div className="essay-compilation">
                 <div className="essay-compilation-header">
                   <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
-                  <p className="essay-compilation-meta">By {studentName} • {config?.subject} • {formatDateTime(new Date())}</p>
+                  <p className="essay-compilation-meta">By {studentName} â€¢ {config?.subject} â€¢ {formatDateTime(new Date())}</p>
                 </div>
                 
                 <div className="compiled-essay">
@@ -6004,7 +8041,7 @@ ${examinerComment}
               </div>
               
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; margin-top: var(--space-xl);")}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}>🖨️ Print Essay</button>
+                <button className="btn btn-primary btn-large" onClick={handlePrint}>ðŸ–¨ï¸ Print Essay</button>
               </div>
             </>
           )}
@@ -6024,7 +8061,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>👨‍🏫 Essay Feedback</h2>
+                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}>ðŸ‘¨â€ðŸ« Essay Feedback</h2>
                       <p style={parseStyle("color: var(--color-text-muted);")}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -6042,14 +8079,14 @@ ${examinerComment}
                   
                   {essayFeedback.essaySummary && (
                     <div className="feedback-section">
-                      <div className="feedback-section-title"><span>🧑‍🏫</span> Summary</div>
+                      <div className="feedback-section-title"><span>ðŸ§‘â€ðŸ«</span> Summary</div>
                       <div className="detailed-feedback">{essayFeedback.essaySummary}</div>
                     </div>
                   )}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label">💎 Your Best Writing</div>
+                      <div className="best-quote-label">ðŸ’Ž Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -6057,7 +8094,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>✨</span> Improved Version (Final)</div>
+                        <div className="feedback-section-title"><span>âœ¨</span> Improved Version (Final)</div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -6066,7 +8103,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>🎯</span> Areas for Development</div>
+                        <div className="feedback-section-title"><span>ðŸŽ¯</span> Areas for Development</div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -6090,7 +8127,7 @@ ${examinerComment}
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
                   <div className="card" style={parseStyle("max-width: 600px; margin: 0 auto;")}>
-                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}>🧾 Official Grading Official Mark Scheme Grading</h3>
+                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h3>
                     <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                       Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                     </p>
@@ -6098,7 +8135,7 @@ ${examinerComment}
                       This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
                     </p>
                     <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                      👨‍🏫 Get Official Grading
+                      ðŸ‘¨â€ðŸ« Get Official Grading
                     </button>
                   </div>
                 </div>
@@ -6122,16 +8159,16 @@ ${examinerComment}
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
             <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>⬇️❓ Download Your Full Report</h3>
+              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>â¬‡ï¸â“ Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;")}>
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  🖨️ Print Full Report
+                  ðŸ–¨ï¸ Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  👨‍🏫 Copy to Clipboard
+                  ðŸ‘¨â€ðŸ« Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -6152,6 +8189,7 @@ ${examinerComment}
       const [error, setError] = useState(null);
       const [filterEssayId, setFilterEssayId] = useState('all');
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
+      const [activeTab, setActiveTab] = useState('submissions');
       
       // Fetch data from Netlify Blobs (fallback)
       const fetchFromNetlify = useCallback(async () => {
@@ -6287,12 +8325,42 @@ ${examinerComment}
                 )}
               </div>
               <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}>ðŸ”„ Refresh</button>
                 <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
               </div>
             </div>
           </div>
           
+          {/* Tab Navigation */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md);")}>
+            <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+              <button 
+                className={activeTab === 'submissions' ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={() => setActiveTab('submissions')}
+              >
+                Submissions
+              </button>
+              <button 
+                className={activeTab === 'students' ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={() => setActiveTab('students')}
+              >
+                Students
+              </button>
+              <button 
+                className={activeTab === 'assignments' ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={() => setActiveTab('assignments')}
+              >
+                Assignments
+              </button>
+            </div>
+          </div>
+          
+          {/* Tab Content */}
+          {activeTab === 'students' && <StudentManagementPanel />}
+          {activeTab === 'assignments' && <AssignmentsPanel />}
+          
+          {activeTab === 'submissions' && (
+          <>
           {/* Essay Filter */}
           {getEssayList().length > 1 && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
@@ -6319,7 +8387,7 @@ ${examinerComment}
           
           {/* Preview Essays */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>👨‍🏫 Preview Essays</h4>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ‘¨â€ðŸ« Preview Essays</h4>
             <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
               {getEssayList().map(essay => (
                 <button 
@@ -6335,7 +8403,7 @@ ${examinerComment}
           
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>⚡ In Progress ({filteredInProgress.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>âš¡ In Progress ({filteredInProgress.length})</h3>
             
             {filteredInProgress.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
@@ -6393,7 +8461,7 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>👨‍🏫 Completed Essays ({filteredSubmissions.length})</h3>
+            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>ðŸ‘¨â€ðŸ« Completed Essays ({filteredSubmissions.length})</h3>
             
             {filteredSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl);")}>
@@ -6431,8 +8499,8 @@ ${examinerComment}
                           <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>💬 Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>🧾 Official Grading</span>
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>ðŸ’¬ Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>ðŸ§¾ Official Grading</span>
                           </td>
                           <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
@@ -6463,7 +8531,7 @@ ${examinerComment}
                 <div style={parseStyle("margin-bottom: var(--space-lg); display: flex; gap: var(--space-lg); flex-wrap: wrap;")}>
                   <div>
                     <strong>Score:</strong> {selectedSubmission.score}%
-                    {selectedSubmission.grade && <> • <strong>Grade:</strong> {selectedSubmission.grade}</>}
+                    {selectedSubmission.grade && <> â€¢ <strong>Grade:</strong> {selectedSubmission.grade}</>}
                   </div>
                   {selectedSubmission.officialGrading && (
                     <div style={parseStyle("color: var(--color-success);")}>
@@ -6476,7 +8544,7 @@ ${examinerComment}
                 {/* Essay Text */}
                 {selectedSubmission.essay && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>👨‍🏫 Essay</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ‘¨â€ðŸ« Essay</h4>
                     <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.essay.split('\n\n').map((para, i) => (
                         <p key={i} className="compiled-paragraph">{para}</p>
@@ -6488,7 +8556,7 @@ ${examinerComment}
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>💬 Feedback Feedback</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ’¬ Feedback Feedback</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={parseStyle("margin-bottom: var(--space-md);")}>{selectedSubmission.feedback.essaySummary}</p>
@@ -6503,7 +8571,7 @@ ${examinerComment}
                       <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-success);")}>✅ Improved Version (Final) Strengths</strong>
+                            <strong style={parseStyle("color: var(--color-success);")}>âœ… Improved Version (Final) Strengths</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -6511,7 +8579,7 @@ ${examinerComment}
                         )}
                         {selectedSubmission.feedback.holisticImprovements && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-warning);")}>👊 To Improve</strong>
+                            <strong style={parseStyle("color: var(--color-warning);")}>ðŸ‘Š To Improve</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -6525,7 +8593,7 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>🧾 Official Grading Official Mark Scheme Grading</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}>ðŸ§¾ Official Grading Official Mark Scheme Grading</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {/* Improvement Summary */}
                       <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
@@ -6534,7 +8602,7 @@ ${examinerComment}
                           <div style={parseStyle("font-size: 1.5rem; font-weight: 700;")}>{selectedSubmission.officialGrading.initialVersion?.totalMark}</div>
                           <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Grade {selectedSubmission.officialGrading.initialVersion?.grade}</div>
                         </div>
-                        <div style={parseStyle("font-size: 1.5rem; color: var(--color-primary);")}>➡️</div>
+                        <div style={parseStyle("font-size: 1.5rem; color: var(--color-primary);")}>âž¡ï¸</div>
                         <div>
                           <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>Final</div>
                           <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-success);")}>{selectedSubmission.officialGrading.improvedVersion?.totalMark}</div>
@@ -6564,6 +8632,8 @@ ${examinerComment}
               </div>
             </div>
           )}
+          </>
+          )}
         </div>
       );
     }
@@ -6573,7 +8643,14 @@ ${examinerComment}
     // =====================================================
     
     function App() {
-      const [screen, setScreen] = useState('select-essay');
+      // Authentication state
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [currentStudent, setCurrentStudent] = useState(null);
+      const [sessionToken, setSessionToken] = useState(null);
+      const [authLoading, setAuthLoading] = useState(true);
+      
+      // Existing state
+      const [screen, setScreen] = useState('login');
       const [selectedEssayId, setSelectedEssayId] = useState(null);
       const [studentName, setStudentName] = useState('');
       const [studentEmail, setStudentEmail] = useState('');
@@ -6593,6 +8670,84 @@ ${examinerComment}
       const PARAGRAPHS = CONFIG?.paragraphs || [];
       const GRADING_CRITERIA = CONFIG ? getGradingCriteria(CONFIG) : {};
       
+      // Check for existing session on load
+      useEffect(() => {
+        const checkSession = async () => {
+          const savedToken = localStorage.getItem('studentSession');
+          const savedStudent = localStorage.getItem('studentData');
+          
+          if (savedToken && savedStudent) {
+            try {
+              let result;
+              if (FIREBASE_ENABLED) {
+                result = await FirebaseDB.verifySession(savedToken);
+              } else {
+                const response = await fetch('/.netlify/functions/student-auth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'verify', sessionToken: savedToken })
+                });
+                result = await response.json();
+              }
+              
+              if (result.success) {
+                setCurrentStudent(result.student);
+                setSessionToken(savedToken);
+                setIsAuthenticated(true);
+                setStudentName(result.student.name);
+                setStudentEmail(result.student.email);
+                setScreen('student-dashboard');
+              } else {
+                localStorage.removeItem('studentSession');
+                localStorage.removeItem('studentData');
+              }
+            } catch (err) {
+              console.error('Session check error:', err);
+              localStorage.removeItem('studentSession');
+              localStorage.removeItem('studentData');
+            }
+          }
+          setAuthLoading(false);
+        };
+        
+        checkSession();
+      }, []);
+      
+      // Handle successful student login
+      const handleStudentLogin = (student, token) => {
+        setCurrentStudent(student);
+        setSessionToken(token);
+        setIsAuthenticated(true);
+        setStudentName(student.name);
+        setStudentEmail(student.email);
+        setScreen('student-dashboard');
+      };
+
+      // Handle student logout
+      const handleStudentLogout = () => {
+        setIsAuthenticated(false);
+        setCurrentStudent(null);
+        setSessionToken(null);
+        setStudentName('');
+        setStudentEmail('');
+        setSelectedEssayId(null);
+        setParagraphStates({});
+        setCurrentParagraphIndex(0);
+        setScreen('login');
+      };
+
+      // Handle essay selection from student dashboard
+      const handleDashboardSelectEssay = (essayId) => {
+        setSelectedEssayId(essayId);
+        setScreen('entry');
+      };
+      
+      // Handle exploring non-assigned essay
+      const handleExploreEssay = (essayId) => {
+        setSelectedEssayId(essayId);
+        setScreen('entry');
+      };
+      
       // Debug: log CONFIG and gradeBoundaries when essay is selected
       React.useEffect(() => {
         if (CONFIG && selectedEssayId) {
@@ -6608,15 +8763,16 @@ ${examinerComment}
         }
       }, [CONFIG, selectedEssayId]);
       
-      // Check URL for direct essay link
+      // Check URL for direct essay link (skip if not authenticated)
       useEffect(() => {
+        if (!isAuthenticated) return;
         const urlParams = new URLSearchParams(window.location.search);
         const essayParam = urlParams.get('essay');
         if (essayParam && getEssays()[essayParam]) {
           setSelectedEssayId(essayParam);
           setScreen('entry');
         }
-      }, []);
+      }, [isAuthenticated]);
       
       // Load saved state for selected essay
       useEffect(() => {
@@ -7104,12 +9260,41 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
       };
       
       // Render screens
+      
+      // Show loading while checking authentication
+      if (authLoading) {
+        return <LoadingSpinner text="Loading..." />;
+      }
+      
+      // Login screen
+      if (screen === 'login') {
+        return (
+          <StudentLoginScreen 
+            onLoginSuccess={handleStudentLogin}
+            onTeacherLogin={handleTeacherLogin}
+          />
+        );
+      }
+      
+      // Student dashboard
+      if (screen === 'student-dashboard') {
+        return (
+          <StudentDashboard
+            student={currentStudent}
+            sessionToken={sessionToken}
+            onSelectEssay={handleDashboardSelectEssay}
+            onExploreEssay={handleExploreEssay}
+            onLogout={handleStudentLogout}
+          />
+        );
+      }
+      
       if (screen === 'select-essay') {
         return <EssaySelectionScreen onSelectEssay={handleSelectEssay} onTeacherLogin={handleTeacherLogin} />;
       }
       
       if (screen === 'entry') {
-        return <EntryScreen config={CONFIG} onStudentStart={handleStudentStart} onBack={handleBackToEssayList} />;
+        return <EntryScreen config={CONFIG} onStudentStart={handleStudentStart} onBack={isAuthenticated ? () => setScreen('student-dashboard') : handleBackToEssayList} />;
       }
       
       if (screen === 'dashboard') {
@@ -7136,7 +9321,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           <div className="app-container">
             <div className="app-header">
               <h1 className="gold-glow">{CONFIG.title}</h1>
-              <p className="subtitle">Essay Complete • {studentName}</p>
+              <p className="subtitle">Essay Complete - {studentName}</p>
             </div>
             <EssayCompilationScreen
               studentName={studentName}
@@ -7164,7 +9349,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         <div className="app-container" style={{ maxWidth: hasReferenceContent ? '1400px' : '880px' }}>
           <div className="app-header">
             <h1 className="gold-glow">{CONFIG.title}</h1>
-            <p className="subtitle">{CONFIG.subject} • {studentName}</p>
+            <p className="subtitle">{CONFIG.subject} â€¢ {studentName}</p>
             {CONFIG.essayTitle && <p className="essay-title">"{CONFIG.essayTitle}"</p>}
             {targetGrade && (
               <div className="target-grade-badge" style={parseStyle("margin-top: var(--space-sm);")}>
@@ -7176,9 +9361,9 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           {isPreviewMode && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg; border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
               <div>
-                <strong style={parseStyle("color: var(--color-primary-light);")}>👨‍🏫 Teacher Preview Mode</strong>
+                <strong style={parseStyle("color: var(--color-primary-light);")}>ðŸ‘¨â€ðŸ« Teacher Preview Mode</strong>
                 <span style={parseStyle("margin-left: var(--space-md); color: var(--color-text-muted);")}>
-                  Paste enabled • Free navigation • Progress not saved
+                  Paste enabled â€¢ Free navigation â€¢ Progress not saved
                 </span>
               </div>
               <button className="btn btn-secondary" onClick={() => {
@@ -7188,7 +9373,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
                 setParagraphStates({});
                 setCurrentParagraphIndex(0);
               }}>
-                ← Exit Preview
+                â† Exit Preview
               </button>
             </div>
           )}
