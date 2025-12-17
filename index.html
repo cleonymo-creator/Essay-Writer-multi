@@ -22,21 +22,34 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
-  <!-- Firebase Configuration - EDIT THESE VALUES -->
+  <!-- Firebase Configuration - Loaded from Netlify Function -->
   <script>
-    // Set to true to enable Firebase, false to use Netlify Blobs
-    window.FIREBASE_ENABLED = true;
+    // Firebase config will be loaded from serverless function
+    window.FIREBASE_ENABLED = false; // Will be set to true after config loads
+    window.FIREBASE_CONFIG = null;
     
-    // Replace with your Firebase project config from Firebase Console
-    // (Project Settings > Your Apps > Config)
-    window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAyyJeOx3AvxqVrO4Dl2HN-Naznk3Y27_w",
-  authDomain: "student-essay-assistant.firebaseapp.com",
-  projectId: "student-essay-assistant",
-  storageBucket: "student-essay-assistant.firebasestorage.app",
-  messagingSenderId: "789341142514",
-  appId: "1:789341142514:web:141dcec29bc829cd05ff6b"
-};
+    // Load Firebase config from Netlify Function (keeps API key in environment variables)
+    async function loadFirebaseConfig() {
+      try {
+        const response = await fetch('/.netlify/functions/firebase-config');
+        if (!response.ok) {
+          throw new Error('Failed to load Firebase config');
+        }
+        const config = await response.json();
+        if (config.error) {
+          console.error('Firebase config error:', config.error, config.hint);
+          return false;
+        }
+        window.FIREBASE_CONFIG = config;
+        window.FIREBASE_ENABLED = true;
+        console.log('Firebase config loaded successfully');
+        return true;
+      } catch (error) {
+        console.error('Could not load Firebase config:', error);
+        console.log('Falling back to Netlify Blobs (if available)');
+        return false;
+      }
+    }
   </script>
   
   <!-- Dynamic Essay Loading System -->
@@ -3966,24 +3979,64 @@
     // =====================================================
     
     let db = null;
-    const FIREBASE_ENABLED = window.FIREBASE_ENABLED && window.FIREBASE_CONFIG?.apiKey && window.FIREBASE_CONFIG?.apiKey !== 'YOUR_API_KEY';
+    let FIREBASE_ENABLED = false;
     
-    if (FIREBASE_ENABLED) {
-      try {
-        firebase.initializeApp(window.FIREBASE_CONFIG);
-        db = firebase.firestore();
-        console.log('Firebase initialized successfully');
-      } catch (error) {
-        console.error('Firebase initialization failed:', error);
+    // Initialize Firebase (called after config is loaded)
+    async function initializeFirebase() {
+      // First, load the config from Netlify Function
+      if (typeof loadFirebaseConfig === 'function') {
+        await loadFirebaseConfig();
       }
-    } else {
-      console.log('Firebase not configured - using Netlify Blobs fallback');
+      
+      // Debug Firebase configuration
+      console.log('Firebase Config Check:');
+      console.log('  window.FIREBASE_ENABLED:', window.FIREBASE_ENABLED);
+      console.log('  window.FIREBASE_CONFIG:', window.FIREBASE_CONFIG);
+      console.log('  apiKey present:', !!window.FIREBASE_CONFIG?.apiKey);
+      
+      FIREBASE_ENABLED = window.FIREBASE_ENABLED && window.FIREBASE_CONFIG?.apiKey;
+      console.log('  FIREBASE_ENABLED result:', FIREBASE_ENABLED);
+      
+      if (FIREBASE_ENABLED) {
+        try {
+          // Check if already initialized
+          if (!firebase.apps.length) {
+            firebase.initializeApp(window.FIREBASE_CONFIG);
+          }
+          db = firebase.firestore();
+          console.log('Firebase initialized successfully');
+          return true;
+        } catch (error) {
+          console.error('Firebase initialization failed:', error);
+          FIREBASE_ENABLED = false;
+          return false;
+        }
+      } else {
+        console.log('Firebase not configured - using Netlify Blobs fallback');
+        return false;
+      }
+    }
+    
+    // Store the initialization promise so methods can wait for it
+    let firebaseReadyPromise = initializeFirebase();
+    
+    // Helper to ensure Firebase is ready before operations
+    async function ensureFirebaseReady() {
+      await firebaseReadyPromise;
+      return FIREBASE_ENABLED && db;
     }
     
     // Firebase Database Helper Functions
     const FirebaseDB = {
+      // Check if Firebase is available
+      async isReady() {
+        await firebaseReadyPromise;
+        return FIREBASE_ENABLED && db !== null;
+      },
+      
       // Save student progress (in-progress essays)
       async saveProgress(progressData) {
+        await firebaseReadyPromise;
         if (!db) return null;
         try {
           const docId = `${progressData.studentEmail}_${progressData.essayId}`;
@@ -4000,6 +4053,7 @@
       
       // Submit completed essay
       async submitEssay(submissionData) {
+        await firebaseReadyPromise;
         if (!db) return null;
         try {
           const docRef = await db.collection('submissions').add({
@@ -4018,6 +4072,7 @@
       
       // Get all submissions (for teacher dashboard)
       async getSubmissions() {
+        await firebaseReadyPromise;
         if (!db) return null;
         try {
           const snapshot = await db.collection('submissions')
@@ -4037,6 +4092,7 @@
       
       // Get in-progress students (for teacher dashboard)
       async getProgress() {
+        await firebaseReadyPromise;
         if (!db) return null;
         try {
           // Only get progress from last 24 hours
@@ -4124,6 +4180,7 @@
       
       // Student login
       async studentLogin(email, password) {
+        await firebaseReadyPromise;
         if (!db) return { success: false, error: 'Database not available' };
         try {
           const emailLower = email.trim().toLowerCase();
@@ -4255,6 +4312,8 @@
       
       // Change password
       async changePassword(sessionToken, currentPassword, newPassword) {
+        await firebaseReadyPromise;
+        await firebaseReadyPromise;
         if (!db) return { success: false, error: 'Database not available' };
         try {
           const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
@@ -4290,6 +4349,7 @@
       
       // Get all students
       async getStudents(classId = null) {
+        await firebaseReadyPromise;
         if (!db) return [];
         try {
           let query = db.collection('students');
@@ -4309,6 +4369,7 @@
       
       // Create student
       async createStudent(studentData) {
+        await firebaseReadyPromise;
         if (!db) return { success: false, error: 'Database not available' };
         try {
           const emailLower = studentData.email.trim().toLowerCase();
@@ -4383,6 +4444,7 @@
       
       // Delete student
       async deleteStudent(email) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           const emailLower = email.trim().toLowerCase();
@@ -4409,6 +4471,7 @@
       
       // Reset student password
       async resetStudentPassword(email) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           const emailLower = email.trim().toLowerCase();
@@ -4431,6 +4494,7 @@
       // classIds: optional array of class IDs to add ALL students to (from checkboxes)
       // allClasses: array of all class objects for looking up class names from CSV
       async importStudents(students, classIds = null, allClasses = []) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         
         // Build a lookup map from class name to class info (case-insensitive)
@@ -4563,6 +4627,7 @@
       
       // Get all classes
       async getClasses() {
+        await firebaseReadyPromise;
         if (!db) return [];
         try {
           const snapshot = await db.collection('classes').get();
@@ -4576,6 +4641,7 @@
       
       // Create class
       async createClass(classData) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           const classId = classData.name.toLowerCase()
@@ -4604,6 +4670,7 @@
       
       // Delete class
       async deleteClass(classId) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           const classDoc = await db.collection('classes').doc(classId).get();
@@ -4629,6 +4696,7 @@
       
       // Assign essay to class
       async assignToClass(classId, essayId) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('classes').doc(classId).update({
@@ -4643,6 +4711,7 @@
       
       // Remove essay from class
       async unassignFromClass(classId, essayId) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('classes').doc(classId).update({
@@ -4657,6 +4726,7 @@
       
       // Assign essay to individual student
       async assignToStudent(studentEmail, essayId) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('students').doc(studentEmail.toLowerCase()).update({
@@ -4671,6 +4741,7 @@
       
       // Remove essay from individual student
       async unassignFromStudent(studentEmail, essayId) {
+        await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('students').doc(studentEmail.toLowerCase()).update({
@@ -4984,7 +5055,8 @@
 
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.studentLogin(emailLower, password);
           } else {
             const response = await fetch('/.netlify/functions/student-auth', {
@@ -5131,7 +5203,8 @@
 
             // Load submissions
             let submissions = [];
-            if (FIREBASE_ENABLED) {
+            const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
               submissions = await FirebaseDB.getSubmissions() || [];
             } else {
               const response = await fetch('/.netlify/functions/get-submissions');
@@ -5164,7 +5237,8 @@
 
       const handleLogout = async () => {
         try {
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             await FirebaseDB.studentLogout(sessionToken);
           } else {
             await fetch('/.netlify/functions/student-auth', {
@@ -5379,7 +5453,8 @@
 
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.changePassword(sessionToken, currentPassword, newPassword);
           } else {
             const response = await fetch('/.netlify/functions/student-auth', {
@@ -5492,7 +5567,8 @@
       const loadData = async () => {
         setLoading(true);
         try {
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             const [studentList, classList] = await Promise.all([
               FirebaseDB.getStudents(),
               FirebaseDB.getClasses()
@@ -5535,7 +5611,8 @@
         
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.resetStudentPassword(email);
           } else {
             const response = await fetch('/.netlify/functions/manage-students', {
@@ -5547,7 +5624,11 @@
           }
           
           if (result.success) {
-            alert('Password reset!\\n\\nNew password: ' + result.newPassword + '\\n\\nPlease give this to the student.');
+            alert('Password reset!
+
+New password: ' + result.newPassword + '
+
+Please give this to the student.');
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -5561,7 +5642,8 @@
         
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.deleteStudent(email);
           } else {
             const response = await fetch('/.netlify/functions/manage-students?email=' + encodeURIComponent(email), {
@@ -5685,7 +5767,11 @@
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!\\n\\nPassword: ' + password + '\\n\\nPlease give this to the student.');
+                alert('Student created!
+
+Password: ' + password + '
+
+Please give this to the student.');
               }}
             />
           )}
@@ -5747,7 +5833,8 @@
 
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.createStudent({
               name, email, classIds: selectedClassIds, password: password || null
             });
@@ -5883,12 +5970,16 @@
       };
 
       const parseCSV = (content) => {
-        const lines = content.trim().split(/\\r?\\n/);
+        // Split on newlines (handle Windows \r\n and Unix \n)
+        const lines = content.trim().split(/\r?\n/);
+        console.log('CSV parsing - lines found:', lines.length);
         if (lines.length < 2) return [];
         
+        // Parse headers - normalize to lowercase, remove quotes and spaces
         const headers = lines[0].split(',').map(h => 
-          h.trim().toLowerCase().replace(/['"]/g, '').replace(/\\s+/g, '')
+          h.trim().toLowerCase().replace(/['"]/g, '').replace(/\s+/g, '')
         );
+        console.log('CSV headers:', headers);
         
         const students = [];
         for (let i = 1; i < lines.length; i++) {
@@ -5900,6 +5991,8 @@
             if (values[idx]) student[header] = values[idx];
           });
           
+          console.log('Parsed student row:', student);
+          
           if (student.email && (student.name || student.fullname || student.studentname)) {
             student.name = student.name || student.fullname || student.studentname;
             student.yearGroup = student.yeargroup || student.year || null;
@@ -5908,6 +6001,7 @@
             students.push(student);
           }
         }
+        console.log('Valid students found:', students.length);
         return students;
       };
 
@@ -5941,7 +6035,8 @@
 
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             // Pass classes array so importStudents can look up class names from CSV
             result = await FirebaseDB.importStudents(
               parsedStudents, 
@@ -6122,7 +6217,8 @@
 
         try {
           let result;
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             result = await FirebaseDB.createClass({ name, subject, yearGroup, teacher, teacherEmail });
           } else {
             const response = await fetch('/.netlify/functions/manage-classes', {
@@ -6246,7 +6342,8 @@
       useEffect(() => {
         const loadData = async () => {
           try {
-            if (FIREBASE_ENABLED) {
+            const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
               const [classList, studentList] = await Promise.all([
                 FirebaseDB.getClasses(),
                 FirebaseDB.getStudents()
@@ -6274,7 +6371,8 @@
 
       const handleAssignToClass = async (classId, essayId, assign) => {
         try {
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             if (assign) {
               await FirebaseDB.assignToClass(classId, essayId);
             } else {
@@ -6292,7 +6390,8 @@
           }
           
           // Reload classes to get updated assignments
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             const updated = await FirebaseDB.getClasses();
             setClasses(updated);
           } else {
@@ -6307,7 +6406,8 @@
 
       const handleAssignToStudent = async (studentEmail, essayId, assign) => {
         try {
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             if (assign) {
               await FirebaseDB.assignToStudent(studentEmail, essayId);
             } else {
@@ -6325,7 +6425,8 @@
           }
           
           // Reload students
-          if (FIREBASE_ENABLED) {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
             const updated = await FirebaseDB.getStudents();
             setStudents(updated);
           } else {
@@ -8285,7 +8386,8 @@ ${examinerComment}
       
       // Set up Firebase real-time listeners or Netlify polling
       useEffect(() => {
-        if (FIREBASE_ENABLED) {
+        const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
           // Real-time Firebase listeners
           setLoading(true);
           
@@ -8312,7 +8414,8 @@ ${examinerComment}
       
       // Manual refresh function
       const handleRefresh = async () => {
-        if (FIREBASE_ENABLED) {
+        const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
           setLoading(true);
           try {
             const [subs, prog] = await Promise.all([
@@ -8738,7 +8841,8 @@ ${examinerComment}
           if (savedToken && savedStudent) {
             try {
               let result;
-              if (FIREBASE_ENABLED) {
+              const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
                 result = await FirebaseDB.verifySession(savedToken);
               } else {
                 const response = await fetch('/.netlify/functions/student-auth', {
@@ -8888,7 +8992,8 @@ ${examinerComment}
         };
         
         // Save to Firebase if available, otherwise Netlify Blobs
-        if (FIREBASE_ENABLED) {
+        const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
           FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
         } else {
           fetch('/.netlify/functions/save-progress', {
@@ -9083,7 +9188,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
       
       try {
         // Save to Firebase if available, otherwise Netlify Blobs
-        if (FIREBASE_ENABLED) {
+        const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
           await FirebaseDB.submitEssay(submissionData);
         } else {
           await fetch('/.netlify/functions/submit-homework', {
@@ -9173,7 +9279,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
             
             try {
               // Save to Firebase if available, otherwise Netlify Blobs
-              if (FIREBASE_ENABLED) {
+              const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
                 await FirebaseDB.submitEssay(submissionData);
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
@@ -9241,7 +9348,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
             };
             
             try {
-              if (FIREBASE_ENABLED) {
+              const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
                 await FirebaseDB.updateSubmission(studentName, selectedEssayId, { officialGrading: data.grading });
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
