@@ -3753,6 +3753,287 @@
       display: block;
     }
     
+    /* =====================================================
+       TECHNICAL ERROR CORRECTION - Two-stage submission
+       ===================================================== */
+    
+    .technical-check-panel {
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.98), rgba(25, 25, 45, 0.95));
+      border: 2px solid var(--color-warning);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+      box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+    }
+    
+    .technical-check-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .technical-check-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--color-warning);
+      margin: 0;
+    }
+    
+    .technical-check-progress {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    
+    .error-progress-dots {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .error-progress-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-surface-hover);
+      transition: all var(--transition-fast);
+    }
+    
+    .error-progress-dot.completed {
+      background: var(--color-success);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+    
+    .error-progress-dot.current {
+      background: var(--color-warning);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+      transform: scale(1.2);
+    }
+    
+    .error-card {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .error-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: var(--space-md);
+    }
+    
+    .error-type-badge.spelling {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+    .error-type-badge.grammar {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+    
+    .error-type-badge.punctuation {
+      background: rgba(139, 92, 246, 0.2);
+      color: #8b5cf6;
+    }
+    
+    .error-type-badge.expression {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+    
+    .error-context {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 3px solid var(--color-warning);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.6;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+    
+    .error-highlight {
+      background: rgba(239, 68, 68, 0.3);
+      border-bottom: 2px wavy #ef4444;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+    
+    .error-rule {
+      margin-bottom: var(--space-md);
+    }
+    
+    .error-rule-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .error-rule-text {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+    
+    .error-hint {
+      background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .error-hint-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-bottom: var(--space-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .error-hint-text {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      font-style: italic;
+    }
+    
+    .error-correction-area {
+      margin-bottom: var(--space-md);
+    }
+    
+    .error-correction-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .error-correction-input {
+      width: 100%;
+      padding: var(--space-md);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      transition: all var(--transition-fast);
+    }
+    
+    .error-correction-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-glow);
+    }
+    
+    .error-correction-input.error {
+      border-color: var(--color-error);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+    
+    .error-correction-input.success {
+      border-color: var(--color-success);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+    }
+    
+    .correction-feedback {
+      margin-top: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+    }
+    
+    .correction-feedback.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--color-error);
+    }
+    
+    .correction-feedback.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--color-success);
+    }
+    
+    .technical-check-actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: flex-end;
+    }
+    
+    .technical-all-clear {
+      text-align: center;
+      padding: var(--space-xl);
+    }
+    
+    .technical-all-clear-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .technical-all-clear-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--color-success);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .technical-all-clear-text {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+    }
+    
+    /* Completion celebration */
+    .errors-complete-celebration {
+      text-align: center;
+      padding: var(--space-xl);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--color-success);
+    }
+    
+    .celebration-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+      animation: bounce 0.5s ease infinite alternate;
+    }
+    
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+    
+    .celebration-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--color-success);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .celebration-text {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+    }
+    
         /* Mobile task toggle button */
     .task-toggle-btn {
       display: none;
@@ -7825,6 +8106,237 @@
       );
     }
     
+    // =====================================================
+    // TECHNICAL ERROR CORRECTION - Interactive error fixing
+    // =====================================================
+    
+    function TechnicalErrorCorrection({ 
+      errors, 
+      originalText, 
+      onAllCorrected, 
+      onUpdateText,
+      onSkip 
+    }) {
+      const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
+      const [correctedErrors, setCorrectedErrors] = useState([]);
+      const [currentText, setCurrentText] = useState(originalText);
+      const [correctionInput, setCorrectionInput] = useState('');
+      const [correctionStatus, setCorrectionStatus] = useState(null); // null, 'checking', 'error', 'success'
+      const [correctionMessage, setCorrectionMessage] = useState('');
+      const [showCelebration, setShowCelebration] = useState(false);
+      
+      const currentError = errors[currentErrorIndex];
+      const isComplete = currentErrorIndex >= errors.length;
+      
+      // Apply correction to the text
+      const applyCorrection = (text, errorText, correction) => {
+        // Find and replace the error text with the correction
+        // Use a simple replacement strategy
+        return text.replace(errorText, correction);
+      };
+      
+      // Check if the correction is valid (different from error and not empty)
+      const validateCorrection = (correction, errorText) => {
+        if (!correction.trim()) {
+          return { valid: false, message: 'Please type your correction.' };
+        }
+        if (correction.trim().toLowerCase() === errorText.trim().toLowerCase()) {
+          return { valid: false, message: 'Your correction looks the same as the original. Try again!' };
+        }
+        return { valid: true };
+      };
+      
+      const handleSubmitCorrection = () => {
+        if (!currentError) return;
+        
+        setCorrectionStatus('checking');
+        
+        const validation = validateCorrection(correctionInput, currentError.errorText);
+        
+        if (!validation.valid) {
+          setCorrectionStatus('error');
+          setCorrectionMessage(validation.message);
+          return;
+        }
+        
+        // Accept the correction
+        setCorrectionStatus('success');
+        setCorrectionMessage('Excellent! You\'ve corrected this error.');
+        
+        // Apply the correction to the text
+        const updatedText = applyCorrection(currentText, currentError.errorText, correctionInput);
+        setCurrentText(updatedText);
+        onUpdateText(updatedText);
+        
+        // Mark this error as corrected
+        setCorrectedErrors([...correctedErrors, currentError.id]);
+        
+        // Move to next error after a brief delay
+        setTimeout(() => {
+          if (currentErrorIndex + 1 >= errors.length) {
+            setShowCelebration(true);
+            setTimeout(() => {
+              onAllCorrected(updatedText);
+            }, 2000);
+          } else {
+            setCurrentErrorIndex(currentErrorIndex + 1);
+            setCorrectionInput('');
+            setCorrectionStatus(null);
+            setCorrectionMessage('');
+          }
+        }, 1000);
+      };
+      
+      // Highlight the error in context
+      const renderErrorContext = () => {
+        if (!currentError) return null;
+        
+        const context = currentError.errorContext || '';
+        const errorText = currentError.errorText || '';
+        
+        // Try to highlight the error within the context
+        const parts = context.split(new RegExp(`(${errorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'));
+        
+        return (
+          <div className="error-context">
+            {parts.map((part, i) => 
+              part.toLowerCase() === errorText.toLowerCase() 
+                ? <span key={i} className="error-highlight">{part}</span>
+                : part
+            )}
+          </div>
+        );
+      };
+      
+      // Show celebration when all errors are fixed
+      if (showCelebration) {
+        return (
+          <div className="technical-check-panel">
+            <div className="errors-complete-celebration">
+              <div className="celebration-icon">🎉</div>
+              <h3 className="celebration-title">All Errors Corrected!</h3>
+              <p className="celebration-text">
+                Great work! You've fixed all {errors.length} technical error{errors.length > 1 ? 's' : ''}. 
+                Your writing is now ready for feedback.
+              </p>
+              <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginTop: 'var(--space-md)' }}>
+                Submitting for feedback...
+              </p>
+            </div>
+          </div>
+        );
+      }
+      
+      if (!currentError) return null;
+      
+      return (
+        <div className="technical-check-panel ghost-appear">
+          <div className="technical-check-header">
+            <h3 className="technical-check-title">
+              <span>✏️</span>
+              Technical Check
+            </h3>
+            <div className="technical-check-progress">
+              <span>Error {currentErrorIndex + 1} of {errors.length}</span>
+              <div className="error-progress-dots">
+                {errors.map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`error-progress-dot ${
+                      correctedErrors.includes(errors[i]?.id) ? 'completed' : 
+                      i === currentErrorIndex ? 'current' : ''
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="error-card">
+            {/* Error type badge */}
+            <div className={`error-type-badge ${currentError.type}`}>
+              <span>{currentError.category?.icon || '📝'}</span>
+              {currentError.category?.name || currentError.type}
+            </div>
+            
+            {/* Error in context */}
+            <div style={{ marginBottom: 'var(--space-md)' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-xs)' }}>
+                Find the error in this section of your writing:
+              </div>
+              {renderErrorContext()}
+            </div>
+            
+            {/* Rule explanation */}
+            <div className="error-rule">
+              <div className="error-rule-label">
+                <span>📚</span> The Rule
+              </div>
+              <div className="error-rule-text">{currentError.rule}</div>
+            </div>
+            
+            {/* Hint */}
+            <div className="error-hint">
+              <div className="error-hint-label">
+                <span>💡</span> Hint
+              </div>
+              <div className="error-hint-text">{currentError.hint}</div>
+            </div>
+            
+            {/* Correction input */}
+            <div className="error-correction-area">
+              <div className="error-correction-label">
+                Type your correction for "<span style={{ color: 'var(--color-error)' }}>{currentError.errorText}</span>":
+              </div>
+              <input
+                type="text"
+                className={`error-correction-input ${correctionStatus === 'error' ? 'error' : correctionStatus === 'success' ? 'success' : ''}`}
+                value={correctionInput}
+                onChange={(e) => {
+                  setCorrectionInput(e.target.value);
+                  if (correctionStatus) {
+                    setCorrectionStatus(null);
+                    setCorrectionMessage('');
+                  }
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmitCorrection();
+                  }
+                }}
+                placeholder="Type the corrected word or phrase..."
+                autoFocus
+                disabled={correctionStatus === 'success'}
+              />
+              {correctionMessage && (
+                <div className={`correction-feedback ${correctionStatus}`}>
+                  {correctionStatus === 'success' ? '✓' : '✗'} {correctionMessage}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="technical-check-actions">
+            <button 
+              className="btn btn-secondary"
+              onClick={onSkip}
+              style={{ opacity: 0.7 }}
+            >
+              Skip Technical Check
+            </button>
+            <button 
+              className="btn btn-primary"
+              onClick={handleSubmitCorrection}
+              disabled={!correctionInput.trim() || correctionStatus === 'success'}
+            >
+              {correctionStatus === 'success' ? 'Correct! ✓' : 'Submit Correction'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
 // PARAGRAPH SCREEN
     // =====================================================
     
@@ -7835,6 +8347,12 @@
       const [currentFeedback, setCurrentFeedback] = useState(null);
       const [cumulativeInfo, setCumulativeInfo] = useState(null);  // For cumulative grading display
       const [authenticityCheck, setAuthenticityCheck] = useState(null);  // For authenticity check results
+      
+      // Two-stage submission states
+      const [submissionStage, setSubmissionStage] = useState('writing'); // 'writing', 'technical-check', 'correcting', 'grading'
+      const [technicalErrors, setTechnicalErrors] = useState([]);
+      const [isCheckingTechnical, setIsCheckingTechnical] = useState(false);
+      
       const textareaRef = useRef(null);
       
       const wordCount = countWords(text);
@@ -7875,10 +8393,79 @@
         }
       }, [paragraphState]);
       
-      const handleSubmit = async () => {
+      // Stage 1: Technical Check
+      const handleTechnicalCheck = async () => {
         if (!canSubmit) return;
+        setIsCheckingTechnical(true);
+        setSubmissionStage('technical-check');
+        
+        try {
+          const response = await fetch('/.netlify/functions/check-technical', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paragraphText: text,
+              paragraphTitle: paragraph.title,
+              targetGrade: targetGrade,
+              gradeSystem: gradeSystem
+            })
+          });
+          
+          const data = await response.json();
+          console.log('[ParagraphScreen] Technical check:', {
+            success: data.success,
+            hasErrors: data.hasErrors,
+            errorCount: data.errorCount
+          });
+          
+          if (data.success) {
+            if (data.hasErrors && data.errors.length > 0) {
+              // Errors found - switch to correction mode
+              setTechnicalErrors(data.errors);
+              setSubmissionStage('correcting');
+              setIsCheckingTechnical(false);
+            } else {
+              // No errors - proceed directly to grading
+              setIsCheckingTechnical(false);
+              await handleMainGrading();
+            }
+          } else {
+            throw new Error(data.error || 'Technical check failed');
+          }
+        } catch (error) {
+          console.error('Technical check error:', error);
+          // On error, skip technical check and proceed to grading
+          setIsCheckingTechnical(false);
+          await handleMainGrading();
+        }
+      };
+      
+      // Called when all technical errors are corrected
+      const handleErrorsCorrected = async (correctedText) => {
+        setText(correctedText);
+        setSubmissionStage('grading');
+        setTechnicalErrors([]);
+        await handleMainGrading(correctedText);
+      };
+      
+      // Called when user updates text during correction
+      const handleUpdateTextDuringCorrection = (updatedText) => {
+        setText(updatedText);
+      };
+      
+      // Skip technical check and go straight to grading
+      const handleSkipTechnicalCheck = async () => {
+        setSubmissionStage('grading');
+        setTechnicalErrors([]);
+        await handleMainGrading();
+      };
+      
+      // Stage 2: Main Grading (original handleSubmit logic)
+      const handleMainGrading = async (textToGrade) => {
+        const paragraphText = textToGrade || text;
         setIsSubmitting(true);
         setShowFeedback(false);
+        setSubmissionStage('grading');
         
         // Collect completed paragraphs for cumulative grading
         const completedParagraphs = config?.paragraphs
@@ -7901,7 +8488,7 @@
         
         try {
           const requestBody = {
-            paragraphText: text,
+            paragraphText: paragraphText,
             paragraphConfig: paragraph,
             attemptNumber: attemptNumber,
             maxAttempts: maxAttempts,
@@ -7944,9 +8531,10 @@
               console.warn('[ParagraphScreen] Authenticity warning:', data.authenticityCheck);
             }
             
+            setSubmissionStage('writing');
             setShowFeedback(true);
             onSubmitAttempt({
-              text: text,
+              text: paragraphText,
               feedback: data.feedback,
               attemptNumber: attemptNumber,
               canRevise: data.canRevise,
@@ -7961,15 +8549,23 @@
         } catch (error) {
           console.error('Grading error:', error);
           alert('Failed to submit. Please try again.');
+          setSubmissionStage('writing');
         } finally {
           setIsSubmitting(false);
         }
+      };
+      
+      // Legacy handleSubmit - now starts the two-stage process
+      const handleSubmit = async () => {
+        await handleTechnicalCheck();
       };
       
       const handleRevise = () => {
         setShowFeedback(false);
         setCurrentFeedback(null);
         setAuthenticityCheck(null);  // Reset authenticity check on revision
+        setSubmissionStage('writing');
+        setTechnicalErrors([]);
         textareaRef.current?.focus();
       };
       
@@ -8033,7 +8629,26 @@
             )}
           </div>
           
-          {!showFeedback && (
+          {/* Technical Error Correction Stage */}
+          {submissionStage === 'correcting' && technicalErrors.length > 0 && (
+            <TechnicalErrorCorrection
+              errors={technicalErrors}
+              originalText={text}
+              onAllCorrected={handleErrorsCorrected}
+              onUpdateText={handleUpdateTextDuringCorrection}
+              onSkip={handleSkipTechnicalCheck}
+            />
+          )}
+          
+          {/* Technical Check Loading */}
+          {isCheckingTechnical && (
+            <div style={parseStyle("margin-top: var(--space-lg); margin-bottom: var(--space-lg);")}>
+              <LoadingSpinner text="Checking spelling, grammar and punctuation..." />
+            </div>
+          )}
+          
+          {/* Writing Stage - Show textarea when not in correction mode */}
+          {!showFeedback && submissionStage !== 'correcting' && !isCheckingTechnical && (
             <>
               <textarea
                 ref={textareaRef}
@@ -8049,7 +8664,7 @@
                   alert('Drag and drop is not allowed. Please type your response.');
                 }}
                 placeholder="Start writing your paragraph here..."
-                disabled={isSubmitting}
+                disabled={isSubmitting || submissionStage === 'grading'}
               />
               
               <div className={`word-count ${wordCountClass}`}>
@@ -8057,15 +8672,23 @@
                 <span>Target: {targetWords} words</span>
               </div>
               
-              {isSubmitting ? (
+              {isSubmitting || submissionStage === 'grading' ? (
                 <div style={parseStyle("margin-top: var(--space-lg);")}>
                   <LoadingSpinner text="Grading your writing..." />
                 </div>
               ) : (
                 <div style={parseStyle("margin-top: var(--space-lg);")}>
                   <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit}>
-                    Submit for Feedback
+                    ✏️ Check & Submit for Feedback
                   </button>
+                  <p style={{ 
+                    fontSize: '0.85rem', 
+                    color: 'var(--color-text-muted)', 
+                    marginTop: 'var(--space-sm)',
+                    textAlign: 'center'
+                  }}>
+                    We'll first check for spelling and grammar, then give you detailed feedback
+                  </p>
                 </div>
               )}
             </>
