@@ -4114,6 +4114,45 @@
         }
       },
       
+      // Get progress for a specific student (all essays)
+      async getStudentProgress(studentEmail) {
+        await firebaseReadyPromise;
+        if (!db || !studentEmail) return [];
+        try {
+          const snapshot = await db.collection('progress')
+            .where('studentEmail', '==', studentEmail.toLowerCase())
+            .get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            lastUpdate: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().lastUpdate
+          }));
+        } catch (error) {
+          console.error('Firebase getStudentProgress error:', error);
+          return [];
+        }
+      },
+      
+      // Get progress for a specific student and essay
+      async getStudentEssayProgress(studentEmail, essayId) {
+        await firebaseReadyPromise;
+        if (!db || !studentEmail || !essayId) return null;
+        try {
+          const docId = `${studentEmail.toLowerCase()}_${essayId}`;
+          const doc = await db.collection('progress').doc(docId).get();
+          if (!doc.exists) return null;
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            lastUpdate: data.updatedAt?.toDate?.()?.toISOString() || data.lastUpdate
+          };
+        } catch (error) {
+          console.error('Firebase getStudentEssayProgress error:', error);
+          return null;
+        }
+      },
+      
       // Subscribe to real-time submissions updates
       subscribeToSubmissions(callback) {
         if (!db) return () => {};
@@ -5188,23 +5227,35 @@
           try {
             // Load progress for assigned essays
             const progressMap = {};
-            for (const essay of assignedEssays) {
-              try {
-                const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id);
-                const data = await response.json();
-                if (data.success && data.found) {
-                  progressMap[essay.id] = data.progress;
+            const firebaseReady = await FirebaseDB.isReady();
+            
+            if (firebaseReady) {
+              // Load all progress for this student from Firebase
+              const allProgress = await FirebaseDB.getStudentProgress(student.email);
+              allProgress.forEach(prog => {
+                if (prog.essayId) {
+                  progressMap[prog.essayId] = prog;
                 }
-              } catch (e) {
-                console.log('Progress load error:', e);
+              });
+            } else {
+              // Fallback to Netlify function
+              for (const essay of assignedEssays) {
+                try {
+                  const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id);
+                  const data = await response.json();
+                  if (data.success && data.found) {
+                    progressMap[essay.id] = data.progress;
+                  }
+                } catch (e) {
+                  console.log('Progress load error:', e);
+                }
               }
             }
             setProgressData(progressMap);
 
             // Load submissions
             let submissions = [];
-            const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+            if (firebaseReady) {
               submissions = await FirebaseDB.getSubmissions() || [];
             } else {
               const response = await fetch('/.netlify/functions/get-submissions');
@@ -8898,9 +8949,68 @@ ${examinerComment}
       };
 
       // Handle essay selection from student dashboard
-      const handleDashboardSelectEssay = (essayId) => {
+      const handleDashboardSelectEssay = async (essayId) => {
         setSelectedEssayId(essayId);
-        setScreen('entry');
+        
+        // Check for saved progress before deciding which screen to show
+        const essayConfig = getEssayConfig(essayId);
+        let hasProgress = false;
+        
+        // Try to load from Firebase if user is authenticated
+        if (studentEmail) {
+          try {
+            const firebaseReady = await FirebaseDB.isReady();
+            if (firebaseReady) {
+              const serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, essayId);
+              if (serverProgress && serverProgress.paragraphStates && Object.keys(serverProgress.paragraphStates).length > 0) {
+                console.log('Loading progress from Firebase:', serverProgress);
+                setStudentName(serverProgress.studentName || studentName);
+                if (serverProgress.targetGrade) setTargetGrade(serverProgress.targetGrade);
+                if (serverProgress.gradeSystem) setGradeSystem(serverProgress.gradeSystem);
+                setParagraphStates(serverProgress.paragraphStates);
+                setCurrentParagraphIndex(serverProgress.currentParagraphIndex || 0);
+                
+                const paragraphs = essayConfig?.paragraphs || [];
+                const allComplete = paragraphs.every(p => serverProgress.paragraphStates[p.id]?.completed);
+                setScreen(allComplete ? 'compilation' : 'writing');
+                hasProgress = true;
+              }
+            }
+          } catch (e) {
+            console.log('Error loading Firebase progress:', e);
+          }
+        }
+        
+        // Also check localStorage if no Firebase progress
+        if (!hasProgress && essayConfig) {
+          const localSaved = localStorage.getItem(essayConfig.LOCAL_STORAGE_KEY);
+          if (localSaved) {
+            try {
+              const data = JSON.parse(localSaved);
+              if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
+                console.log('Loading progress from localStorage:', data);
+                setStudentName(data.studentName);
+                if (data.studentEmail) setStudentEmail(data.studentEmail);
+                if (data.targetGrade) setTargetGrade(data.targetGrade);
+                if (data.gradeSystem) setGradeSystem(data.gradeSystem);
+                setParagraphStates(data.paragraphStates);
+                setCurrentParagraphIndex(data.currentParagraphIndex || 0);
+                
+                const paragraphs = essayConfig?.paragraphs || [];
+                const allComplete = paragraphs.every(p => data.paragraphStates[p.id]?.completed);
+                setScreen(allComplete ? 'compilation' : 'writing');
+                hasProgress = true;
+              }
+            } catch (e) {
+              console.log('Error loading localStorage:', e);
+            }
+          }
+        }
+        
+        // No progress found - go to entry screen
+        if (!hasProgress) {
+          setScreen('entry');
+        }
       };
       
       // Handle exploring non-assigned essay
@@ -8935,29 +9045,78 @@ ${examinerComment}
         }
       }, [isAuthenticated]);
       
-      // Load saved state for selected essay
+      // Load saved state for selected essay - check Firebase first, then localStorage
       useEffect(() => {
-        if (!CONFIG) return;
-        const saved = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEY);
-        if (saved) {
-          try {
-            const data = JSON.parse(saved);
-            if (data.studentName) setStudentName(data.studentName);
-            if (data.paragraphStates) setParagraphStates(data.paragraphStates);
-            if (data.currentParagraphIndex !== undefined) setCurrentParagraphIndex(data.currentParagraphIndex);
-            if (data.studentName && Object.keys(data.paragraphStates || {}).length > 0) {
-              const allComplete = PARAGRAPHS.every(p => data.paragraphStates[p.id]?.completed);
+        if (!CONFIG || !selectedEssayId) return;
+        
+        const loadSavedProgress = async () => {
+          let serverProgress = null;
+          
+          // Try to load from Firebase if user is authenticated
+          if (studentEmail) {
+            try {
+              const firebaseReady = await FirebaseDB.isReady();
+              if (firebaseReady) {
+                serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, selectedEssayId);
+                console.log('Firebase progress loaded:', serverProgress);
+              }
+            } catch (e) {
+              console.log('Error loading Firebase progress:', e);
+            }
+          }
+          
+          // Also check localStorage
+          const localSaved = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEY);
+          let localProgress = null;
+          if (localSaved) {
+            try {
+              localProgress = JSON.parse(localSaved);
+            } catch (e) {
+              console.log('Error parsing localStorage:', e);
+            }
+          }
+          
+          // Determine which progress to use (prefer more recent)
+          let progressToUse = null;
+          
+          if (serverProgress && localProgress) {
+            const serverTime = new Date(serverProgress.lastUpdate || 0).getTime();
+            const localTime = new Date(localProgress.savedAt || 0).getTime();
+            progressToUse = serverTime > localTime ? serverProgress : localProgress;
+            console.log('Using', serverTime > localTime ? 'server' : 'local', 'progress');
+          } else {
+            progressToUse = serverProgress || localProgress;
+          }
+          
+          if (progressToUse) {
+            // Restore state
+            if (progressToUse.studentName) setStudentName(progressToUse.studentName);
+            if (progressToUse.studentEmail) setStudentEmail(progressToUse.studentEmail);
+            if (progressToUse.targetGrade) setTargetGrade(progressToUse.targetGrade);
+            if (progressToUse.gradeSystem) setGradeSystem(progressToUse.gradeSystem);
+            if (progressToUse.paragraphStates) setParagraphStates(progressToUse.paragraphStates);
+            if (progressToUse.currentParagraphIndex !== undefined) setCurrentParagraphIndex(progressToUse.currentParagraphIndex);
+            
+            // If has substantial progress, go directly to writing
+            if (progressToUse.studentName && Object.keys(progressToUse.paragraphStates || {}).length > 0) {
+              const allComplete = PARAGRAPHS.every(p => progressToUse.paragraphStates[p.id]?.completed);
               setScreen(allComplete ? 'compilation' : 'writing');
             }
-          } catch (e) {
-            console.error('Failed to load saved state:', e);
           }
-        }
+        };
+        
+        loadSavedProgress();
       }, [selectedEssayId]);
       
       // Auto-save to localStorage and server (skip in preview mode)
       useEffect(() => {
         if (!CONFIG || !studentName || screen !== 'writing' || isPreviewMode) return;
+        
+        // Need studentEmail for Firebase save
+        if (!studentEmail) {
+          console.log('Auto-save skipped: no studentEmail');
+          return;
+        }
         
         // Save to localStorage
         const saveData = { studentName, studentEmail, targetGrade, gradeSystem, paragraphStates, currentParagraphIndex, savedAt: new Date().toISOString() };
@@ -8970,7 +9129,7 @@ ${examinerComment}
         
         const progressData = {
           studentName,
-          studentEmail,
+          studentEmail: studentEmail.toLowerCase(),
           targetGrade,
           gradeSystem,
           type: 'essay',
@@ -8989,11 +9148,15 @@ ${examinerComment}
           lastUpdate: new Date().toISOString()
         };
         
+        console.log('Auto-saving progress:', { studentEmail: progressData.studentEmail, essayId: progressData.essayId, completedCount, percentComplete });
+        
         // Save to Firebase if available, otherwise Netlify Blobs
         (async () => {
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
-            FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
+            FirebaseDB.saveProgress(progressData)
+              .then(() => console.log('Firebase progress saved successfully'))
+              .catch(err => console.log('Firebase save error:', err.message));
           } else {
             fetch('/.netlify/functions/save-progress', {
               method: 'POST',
@@ -9002,7 +9165,7 @@ ${examinerComment}
             }).catch(err => console.log('Progress save note:', err.message));
           }
         })();
-      }, [studentName, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
+      }, [studentName, studentEmail, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
       
       const handleSelectEssay = (essayId) => {
         // Check if there's saved progress for this essay
