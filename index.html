@@ -5007,24 +5007,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">&#9658;</span>
+              <span className="tts-icon">►;</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">&#10074;&#10074;</span>
+                  <span className="tts-icon">❚;❚;</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">&#9658;</span>
+                  <span className="tts-icon">►;</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">&#9632;</span>
+                <span className="tts-icon">■;</span>
                 <span>Stop</span>
               </button>
             </>
@@ -6650,14 +6650,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? '&#10003; Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '&#128218;'}</div>
+                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>&#128209; {essay.subject}</span>
-                        <span>&#127891; {essay.yearGroup}</span>
+                        <span>📑 {essay.subject}</span>
+                        <span>🎓 {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -6984,7 +6984,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>&#9650; Areas to Improve</span></div>
+              <div className="feedback-section-title"><span>▲ Areas to Improve</span></div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -7024,7 +7024,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                  &#10003; Complete & Continue to Next Section
+                  ✓ Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -8295,7 +8295,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>&#10003; Improved Version</span></div>
+                        <div className="feedback-section-title"><span>✓ Improved Version</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8304,7 +8304,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>&#9650; Areas for Development</span></div>
+                        <div className="feedback-section-title"><span>▲ Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
