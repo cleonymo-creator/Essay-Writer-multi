@@ -8999,7 +8999,6 @@
     function EssayCompilationScreen({ studentName, paragraphs, paragraphStates, onRequestFeedback, onRequestOfficialGrading, essayFeedback, officialGrading, isLoadingFeedback, isLoadingOfficialGrading, config }) {
       const [showFeedback, setShowFeedback] = useState(!!essayFeedback);
       const [showOfficialGrading, setShowOfficialGrading] = useState(!!officialGrading);
-      const [activeTab, setActiveTab] = useState('essay');
       const [autoRequestedFeedback, setAutoRequestedFeedback] = useState(false);
       
       // Comparison states
@@ -9451,64 +9450,29 @@ ${examinerComment}
       
       return (
         <div className="ghost-appear">
-          {/* Tab navigation */}
-          <div style={parseStyle("display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); border-bottom: 2px solid var(--color-border); padding-bottom: var(--space-md);")}>
-            <button 
-              className={`btn ${activeTab === 'essay' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('essay')}
-            >
-               Your Essay
-            </button>
-            <button 
-              className={`btn ${activeTab === 'feedback' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('feedback')}
-            >
-               Feedback Feedback
-            </button>
-            {hasOfficialMarkScheme && (
-              <button 
-                className={`btn ${activeTab === 'official' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('official')}
-              >
-                 Official Grading Official Grading
-              </button>
-            )}
-          </div>
-          
-          {/* Essay Tab */}
-          {activeTab === 'essay' && (
-            <>
-              <div className="essay-compilation">
-                <div className="essay-compilation-header">
-                  <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
-                  <p className="essay-compilation-meta">By {studentName}  {config?.subject}  {formatDateTime(new Date())}</p>
-                </div>
-                
-                <div className="compiled-essay">
-                  {compiledParagraphs.map((para) => (
-                    <p key={para.id} className="compiled-paragraph">{para.text}</p>
-                  ))}
-                </div>
-              </div>
-              
-              <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; margin-top: var(--space-xl);")}>
-                <button className="btn btn-primary btn-large" onClick={handlePrint}> Print Essay</button>
-              </div>
-            </>
+          {/* Show loading indicator while feedback is being generated */}
+          {isLoadingFeedback && (
+            <div className="card" style={parseStyle("text-align: center; padding: var(--space-lg); margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 1px solid var(--color-primary);")}>
+              <LoadingSpinner text="Generating feedback on your complete essay..." />
+            </div>
           )}
           
-          {/* Feedback Tab */}
-          {activeTab === 'feedback' && (
-            <>
-              {/* Show loading state while auto-grading */}
-              {!showFeedback && isLoadingFeedback && (
-                <div className="card" style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
-                  <LoadingSpinner text="Generating feedback on your complete essay..." />
-                </div>
-              )}
-              
-              {/* Show feedback when ready */}
-              {showFeedback && essayFeedback && (
+          {/* Essay Section */}
+          <div className="essay-compilation">
+            <div className="essay-compilation-header">
+              <h1 className="essay-compilation-title">{config?.essayTitle}</h1>
+              <p className="essay-compilation-meta">By {studentName}  {config?.subject}  {formatDateTime(new Date())}</p>
+            </div>
+            
+            <div className="compiled-essay">
+              {compiledParagraphs.map((para) => (
+                <p key={para.id} className="compiled-paragraph">{para.text}</p>
+              ))}
+            </div>
+          </div>
+          
+          {/* Feedback Section - shows automatically when ready */}
+          {showFeedback && essayFeedback && (
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
@@ -9673,28 +9637,26 @@ ${examinerComment}
             </>
           )}
           
-          {/* Official Grading Tab */}
-          {activeTab === 'official' && hasOfficialMarkScheme && (
+          {/* Official Grading Section - shown when mark scheme available */}
+          {hasOfficialMarkScheme && (
             <>
               {!showOfficialGrading && !isLoadingOfficialGrading && (
-                <div style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
-                  <div className="card" style={parseStyle("max-width: 600px; margin: 0 auto;")}>
-                    <h3 style={parseStyle("margin-bottom: var(--space-md);")}> Official Grading Official Mark Scheme Grading</h3>
-                    <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
-                      Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
-                    </p>
-                    <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                      This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
-                    </p>
-                    <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
-                       Get Official Grading
-                    </button>
-                  </div>
+                <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-xl); background: linear-gradient(135deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98)); border: 2px solid var(--color-primary);")}>
+                  <h3 style={parseStyle("margin-bottom: var(--space-md);")}> 📋 Official Mark Scheme Grading</h3>
+                  <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
+                    Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
+                  </p>
+                  <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                    This will compare your <strong>initial attempt</strong> with your <strong>improved version</strong> to show your progress.
+                  </p>
+                  <button className="btn btn-primary btn-large" onClick={onRequestOfficialGrading}>
+                     Get Official Grading
+                  </button>
                 </div>
               )}
               
               {isLoadingOfficialGrading && (
-                <div className="card" style={parseStyle("text-align: center; padding: var(--space-2xl);")}>
+                <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-2xl);")}>
                   <LoadingSpinner text="Grading against official mark scheme..." />
                   <p style={parseStyle("margin-top: var(--space-md); color: var(--color-text-muted);")}>
                     Comparing initial and improved versions...
@@ -9703,7 +9665,9 @@ ${examinerComment}
               )}
               
               {showOfficialGrading && officialGrading && (
-                <OfficialGradingDisplay grading={officialGrading} />
+                <div style={parseStyle("margin-top: var(--space-xl);")}>
+                  <OfficialGradingDisplay grading={officialGrading} />
+                </div>
               )}
             </>
           )}
@@ -10127,22 +10091,54 @@ ${examinerComment}
                   )}
                 </div>
                 
-                {/* Essay Text */}
+                {/* Essay Text - Show both Original and Final if different */}
                 {selectedSubmission.essay && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essay</h4>
-                    <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
-                      {selectedSubmission.essay.split('\n\n').map((para, i) => (
-                        <p key={i} className="compiled-paragraph">{para}</p>
-                      ))}
-                    </div>
+                    {selectedSubmission.originalEssay && selectedSubmission.essaysAreDifferent ? (
+                      <>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essays: Original vs Improved</h4>
+                        <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
+                          {/* Original Essay */}
+                          <div>
+                            <div style={parseStyle("font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 1px;")}>
+                              📝 Original (First Attempt)
+                            </div>
+                            <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); max-height: 400px; overflow-y: auto; font-size: 0.9rem;")}>
+                              {selectedSubmission.originalEssay.split('\n\n').map((para, i) => (
+                                <p key={i} className="compiled-paragraph" style={parseStyle("margin-bottom: var(--space-sm);")}>{para}</p>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Improved Essay */}
+                          <div>
+                            <div style={parseStyle("font-size: 0.85rem; font-weight: 600; color: var(--color-success); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 1px;")}>
+                              ✅ Improved (Final Version)
+                            </div>
+                            <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); border: 2px solid var(--color-success); max-height: 400px; overflow-y: auto; font-size: 0.9rem;")}>
+                              {selectedSubmission.essay.split('\n\n').map((para, i) => (
+                                <p key={i} className="compiled-paragraph" style={parseStyle("margin-bottom: var(--space-sm);")}>{para}</p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essay</h4>
+                        <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
+                          {selectedSubmission.essay.split('\n\n').map((para, i) => (
+                            <p key={i} className="compiled-paragraph">{para}</p>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
                 
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Feedback Feedback</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> 📝 Feedback</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={parseStyle("margin-bottom: var(--space-md);")}>{selectedSubmission.feedback.essaySummary}</p>
@@ -10157,7 +10153,7 @@ ${examinerComment}
                       <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-success);")}> Improved Version (Final) Strengths</strong>
+                            <strong style={parseStyle("color: var(--color-success);")}> ✅ Strengths</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -10179,7 +10175,7 @@ ${examinerComment}
                 {/* Official Grading Section */}
                 {selectedSubmission.officialGrading && (
                   <div>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Official Grading Official Mark Scheme Grading</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> 📋 Official Mark Scheme Grading</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {/* Improvement Summary */}
                       <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
@@ -11936,10 +11932,14 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           const paragraphData = PARAGRAPHS.map(p => ({
             config: p,
             finalText: paragraphStates[p.id]?.finalText || '',
+            originalText: paragraphStates[p.id]?.originalBeforeCorrections || paragraphStates[p.id]?.initialText || paragraphStates[p.id]?.finalText || '',
             attempts: paragraphStates[p.id]?.attempts || 0,
             paragraphScore: paragraphStates[p.id]?.score || 0,
             estimatedGrade: paragraphStates[p.id]?.estimatedGrade || null
           }));
+          
+          // Build original essay from original texts
+          const originalEssay = paragraphData.map(p => p.originalText).join('\n\n');
           
           // Check if we have authentic grade boundaries
           const hasAuthenticDescriptors = CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0;
@@ -11971,6 +11971,9 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               usedAuthenticDescriptors: data.usedAuthenticDescriptors
             });
             
+            // Check if original and final essays are different
+            const essaysAreDifferent = originalEssay.trim() !== data.fullEssay.trim();
+            
             const submissionData = {
               type: 'essay',
               essayId: selectedEssayId,
@@ -11982,6 +11985,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               awardedMarks: data.awardedMarks,
               totalMarks: data.totalMarks,
               essay: data.fullEssay,
+              originalEssay: originalEssay, // Original essay before corrections
+              essaysAreDifferent: essaysAreDifferent, // Flag if improvements were made
               paragraphSummary: data.paragraphSummary,
               feedback: data.feedback,
               usedAuthenticDescriptors: data.usedAuthenticDescriptors,
