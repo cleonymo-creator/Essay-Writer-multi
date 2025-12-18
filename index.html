@@ -7218,6 +7218,108 @@
               )}
             </div>
           </div>
+          
+          {/* Assignment Overview - Shows which students have which essays */}
+          <div style={parseStyle("margin-top: var(--space-xl); border-top: 1px solid var(--color-border); padding-top: var(--space-xl);")}>
+            <h3 style={parseStyle("color: var(--color-primary-light); margin-bottom: var(--space-lg);")}>
+              📋 Assignment Overview
+            </h3>
+            
+            {essays.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted);")}> No essays configured</p>
+            ) : (
+              <div style={parseStyle("display: flex; flex-direction: column; gap: var(--space-lg);")}>
+                {essays.map(essay => {
+                  // Find all classes that have this essay assigned
+                  const assignedClasses = classes.filter(c => 
+                    (c.assignedEssays || []).includes(essay.id)
+                  );
+                  
+                  // Find all students with individual assignments for this essay
+                  const individuallyAssigned = students.filter(s => 
+                    (s.individualAssignments || []).includes(essay.id)
+                  );
+                  
+                  // Find all students in assigned classes (excluding individually assigned to avoid duplicates)
+                  const studentsInAssignedClasses = students.filter(s => {
+                    // Check if student is in any of the assigned classes
+                    const studentClassIds = s.classIds || (s.classId ? [s.classId] : []);
+                    return assignedClasses.some(c => studentClassIds.includes(c.id)) &&
+                           !individuallyAssigned.some(ia => ia.email === s.email);
+                  });
+                  
+                  const totalAssigned = individuallyAssigned.length + studentsInAssignedClasses.length;
+                  
+                  return (
+                    <div 
+                      key={essay.id}
+                      style={parseStyle("background: var(--glass-bg); border-radius: var(--radius-md); padding: var(--space-md); border: 1px solid var(--color-border);")}
+                    >
+                      <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);")}>
+                        <h4 style={parseStyle("font-family: var(--font-display); color: var(--color-text); margin: 0;")}>
+                          {essay.title}
+                        </h4>
+                        <span style={parseStyle(`
+                          font-size: 0.85rem; 
+                          padding: var(--space-xs) var(--space-sm); 
+                          border-radius: var(--radius-full);
+                          background: ${totalAssigned > 0 ? 'var(--color-success-bg)' : 'rgba(100, 100, 120, 0.2)'};
+                          color: ${totalAssigned > 0 ? 'var(--color-success)' : 'var(--color-text-muted)'};
+                        `)}>
+                          {totalAssigned} student{totalAssigned !== 1 ? 's' : ''} assigned
+                        </span>
+                      </div>
+                      
+                      {totalAssigned === 0 ? (
+                        <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin: 0;")}>
+                          No students assigned yet
+                        </p>
+                      ) : (
+                        <div style={parseStyle("font-size: 0.85rem;")}>
+                          {/* Show assigned classes */}
+                          {assignedClasses.length > 0 && (
+                            <div style={parseStyle("margin-bottom: var(--space-sm);")}>
+                              <span style={parseStyle("color: var(--color-primary-light); font-weight: 600;")}>
+                                Classes: 
+                              </span>
+                              <span style={parseStyle("color: var(--color-text-secondary); margin-left: var(--space-xs);")}>
+                                {assignedClasses.map(c => c.name).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Show students in those classes */}
+                          {studentsInAssignedClasses.length > 0 && (
+                            <div style={parseStyle("margin-bottom: var(--space-sm);")}>
+                              <span style={parseStyle("color: var(--color-text-muted);")}>
+                                Via class ({studentsInAssignedClasses.length}): 
+                              </span>
+                              <span style={parseStyle("color: var(--color-text-secondary); margin-left: var(--space-xs);")}>
+                                {studentsInAssignedClasses.slice(0, 5).map(s => s.name).join(', ')}
+                                {studentsInAssignedClasses.length > 5 && ` +${studentsInAssignedClasses.length - 5} more`}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Show individually assigned students */}
+                          {individuallyAssigned.length > 0 && (
+                            <div>
+                              <span style={parseStyle("color: var(--color-accent);")}>
+                                Individual ({individuallyAssigned.length}): 
+                              </span>
+                              <span style={parseStyle("color: var(--color-text-secondary); margin-left: var(--space-xs);")}>
+                                {individuallyAssigned.map(s => s.name).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
