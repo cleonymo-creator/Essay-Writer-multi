@@ -1,5 +1,6 @@
 // Class Management Function
 // Handles CRUD for classes and assignment management
+// Now with teacher authentication and ownership filtering
 
 const { getStore } = require("@netlify/blobs");
 
@@ -11,10 +12,58 @@ function generateClassId(name) {
     '-' + Date.now().toString(36);
 }
 
+// Helper to verify teacher session
+async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore) {
+  if (!sessionToken) {
+    return { valid: false, error: 'No session token provided' };
+  }
+  
+  try {
+    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
+    
+    if (!session) {
+      return { valid: false, error: 'Invalid session' };
+    }
+    
+    if (new Date(session.expiresAt) < new Date()) {
+      await teacherSessionsStore.delete(sessionToken);
+      return { valid: false, error: 'Session expired' };
+    }
+    
+    const teacher = await teachersStore.get(session.email, { type: 'json' });
+    if (!teacher) {
+      return { valid: false, error: 'Teacher not found' };
+    }
+    
+    return { 
+      valid: true, 
+      email: session.email, 
+      name: teacher.name,
+      role: teacher.role || 'teacher',
+      isAdmin: teacher.role === 'admin',
+      teacher: teacher
+    };
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return { valid: false, error: 'Session verification failed' };
+  }
+}
+
+// Extract session token from request
+function getSessionToken(event) {
+  // Check Authorization header first
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  // Check query parameter
+  return event.queryStringParameters?.sessionToken || null;
+}
+
 exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
   };
@@ -26,11 +75,56 @@ exports.handler = async (event, context) => {
   try {
     const classesStore = getStore("classes");
     const studentsStore = getStore("students");
+    const teachersStore = getStore("teachers");
+    const teacherSessionsStore = getStore("teacher-sessions");
+
+    // Get and verify session token
+    const sessionToken = getSessionToken(event);
+    
+    // Check if teachers exist (for backward compatibility during migration)
+    let teachersExist = false;
+    try {
+      const { blobs } = await teachersStore.list();
+      teachersExist = blobs && blobs.length > 0;
+    } catch (e) {
+      // Store might not exist yet
+    }
+
+    let sessionCheck = { valid: false };
+    
+    if (teachersExist) {
+      // Teachers exist, require authentication
+      if (!sessionToken) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            success: false, 
+            error: 'Authentication required',
+            requiresAuth: true
+          })
+        };
+      }
+      
+      sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      
+      if (!sessionCheck.valid) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            success: false, 
+            error: sessionCheck.error,
+            requiresAuth: true
+          })
+        };
+      }
+    }
 
     // GET - List all classes or get specific class
     if (event.httpMethod === 'GET') {
       const classId = event.queryStringParameters?.classId;
-      const teacherEmail = event.queryStringParameters?.teacherEmail;
+      const teacherEmailFilter = event.queryStringParameters?.teacherEmail;
       
       if (classId) {
         // Get specific class
@@ -42,6 +136,18 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ success: false, error: 'Class not found' })
           };
         }
+        
+        // Check ownership (admin can see all, teachers only their own)
+        if (sessionCheck.valid && !sessionCheck.isAdmin) {
+          if (classData.teacherEmail !== sessionCheck.email) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ success: false, error: 'Access denied to this class' })
+            };
+          }
+        }
+        
         return {
           statusCode: 200,
           headers,
@@ -49,7 +155,7 @@ exports.handler = async (event, context) => {
         };
       }
       
-      // List all classes (optionally filtered by teacher)
+      // List classes (filtered by ownership)
       const { blobs } = await classesStore.list();
       const classes = [];
       
@@ -57,8 +163,15 @@ exports.handler = async (event, context) => {
         try {
           const classData = await classesStore.get(blob.key, { type: 'json' });
           if (classData) {
-            // Filter by teacher if specified
-            if (teacherEmail && classData.teacherEmail !== teacherEmail.toLowerCase()) continue;
+            // Apply ownership filter
+            if (sessionCheck.valid && !sessionCheck.isAdmin) {
+              // Teachers only see their own classes
+              if (classData.teacherEmail !== sessionCheck.email) continue;
+            }
+            
+            // Apply explicit teacher email filter if provided
+            if (teacherEmailFilter && classData.teacherEmail !== teacherEmailFilter.toLowerCase()) continue;
+            
             classes.push(classData);
           }
         } catch (e) {
@@ -95,13 +208,22 @@ exports.handler = async (event, context) => {
 
         const classId = generateClassId(name);
 
+        // If authenticated, use the teacher's info
+        let finalTeacher = teacher;
+        let finalTeacherEmail = teacherEmail?.toLowerCase();
+        
+        if (sessionCheck.valid) {
+          finalTeacher = finalTeacher || sessionCheck.name;
+          finalTeacherEmail = finalTeacherEmail || sessionCheck.email;
+        }
+
         const classData = {
           id: classId,
           name: name.trim(),
           subject: subject || 'English',
           yearGroup: yearGroup || null,
-          teacher: teacher || null,
-          teacherEmail: teacherEmail?.toLowerCase() || null,
+          teacher: finalTeacher || null,
+          teacherEmail: finalTeacherEmail || null,
           students: [],
           assignedEssays: [],
           createdAt: new Date().toISOString()
@@ -116,6 +238,22 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Helper to check class ownership for modifications
+      const checkClassOwnership = async (classId) => {
+        const classData = await classesStore.get(classId, { type: 'json' });
+        if (!classData) {
+          return { allowed: false, error: 'Class not found', status: 404 };
+        }
+        
+        if (sessionCheck.valid && !sessionCheck.isAdmin) {
+          if (classData.teacherEmail !== sessionCheck.email) {
+            return { allowed: false, error: 'Access denied to this class', status: 403 };
+          }
+        }
+        
+        return { allowed: true, classData };
+      };
+
       // Assign essay to class
       if (action === 'assignToClass') {
         const { classId, essayId } = body;
@@ -128,15 +266,16 @@ exports.handler = async (event, context) => {
           };
         }
 
-        const classData = await classesStore.get(classId, { type: 'json' });
-        if (!classData) {
+        const ownershipCheck = await checkClassOwnership(classId);
+        if (!ownershipCheck.allowed) {
           return {
-            statusCode: 404,
+            statusCode: ownershipCheck.status,
             headers,
-            body: JSON.stringify({ success: false, error: 'Class not found' })
+            body: JSON.stringify({ success: false, error: ownershipCheck.error })
           };
         }
 
+        const classData = ownershipCheck.classData;
         const assignments = [...(classData.assignedEssays || [])];
         if (!assignments.includes(essayId)) {
           assignments.push(essayId);
@@ -170,15 +309,16 @@ exports.handler = async (event, context) => {
           };
         }
 
-        const classData = await classesStore.get(classId, { type: 'json' });
-        if (!classData) {
+        const ownershipCheck = await checkClassOwnership(classId);
+        if (!ownershipCheck.allowed) {
           return {
-            statusCode: 404,
+            statusCode: ownershipCheck.status,
             headers,
-            body: JSON.stringify({ success: false, error: 'Class not found' })
+            body: JSON.stringify({ success: false, error: ownershipCheck.error })
           };
         }
 
+        const classData = ownershipCheck.classData;
         const assignments = (classData.assignedEssays || []).filter(id => id !== essayId);
         await classesStore.setJSON(classId, {
           ...classData,
@@ -218,6 +358,17 @@ exports.handler = async (event, context) => {
             headers,
             body: JSON.stringify({ success: false, error: 'Student not found' })
           };
+        }
+
+        // Check if teacher owns the student's class
+        if (sessionCheck.valid && !sessionCheck.isAdmin) {
+          if (studentData.teacherEmail !== sessionCheck.email) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ success: false, error: 'Access denied to this student' })
+            };
+          }
         }
 
         const assignments = [...(studentData.individualAssignments || [])];
@@ -264,6 +415,17 @@ exports.handler = async (event, context) => {
           };
         }
 
+        // Check ownership
+        if (sessionCheck.valid && !sessionCheck.isAdmin) {
+          if (studentData.teacherEmail !== sessionCheck.email) {
+            return {
+              statusCode: 403,
+              headers,
+              body: JSON.stringify({ success: false, error: 'Access denied to this student' })
+            };
+          }
+        }
+
         const assignments = (studentData.individualAssignments || []).filter(id => id !== essayId);
         await studentsStore.setJSON(emailLower, {
           ...studentData,
@@ -294,7 +456,7 @@ exports.handler = async (event, context) => {
           };
         }
 
-        const results = { updated: [], notFound: [] };
+        const results = { updated: [], notFound: [], accessDenied: [] };
 
         for (const email of studentEmails) {
           const emailLower = email.trim().toLowerCase();
@@ -303,6 +465,14 @@ exports.handler = async (event, context) => {
           if (!studentData) {
             results.notFound.push(emailLower);
             continue;
+          }
+
+          // Check ownership
+          if (sessionCheck.valid && !sessionCheck.isAdmin) {
+            if (studentData.teacherEmail !== sessionCheck.email) {
+              results.accessDenied.push(emailLower);
+              continue;
+            }
           }
 
           const assignments = [...(studentData.individualAssignments || [])];
@@ -353,8 +523,24 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Check ownership
+      if (sessionCheck.valid && !sessionCheck.isAdmin) {
+        if (classData.teacherEmail !== sessionCheck.email) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Access denied to this class' })
+          };
+        }
+      }
+
       // Apply allowed updates
-      const allowedFields = ['name', 'subject', 'yearGroup', 'teacher', 'teacherEmail', 'assignedEssays'];
+      // Note: only admins can change teacher assignment
+      const allowedFields = ['name', 'subject', 'yearGroup', 'assignedEssays'];
+      if (sessionCheck.isAdmin) {
+        allowedFields.push('teacher', 'teacherEmail');
+      }
+      
       const updatedData = { ...classData };
       
       for (const field of allowedFields) {
@@ -363,8 +549,8 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // If teacher info changed, update all students in class
-      if (updates.teacher !== undefined || updates.teacherEmail !== undefined) {
+      // If teacher info changed (admin only), update all students in class
+      if (sessionCheck.isAdmin && (updates.teacher !== undefined || updates.teacherEmail !== undefined)) {
         for (const studentEmail of (classData.students || [])) {
           const studentData = await studentsStore.get(studentEmail, { type: 'json' });
           if (studentData) {
@@ -408,6 +594,17 @@ exports.handler = async (event, context) => {
           headers,
           body: JSON.stringify({ success: false, error: 'Class not found' })
         };
+      }
+
+      // Check ownership
+      if (sessionCheck.valid && !sessionCheck.isAdmin) {
+        if (classData.teacherEmail !== sessionCheck.email) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Access denied to this class' })
+          };
+        }
       }
 
       // Remove class reference from all students

@@ -1,44 +1,164 @@
+// Get Submissions Function
+// Retrieves student submissions with teacher authentication
+// Teachers only see submissions from their own students
+
 const { initializeFirebase } = require('./firebase-helper');
+const { getStore } = require("@netlify/blobs");
+
+// Helper to verify teacher session
+async function verifyTeacherSession(sessionToken) {
+  if (!sessionToken) {
+    return { valid: false, error: 'No session token provided' };
+  }
+  
+  try {
+    const teachersStore = getStore("teachers");
+    const teacherSessionsStore = getStore("teacher-sessions");
+    
+    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
+    
+    if (!session) {
+      return { valid: false, error: 'Invalid session' };
+    }
+    
+    if (new Date(session.expiresAt) < new Date()) {
+      return { valid: false, error: 'Session expired' };
+    }
+    
+    const teacher = await teachersStore.get(session.email, { type: 'json' });
+    if (!teacher) {
+      return { valid: false, error: 'Teacher not found' };
+    }
+    
+    return { 
+      valid: true, 
+      email: session.email, 
+      name: teacher.name,
+      role: teacher.role || 'teacher',
+      isAdmin: teacher.role === 'admin'
+    };
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return { valid: false, error: 'Session verification failed' };
+  }
+}
+
+// Check if teachers table exists
+async function teachersExist() {
+  try {
+    const teachersStore = getStore("teachers");
+    const { blobs } = await teachersStore.list();
+    return blobs && blobs.length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Get list of student emails that belong to a teacher
+async function getTeacherStudentEmails(teacherEmail) {
+  const studentsStore = getStore("students");
+  const emails = [];
+  
+  try {
+    const { blobs } = await studentsStore.list();
+    for (const blob of blobs) {
+      const student = await studentsStore.get(blob.key, { type: 'json' });
+      if (student && student.teacherEmail === teacherEmail) {
+        emails.push(student.email);
+        // Also add variations that might be used in submissions
+        if (student.name) {
+          emails.push(student.name.toLowerCase());
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error getting teacher students:', e);
+  }
+  
+  return emails;
+}
 
 exports.handler = async (event, context) => {
-  // Handle CORS preflight
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Content-Type': 'application/json'
+  };
+
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      },
-      body: ''
-    };
+    return { statusCode: 204, headers, body: '' };
   }
 
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
     const params = event.queryStringParameters || {};
-    const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
     
-    // Check authentication
-    if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
-      return {
-        statusCode: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({ error: 'Unauthorized - Invalid teacher password' })
-      };
+    // Check if new teacher auth system is in use
+    const hasTeachers = await teachersExist();
+    
+    let sessionCheck = { valid: false, isAdmin: false };
+    let teacherStudentEmails = null;
+    
+    if (hasTeachers) {
+      // Get session token from header or query param
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      let sessionToken = null;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        sessionToken = authHeader.substring(7);
+      } else {
+        sessionToken = params.sessionToken;
+      }
+      
+      if (!sessionToken) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            success: false, 
+            error: 'Authentication required',
+            requiresAuth: true
+          })
+        };
+      }
+      
+      sessionCheck = await verifyTeacherSession(sessionToken);
+      
+      if (!sessionCheck.valid) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            success: false, 
+            error: sessionCheck.error,
+            requiresAuth: true
+          })
+        };
+      }
+      
+      // If not admin, get list of student emails for filtering
+      if (!sessionCheck.isAdmin) {
+        teacherStudentEmails = await getTeacherStudentEmails(sessionCheck.email);
+      }
+    } else {
+      // Legacy authentication - use old password system
+      const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
+      
+      if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Unauthorized - Invalid teacher password' })
+        };
+      }
     }
 
     const db = initializeFirebase();
@@ -48,23 +168,39 @@ exports.handler = async (event, context) => {
       .orderBy('serverTimestamp', 'desc')
       .get();
     
-    const submissions = [];
+    let submissions = [];
     snapshot.forEach(doc => {
       submissions.push(doc.data());
     });
 
-    console.log(`[get-submissions] Retrieved ${submissions.length} submissions`);
+    // Filter by teacher's students if not admin
+    if (teacherStudentEmails !== null) {
+      submissions = submissions.filter(sub => {
+        // Match by email or student name
+        const studentEmail = (sub.studentEmail || '').toLowerCase();
+        const studentName = (sub.studentName || '').toLowerCase();
+        
+        return teacherStudentEmails.some(email => 
+          email === studentEmail || 
+          email === studentName ||
+          studentEmail.includes(email) ||
+          studentName.includes(email)
+        );
+      });
+    }
+
+    console.log('[get-submissions] Retrieved ' + submissions.length + ' submissions' + 
+      (sessionCheck.valid ? ' for teacher ' + sessionCheck.email : ''));
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ 
         success: true,
         count: submissions.length,
-        submissions: submissions
+        submissions: submissions,
+        teacherEmail: sessionCheck.valid ? sessionCheck.email : undefined,
+        isAdmin: sessionCheck.isAdmin || undefined
       })
     };
 
@@ -72,10 +208,7 @@ exports.handler = async (event, context) => {
     console.error('Get submissions error:', error);
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ 
         error: 'Failed to retrieve submissions',
         message: error.message
