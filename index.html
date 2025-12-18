@@ -3618,6 +3618,141 @@
     .task-section-title span {
       font-size: 1.3rem;
     }
+    
+    /* =====================================================
+       SOURCE MATERIAL CARD - Prominent display at top of writing area
+       ===================================================== */
+    
+    .source-material-card {
+      background: linear-gradient(145deg, rgba(184, 134, 11, 0.08), rgba(30, 30, 50, 0.95));
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-md), inset 0 0 30px rgba(184, 134, 11, 0.05);
+    }
+    
+    .source-material-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      background: linear-gradient(135deg, rgba(184, 134, 11, 0.15), rgba(184, 134, 11, 0.08));
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition-fast);
+    }
+    
+    .source-material-header:hover {
+      background: linear-gradient(135deg, rgba(184, 134, 11, 0.2), rgba(184, 134, 11, 0.12));
+    }
+    
+    .source-material-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--color-primary-light);
+      margin: 0;
+      font-weight: 600;
+    }
+    
+    .source-material-title-icon {
+      font-size: 1.2rem;
+    }
+    
+    .source-material-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      transition: color var(--transition-fast);
+    }
+    
+    .source-material-header:hover .source-material-toggle {
+      color: var(--color-primary-light);
+    }
+    
+    .source-material-toggle-icon {
+      font-size: 1rem;
+      transition: transform var(--transition-fast);
+    }
+    
+    .source-material-card.collapsed .source-material-toggle-icon {
+      transform: rotate(-90deg);
+    }
+    
+    .source-material-content {
+      padding: var(--space-lg);
+      max-height: 400px;
+      overflow-y: auto;
+      transition: max-height var(--transition-base), padding var(--transition-base), opacity var(--transition-base);
+    }
+    
+    .source-material-card.collapsed .source-material-content {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      overflow: hidden;
+    }
+    
+    .source-material-text {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--color-text);
+      white-space: pre-wrap;
+    }
+    
+    .source-material-text p {
+      margin-bottom: var(--space-md);
+      text-indent: 2em;
+    }
+    
+    .source-material-text p:first-child {
+      text-indent: 0;
+    }
+    
+    .source-material-text p:last-child {
+      margin-bottom: 0;
+    }
+    
+    /* Scrollbar styling for source material */
+    .source-material-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .source-material-content::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    
+    .source-material-content::-webkit-scrollbar-thumb {
+      background: var(--color-primary);
+      border-radius: 4px;
+    }
+    
+    .source-material-content::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary-light);
+    }
+    
+    /* Source material hint when collapsed */
+    .source-material-hint {
+      padding: var(--space-sm) var(--space-lg);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+      display: none;
+    }
+    
+    .source-material-card.collapsed .source-material-hint {
+      display: block;
+    }
+    
         /* Mobile task toggle button */
     .task-toggle-btn {
       display: none;
@@ -5007,24 +5142,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">â–º;</span>
+              <span className="tts-icon">Ã¢â€“Âº;</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">âš;âš;</span>
+                  <span className="tts-icon">Ã¢ÂÅ¡;Ã¢ÂÅ¡;</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">â–º;</span>
+                  <span className="tts-icon">Ã¢â€“Âº;</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">â– ;</span>
+                <span className="tts-icon">Ã¢â€“Â ;</span>
                 <span>Stop</span>
               </button>
             </>
@@ -6660,14 +6795,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? 'âœ“ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? 'Ã¢Å“â€œ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
+                      <div className="essay-card-icon">{essay.icon || 'Ã°Å¸â€œÅ¡'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>ðŸ“‘ {essay.subject}</span>
-                        <span>ðŸŽ“ {essay.yearGroup}</span>
+                        <span>Ã°Å¸â€œâ€˜ {essay.subject}</span>
+                        <span>Ã°Å¸Å½â€œ {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -6966,7 +7101,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>â–² Areas to Improve</span></div>
+              <div className="feedback-section-title"><span>Ã¢â€“Â² Areas to Improve</span></div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -7006,7 +7141,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                  âœ“ Complete & Continue to Next Section
+                  Ã¢Å“â€œ Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -7546,6 +7681,51 @@
         </div>
       );
     }
+    
+    // =====================================================
+    // SOURCE MATERIAL CARD - Prominent display for reference text
+    // =====================================================
+    
+    function SourceMaterialCard({ sourceMaterial, defaultExpanded = true }) {
+      const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+      
+      if (!sourceMaterial) return null;
+      
+      // Calculate approximate word count for hint
+      const wordCount = sourceMaterial.split(/\s+/).length;
+      
+      return (
+        <div className={`source-material-card ${!isExpanded ? 'collapsed' : ''}`}>
+          <div 
+            className="source-material-header"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <h3 className="source-material-title">
+              <span className="source-material-title-icon">📖</span>
+              Source Text
+            </h3>
+            <div className="source-material-toggle">
+              <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
+              <span className="source-material-toggle-icon">▼</span>
+            </div>
+          </div>
+          
+          {!isExpanded && (
+            <div className="source-material-hint">
+              {wordCount} words — Click header to expand and read the source text
+            </div>
+          )}
+          
+          <div className="source-material-content">
+            <div 
+              className="source-material-text"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(sourceMaterial) }}
+            />
+          </div>
+        </div>
+      );
+    }
+    
 // PARAGRAPH SCREEN
     // =====================================================
     
@@ -7714,6 +7894,12 @@
               <h2 style={parseStyle("margin: 0;")}>{paragraph.title}</h2>
             </div>
           </div>
+          
+          {/* Source Material Card - Prominent display at top */}
+          <SourceMaterialCard 
+            sourceMaterial={config?.sourceMaterial || paragraph?.sourceMaterial}
+            defaultExpanded={true}
+          />
           
           <ExpandableLearningMaterial 
             content={getLearningMaterial()} 
@@ -8277,7 +8463,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>âœ“ Improved Version</span></div>
+                        <div className="feedback-section-title"><span>Ã¢Å“â€œ Improved Version</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8286,7 +8472,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>â–² Areas for Development</span></div>
+                        <div className="feedback-section-title"><span>Ã¢â€“Â² Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
