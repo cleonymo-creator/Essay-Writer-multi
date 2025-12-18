@@ -239,6 +239,24 @@ exports.handler = async (event, context) => {
     const { action } = body;
 
     // ========================================
+    // CHECK SETUP (public - checks if any teachers exist)
+    // ========================================
+    if (action === 'checkSetup') {
+      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const teachersExist = !teachersSnapshot.empty;
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          success: true, 
+          teachersExist,
+          needsSetup: !teachersExist
+        })
+      };
+    }
+
+    // ========================================
     // LOGIN
     // ========================================
     if (action === 'login') {

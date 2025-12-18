@@ -8997,26 +8997,32 @@ ${examinerComment}
       const [error, setError] = React.useState('');
       const [isLoading, setIsLoading] = React.useState(false);
       const [checkingSetup, setCheckingSetup] = React.useState(true);
-      const [needsSetup, setNeedsSetup] = React.useState(false);
+      const [teachersExist, setTeachersExist] = React.useState(true); // Default to true (hide setup button)
 
-      // Check if we need first-time setup
+      // Check if any teachers exist (to show/hide First-time Setup button)
       React.useEffect(() => {
         const checkSetup = async () => {
           try {
+            // Try to register with empty credentials - the error message tells us if teachers exist
             const response = await fetch('/.netlify/functions/teacher-auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'register', email: '', password: '', name: '' })
+              body: JSON.stringify({ action: 'checkSetup' })
             });
             const result = await response.json();
-            // If error says email required, system is ready for first admin
-            // Check list response to see if teachers exist
-            const listResponse = await fetch('/.netlify/functions/teacher-auth?sessionToken=none');
-            // 401 means teachers exist but need auth
-            // For first setup, we try to register without auth
-            setNeedsSetup(false); // Will be determined by registration attempt
+            
+            // If we get "Admin authentication required", teachers exist
+            // If we get "Email, password, and name required", no teachers exist yet
+            if (result.error && result.error.includes('Admin authentication required')) {
+              setTeachersExist(true);
+            } else if (result.error && (result.error.includes('required') || result.teachersExist === false)) {
+              setTeachersExist(false);
+            } else if (result.teachersExist !== undefined) {
+              setTeachersExist(result.teachersExist);
+            }
           } catch (e) {
-            // Network error, assume login mode
+            // Network error, assume teachers exist (safer default)
+            setTeachersExist(true);
           }
           setCheckingSetup(false);
         };
@@ -9211,7 +9217,7 @@ ${examinerComment}
               </button>
               
               <div style={parseStyle("display: flex; gap: var(--space-sm);")}>
-                {mode === 'login' && (
+                {mode === 'login' && !teachersExist && (
                   <button
                     type="button"
                     className="btn btn-secondary"
