@@ -8990,16 +8990,18 @@ ${examinerComment}
         };
         
         // Save to Firebase if available, otherwise Netlify Blobs
-        const firebaseReady = await FirebaseDB.isReady();
-        if (firebaseReady) {
-          FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
-        } else {
-          fetch('/.netlify/functions/save-progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(progressData)
-          }).catch(err => console.log('Progress save note:', err.message));
-        }
+        (async () => {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
+            FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
+          } else {
+            fetch('/.netlify/functions/save-progress', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(progressData)
+            }).catch(err => console.log('Progress save note:', err.message));
+          }
+        })();
       }, [studentName, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
       
       const handleSelectEssay = (essayId) => {
