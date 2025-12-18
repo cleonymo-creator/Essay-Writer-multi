@@ -17,14 +17,6 @@ In your answer, you must consider:
 ## Mark Scheme Summary
 Candidates need to show personal response and critical style. Higher levels require sustained interpretation with well-chosen textual references. Responses should focus on the content and themes of kindness throughout the novel.`,
   sourceMaterial: `You should draw upon your knowledge of A Christmas Carol by Charles Dickens, focusing on examples of kindness shown by various characters throughout the novel. Consider characters such as:
-- Bob Cratchit and his family
-- Fezziwig
-- The Ghost of Christmas Present
-- Belle
-- Scrooge's nephew Fred
-- Mrs. Dilber and other minor characters
-- Scrooge himself (after his transformation)
-
 Think about different ways kindness is demonstrated: through actions, words, forgiveness, generosity, compassion, and understanding.`,
   sourceImages: [],
   maxAttempts: 3,
