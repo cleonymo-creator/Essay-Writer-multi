@@ -6382,7 +6382,6 @@
           }
           
           // Reload classes to get updated assignments
-          const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             const updated = await FirebaseDB.getClasses();
             setClasses(updated);
@@ -6417,7 +6416,6 @@
           }
           
           // Reload students
-          const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             const updated = await FirebaseDB.getStudents();
             setStudents(updated);
@@ -8378,36 +8376,44 @@ ${examinerComment}
       
       // Set up Firebase real-time listeners or Netlify polling
       useEffect(() => {
-        const firebaseReady = await FirebaseDB.isReady();
+        let unsubscribeSubmissions = null;
+        let unsubscribeProgress = null;
+        let interval = null;
+        
+        const setup = async () => {
+          const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
-          // Real-time Firebase listeners
-          setLoading(true);
-          
-          const unsubscribeSubmissions = FirebaseDB.subscribeToSubmissions((data) => {
-            setSubmissions(data);
-            setLoading(false);
-          });
-          
-          const unsubscribeProgress = FirebaseDB.subscribeToProgress((data) => {
-            setInProgress(data);
-          });
-          
-          return () => {
-            unsubscribeSubmissions();
-            unsubscribeProgress();
-          };
-        } else {
-          // Fallback to Netlify polling
-          fetchFromNetlify();
-          const interval = setInterval(fetchFromNetlify, 15000);
-          return () => clearInterval(interval);
-        }
+            // Real-time Firebase listeners
+            setLoading(true);
+            
+            unsubscribeSubmissions = FirebaseDB.subscribeToSubmissions((data) => {
+              setSubmissions(data);
+              setLoading(false);
+            });
+            
+            unsubscribeProgress = FirebaseDB.subscribeToProgress((data) => {
+              setInProgress(data);
+            });
+          } else {
+            // Fallback to Netlify polling
+            fetchFromNetlify();
+            interval = setInterval(fetchFromNetlify, 15000);
+          }
+        };
+        
+        setup();
+        
+        return () => {
+          if (unsubscribeSubmissions) unsubscribeSubmissions();
+          if (unsubscribeProgress) unsubscribeProgress();
+          if (interval) clearInterval(interval);
+        };
       }, [fetchFromNetlify]);
       
       // Manual refresh function
       const handleRefresh = async () => {
         const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+        if (firebaseReady) {
           setLoading(true);
           try {
             const [subs, prog] = await Promise.all([
@@ -8834,7 +8840,7 @@ ${examinerComment}
             try {
               let result;
               const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+              if (firebaseReady) {
                 result = await FirebaseDB.verifySession(savedToken);
               } else {
                 const response = await fetch('/.netlify/functions/student-auth', {
@@ -8985,7 +8991,7 @@ ${examinerComment}
         
         // Save to Firebase if available, otherwise Netlify Blobs
         const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+        if (firebaseReady) {
           FirebaseDB.saveProgress(progressData).catch(err => console.log('Firebase save note:', err.message));
         } else {
           fetch('/.netlify/functions/save-progress', {
@@ -9181,7 +9187,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
       try {
         // Save to Firebase if available, otherwise Netlify Blobs
         const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+        if (firebaseReady) {
           await FirebaseDB.submitEssay(submissionData);
         } else {
           await fetch('/.netlify/functions/submit-homework', {
@@ -9272,7 +9278,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
             try {
               // Save to Firebase if available, otherwise Netlify Blobs
               const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+              if (firebaseReady) {
                 await FirebaseDB.submitEssay(submissionData);
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
@@ -9341,7 +9347,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
             
             try {
               const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
+              if (firebaseReady) {
                 await FirebaseDB.updateSubmission(studentName, selectedEssayId, { officialGrading: data.grading });
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
