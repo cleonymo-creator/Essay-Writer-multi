@@ -1,30 +1,34 @@
-// Migration Helper Function
+// Migration Helper Function (Firebase Version)
 // Helps migrate existing classes to teacher ownership
 // Run this once after setting up the first admin account
 
-const { getStore } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 // Helper to verify teacher session
-async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore) {
+async function verifyTeacherSession(sessionToken, db) {
   if (!sessionToken) {
     return { valid: false, error: 'No session token provided' };
   }
   
   try {
-    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
+    const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
     
-    if (!session) {
+    if (!sessionDoc.exists) {
       return { valid: false, error: 'Invalid session' };
     }
+    
+    const session = sessionDoc.data();
     
     if (new Date(session.expiresAt) < new Date()) {
       return { valid: false, error: 'Session expired' };
     }
     
-    const teacher = await teachersStore.get(session.email, { type: 'json' });
-    if (!teacher) {
+    const teacherDoc = await db.collection('teachers').doc(session.email).get();
+    if (!teacherDoc.exists) {
       return { valid: false, error: 'Teacher not found' };
     }
+    
+    const teacher = teacherDoc.data();
     
     return { 
       valid: true, 
@@ -51,10 +55,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const classesStore = getStore("classes");
-    const studentsStore = getStore("students");
-    const teachersStore = getStore("teachers");
-    const teacherSessionsStore = getStore("teacher-sessions");
+    const db = initializeFirebase();
 
     // Get session token
     const authHeader = event.headers.authorization || event.headers.Authorization;
@@ -66,7 +67,7 @@ exports.handler = async (event, context) => {
     }
 
     // Verify admin access
-    const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+    const sessionCheck = await verifyTeacherSession(sessionToken, db);
     
     if (!sessionCheck.valid) {
       return {
@@ -86,43 +87,39 @@ exports.handler = async (event, context) => {
 
     // GET - Show migration status
     if (event.httpMethod === 'GET') {
-      const { blobs: classBlobs } = await classesStore.list();
-      const { blobs: teacherBlobs } = await teachersStore.list();
+      const classesSnapshot = await db.collection('classes').get();
+      const teachersSnapshot = await db.collection('teachers').get();
       
       const unassignedClasses = [];
       const assignedClasses = [];
       
-      for (const blob of classBlobs) {
-        const classData = await classesStore.get(blob.key, { type: 'json' });
-        if (classData) {
-          if (classData.teacherEmail) {
-            assignedClasses.push({
-              id: classData.id,
-              name: classData.name,
-              teacherEmail: classData.teacherEmail,
-              studentCount: (classData.students || []).length
-            });
-          } else {
-            unassignedClasses.push({
-              id: classData.id,
-              name: classData.name,
-              studentCount: (classData.students || []).length
-            });
-          }
-        }
-      }
-      
-      const teachers = [];
-      for (const blob of teacherBlobs) {
-        const teacher = await teachersStore.get(blob.key, { type: 'json' });
-        if (teacher) {
-          teachers.push({
-            email: teacher.email,
-            name: teacher.name,
-            role: teacher.role
+      classesSnapshot.forEach(doc => {
+        const classData = doc.data();
+        if (classData.teacherEmail) {
+          assignedClasses.push({
+            id: doc.id,
+            name: classData.name,
+            teacherEmail: classData.teacherEmail,
+            studentCount: (classData.students || []).length
+          });
+        } else {
+          unassignedClasses.push({
+            id: doc.id,
+            name: classData.name,
+            studentCount: (classData.students || []).length
           });
         }
-      }
+      });
+      
+      const teachers = [];
+      teachersSnapshot.forEach(doc => {
+        const teacher = doc.data();
+        teachers.push({
+          email: doc.id,
+          name: teacher.name,
+          role: teacher.role
+        });
+      });
       
       return {
         statusCode: 200,
@@ -130,10 +127,10 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           status: {
-            totalClasses: classBlobs.length,
+            totalClasses: classesSnapshot.size,
             unassignedClasses: unassignedClasses.length,
             assignedClasses: assignedClasses.length,
-            totalTeachers: teacherBlobs.length
+            totalTeachers: teachersSnapshot.size
           },
           unassignedClasses,
           assignedClasses,
@@ -159,8 +156,8 @@ exports.handler = async (event, context) => {
           };
         }
 
-        const classData = await classesStore.get(classId, { type: 'json' });
-        if (!classData) {
+        const classDoc = await db.collection('classes').doc(classId).get();
+        if (!classDoc.exists) {
           return {
             statusCode: 404,
             headers,
@@ -168,8 +165,8 @@ exports.handler = async (event, context) => {
           };
         }
 
-        const teacher = await teachersStore.get(teacherEmail.toLowerCase(), { type: 'json' });
-        if (!teacher) {
+        const teacherDoc = await db.collection('teachers').doc(teacherEmail.toLowerCase()).get();
+        if (!teacherDoc.exists) {
           return {
             statusCode: 404,
             headers,
@@ -177,24 +174,27 @@ exports.handler = async (event, context) => {
           };
         }
 
+        const classData = classDoc.data();
+        const teacher = teacherDoc.data();
+
         // Update class
-        await classesStore.setJSON(classId, {
-          ...classData,
+        await db.collection('classes').doc(classId).update({
           teacher: teacher.name,
-          teacherEmail: teacher.email,
+          teacherEmail: teacherEmail.toLowerCase(),
           updatedAt: new Date().toISOString()
         });
 
         // Update all students in the class
+        let studentsUpdated = 0;
         for (const studentEmail of (classData.students || [])) {
           try {
-            const studentData = await studentsStore.get(studentEmail, { type: 'json' });
-            if (studentData) {
-              await studentsStore.setJSON(studentEmail, {
-                ...studentData,
+            const studentDoc = await db.collection('students').doc(studentEmail).get();
+            if (studentDoc.exists) {
+              await db.collection('students').doc(studentEmail).update({
                 teacher: teacher.name,
-                teacherEmail: teacher.email
+                teacherEmail: teacherEmail.toLowerCase()
               });
+              studentsUpdated++;
             }
           } catch (e) {
             console.error('Error updating student:', studentEmail, e);
@@ -207,7 +207,7 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ 
             success: true, 
             message: 'Class assigned to ' + teacher.name,
-            studentsUpdated: (classData.students || []).length
+            studentsUpdated
           })
         };
       }
@@ -228,30 +228,31 @@ exports.handler = async (event, context) => {
 
         for (const { classId, teacherEmail } of assignments) {
           try {
-            const classData = await classesStore.get(classId, { type: 'json' });
-            const teacher = await teachersStore.get(teacherEmail.toLowerCase(), { type: 'json' });
+            const classDoc = await db.collection('classes').doc(classId).get();
+            const teacherDoc = await db.collection('teachers').doc(teacherEmail.toLowerCase()).get();
             
-            if (!classData || !teacher) {
+            if (!classDoc.exists || !teacherDoc.exists) {
               results.failed.push({ classId, error: 'Class or teacher not found' });
               continue;
             }
 
-            await classesStore.setJSON(classId, {
-              ...classData,
+            const classData = classDoc.data();
+            const teacher = teacherDoc.data();
+
+            await db.collection('classes').doc(classId).update({
               teacher: teacher.name,
-              teacherEmail: teacher.email,
+              teacherEmail: teacherEmail.toLowerCase(),
               updatedAt: new Date().toISOString()
             });
 
             // Update students
             for (const studentEmail of (classData.students || [])) {
               try {
-                const studentData = await studentsStore.get(studentEmail, { type: 'json' });
-                if (studentData) {
-                  await studentsStore.setJSON(studentEmail, {
-                    ...studentData,
+                const studentDoc = await db.collection('students').doc(studentEmail).get();
+                if (studentDoc.exists) {
+                  await db.collection('students').doc(studentEmail).update({
                     teacher: teacher.name,
-                    teacherEmail: teacher.email
+                    teacherEmail: teacherEmail.toLowerCase()
                   });
                 }
               } catch (e) {
@@ -274,15 +275,47 @@ exports.handler = async (event, context) => {
 
       // Assign all unassigned classes to current admin
       if (action === 'claimUnassigned') {
-        const { blobs } = await classesStore.list();
+        const classesSnapshot = await db.collection('classes').where('teacherEmail', '==', null).get();
         const results = { claimed: [], errors: [] };
 
-        for (const blob of blobs) {
+        for (const doc of classesSnapshot.docs) {
           try {
-            const classData = await classesStore.get(blob.key, { type: 'json' });
-            if (classData && !classData.teacherEmail) {
-              await classesStore.setJSON(blob.key, {
-                ...classData,
+            const classData = doc.data();
+            
+            await db.collection('classes').doc(doc.id).update({
+              teacher: sessionCheck.name,
+              teacherEmail: sessionCheck.email,
+              updatedAt: new Date().toISOString()
+            });
+
+            // Update students
+            for (const studentEmail of (classData.students || [])) {
+              try {
+                const studentDoc = await db.collection('students').doc(studentEmail).get();
+                if (studentDoc.exists) {
+                  await db.collection('students').doc(studentEmail).update({
+                    teacher: sessionCheck.name,
+                    teacherEmail: sessionCheck.email
+                  });
+                }
+              } catch (e) {
+                // Continue
+              }
+            }
+
+            results.claimed.push({ id: doc.id, name: classData.name });
+          } catch (e) {
+            results.errors.push({ classId: doc.id, error: e.message });
+          }
+        }
+
+        // Also check for classes with no teacherEmail field at all
+        const allClassesSnapshot = await db.collection('classes').get();
+        for (const doc of allClassesSnapshot.docs) {
+          const classData = doc.data();
+          if (!classData.teacherEmail && !results.claimed.find(c => c.id === doc.id)) {
+            try {
+              await db.collection('classes').doc(doc.id).update({
                 teacher: sessionCheck.name,
                 teacherEmail: sessionCheck.email,
                 updatedAt: new Date().toISOString()
@@ -291,10 +324,9 @@ exports.handler = async (event, context) => {
               // Update students
               for (const studentEmail of (classData.students || [])) {
                 try {
-                  const studentData = await studentsStore.get(studentEmail, { type: 'json' });
-                  if (studentData) {
-                    await studentsStore.setJSON(studentEmail, {
-                      ...studentData,
+                  const studentDoc = await db.collection('students').doc(studentEmail).get();
+                  if (studentDoc.exists) {
+                    await db.collection('students').doc(studentEmail).update({
                       teacher: sessionCheck.name,
                       teacherEmail: sessionCheck.email
                     });
@@ -304,10 +336,10 @@ exports.handler = async (event, context) => {
                 }
               }
 
-              results.claimed.push({ id: classData.id, name: classData.name });
+              results.claimed.push({ id: doc.id, name: classData.name });
+            } catch (e) {
+              results.errors.push({ classId: doc.id, error: e.message });
             }
-          } catch (e) {
-            results.errors.push({ classId: blob.key, error: e.message });
           }
         }
 

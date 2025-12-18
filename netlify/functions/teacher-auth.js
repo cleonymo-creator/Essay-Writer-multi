@@ -1,8 +1,8 @@
-// Teacher Authentication Function
+// Teacher Authentication Function (Firebase Version)
 // Handles login, registration, session management for teachers
 // First teacher to register becomes admin
 
-const { getStore } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 // Use Web Crypto for password hashing (bcrypt alternative for edge functions)
 async function hashPassword(password) {
@@ -128,29 +128,33 @@ function clearFailedAttempts(email) {
   delete failedAttempts[email];
 }
 
-// Helper to verify teacher session (exported for use in other functions)
-async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore) {
+// Helper to verify teacher session
+async function verifyTeacherSession(sessionToken, db) {
   if (!sessionToken) {
     return { valid: false, error: 'No session token provided' };
   }
   
   try {
-    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
+    const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
     
-    if (!session) {
+    if (!sessionDoc.exists) {
       return { valid: false, error: 'Invalid session' };
     }
     
+    const session = sessionDoc.data();
+    
     if (new Date(session.expiresAt) < new Date()) {
-      await teacherSessionsStore.delete(sessionToken);
+      await db.collection('teacherSessions').doc(sessionToken).delete();
       return { valid: false, error: 'Session expired' };
     }
     
     // Get teacher data
-    const teacher = await teachersStore.get(session.email, { type: 'json' });
-    if (!teacher) {
+    const teacherDoc = await db.collection('teachers').doc(session.email).get();
+    if (!teacherDoc.exists) {
       return { valid: false, error: 'Teacher not found' };
     }
+    
+    const teacher = teacherDoc.data();
     
     return { 
       valid: true, 
@@ -186,16 +190,14 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const teachersStore = getStore("teachers");
-    const teacherSessionsStore = getStore("teacher-sessions");
-    const classesStore = getStore("classes");
+    const db = initializeFirebase();
 
     // GET - List teachers (admin only)
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
       const sessionToken = params.sessionToken || event.headers.authorization?.replace('Bearer ', '');
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -214,18 +216,14 @@ exports.handler = async (event, context) => {
       }
       
       // List all teachers
+      const teachersSnapshot = await db.collection('teachers').get();
       const teachers = [];
-      for await (const blob of teachersStore.list()) {
-        try {
-          const teacher = await teachersStore.get(blob.key, { type: 'json' });
-          if (teacher) {
-            const { passwordHash, ...safeTeacher } = teacher;
-            teachers.push(safeTeacher);
-          }
-        } catch (e) {
-          console.error('Error reading teacher:', blob.key, e);
-        }
-      }
+      
+      teachersSnapshot.forEach(doc => {
+        const teacher = doc.data();
+        const { passwordHash, ...safeTeacher } = teacher;
+        teachers.push({ ...safeTeacher, email: doc.id });
+      });
       
       teachers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       
@@ -269,9 +267,9 @@ exports.handler = async (event, context) => {
         };
       }
       
-      const teacher = await teachersStore.get(emailLower, { type: 'json' });
+      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
       
-      if (!teacher) {
+      if (!teacherDoc.exists) {
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
@@ -279,7 +277,8 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: 'Invalid email or password' })
         };
       }
-
+      
+      const teacher = teacherDoc.data();
       const passwordValid = await verifyPassword(password, teacher.passwordHash);
       
       if (!passwordValid) {
@@ -290,27 +289,24 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: 'Invalid email or password' })
         };
       }
-
-      // Clear failed attempts on successful login
-      clearFailedAttempts(emailLower);
-
-      // Generate session token
-      const token = generateSessionToken();
-      const sessionExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
       
-      await teacherSessionsStore.setJSON(token, {
+      clearFailedAttempts(emailLower);
+      
+      // Create session
+      const sessionToken = generateSessionToken();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+      
+      await db.collection('teacherSessions').doc(sessionToken).set({
         email: emailLower,
-        role: teacher.role || 'teacher',
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(sessionExpiry).toISOString()
+        expiresAt
       });
-
+      
       // Update last login
-      await teachersStore.setJSON(emailLower, {
-        ...teacher,
+      await db.collection('teachers').doc(emailLower).update({
         lastLogin: new Date().toISOString()
       });
-
+      
       const { passwordHash, ...safeTeacher } = teacher;
       
       return {
@@ -318,104 +314,24 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           success: true,
-          sessionToken: token,
-          teacher: safeTeacher
+          sessionToken,
+          teacher: { ...safeTeacher, email: emailLower },
+          isAdmin: teacher.role === 'admin'
         })
       };
     }
 
     // ========================================
-    // VERIFY SESSION
-    // ========================================
-    if (action === 'verify') {
-      const { sessionToken } = body;
-      
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
-      
-      if (!sessionCheck.valid) {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ success: false, error: sessionCheck.error })
-        };
-      }
-
-      const { passwordHash, ...safeTeacher } = sessionCheck.teacher;
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          success: true, 
-          teacher: safeTeacher,
-          role: sessionCheck.role,
-          isAdmin: sessionCheck.isAdmin
-        })
-      };
-    }
-
-    // ========================================
-    // LOGOUT
-    // ========================================
-    if (action === 'logout') {
-      const { sessionToken } = body;
-      
-      if (sessionToken) {
-        try {
-          await teacherSessionsStore.delete(sessionToken);
-        } catch (e) {
-          // Ignore deletion errors
-        }
-      }
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true })
-      };
-    }
-
-    // ========================================
-    // REGISTER (admin only, or first teacher becomes admin)
+    // REGISTER (First teacher becomes admin)
     // ========================================
     if (action === 'register') {
-      const { sessionToken, email, password, name, role } = body;
+      const { email, password, name, sessionToken, role } = body;
       
-      // Check if any teachers exist
-      const allTeachers = [];
-      for await (const blob of teachersStore.list()) {
-        allTeachers.push(blob.key);
-      }
-      
-      const isFirstTeacher = allTeachers.length === 0;
-      
-      // If not first teacher, require admin session
-      if (!isFirstTeacher) {
-        const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
-        
-        if (!sessionCheck.valid) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({ success: false, error: 'Admin authentication required' })
-          };
-        }
-        
-        if (!sessionCheck.isAdmin) {
-          return {
-            statusCode: 403,
-            headers,
-            body: JSON.stringify({ success: false, error: 'Only administrators can create teacher accounts' })
-          };
-        }
-      }
-
-      // Validate input
       if (!email || !password || !name) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'Email, password, and name are required' })
+          body: JSON.stringify({ success: false, error: 'Email, password, and name required' })
         };
       }
 
@@ -429,40 +345,126 @@ exports.handler = async (event, context) => {
 
       const emailLower = email.trim().toLowerCase();
       
-      // Check if teacher already exists
-      const existing = await teachersStore.get(emailLower, { type: 'json' });
-      if (existing) {
+      // Check if any teachers exist
+      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const isFirstTeacher = teachersSnapshot.empty;
+      
+      // If teachers exist, require admin authentication
+      if (!isFirstTeacher) {
+        if (!sessionToken) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Admin authentication required to create new teachers' })
+          };
+        }
+        
+        const sessionCheck = await verifyTeacherSession(sessionToken, db);
+        
+        if (!sessionCheck.valid) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ success: false, error: sessionCheck.error })
+          };
+        }
+        
+        if (!sessionCheck.isAdmin) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Only administrators can create new teacher accounts' })
+          };
+        }
+      }
+      
+      // Check if email already exists
+      const existingDoc = await db.collection('teachers').doc(emailLower).get();
+      if (existingDoc.exists) {
         return {
-          statusCode: 409,
+          statusCode: 400,
           headers,
           body: JSON.stringify({ success: false, error: 'A teacher with this email already exists' })
         };
       }
-
+      
+      // Hash password and create teacher
       const passwordHash = await hashPassword(password);
       
-      const teacherData = {
-        email: emailLower,
+      const newTeacher = {
         name: name.trim(),
+        email: emailLower,
         role: isFirstTeacher ? 'admin' : (role || 'teacher'),
         passwordHash,
         createdAt: new Date().toISOString(),
-        lastLogin: null
+        createdBy: isFirstTeacher ? 'self' : (sessionToken ? 'admin' : 'unknown')
       };
-
-      await teachersStore.setJSON(emailLower, teacherData);
       
-      const { passwordHash: _, ...safeTeacher } = teacherData;
+      await db.collection('teachers').doc(emailLower).set(newTeacher);
+      
+      const { passwordHash: _, ...safeTeacher } = newTeacher;
       
       return {
-        statusCode: 201,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ 
-          success: true, 
+        body: JSON.stringify({
+          success: true,
           teacher: safeTeacher,
-          message: isFirstTeacher ? 'Admin account created successfully' : 'Teacher account created successfully',
-          isFirstTeacher
+          isFirstTeacher,
+          message: isFirstTeacher 
+            ? 'Admin account created successfully. You can now log in.'
+            : 'Teacher account created successfully.'
         })
+      };
+    }
+
+    // ========================================
+    // VERIFY SESSION
+    // ========================================
+    if (action === 'verify') {
+      const { sessionToken } = body;
+      
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
+      
+      if (!sessionCheck.valid) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: sessionCheck.error })
+        };
+      }
+      
+      const { passwordHash, ...safeTeacher } = sessionCheck.teacher;
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          teacher: { ...safeTeacher, email: sessionCheck.email },
+          isAdmin: sessionCheck.isAdmin
+        })
+      };
+    }
+
+    // ========================================
+    // LOGOUT
+    // ========================================
+    if (action === 'logout') {
+      const { sessionToken } = body;
+      
+      if (sessionToken) {
+        try {
+          await db.collection('teacherSessions').doc(sessionToken).delete();
+        } catch (e) {
+          // Ignore deletion errors
+        }
+      }
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, message: 'Logged out successfully' })
       };
     }
 
@@ -472,7 +474,7 @@ exports.handler = async (event, context) => {
     if (action === 'resetPassword') {
       const { sessionToken, teacherEmail } = body;
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -499,9 +501,9 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacher = await teachersStore.get(emailLower, { type: 'json' });
+      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
       
-      if (!teacher) {
+      if (!teacherDoc.exists) {
         return {
           statusCode: 404,
           headers,
@@ -512,8 +514,7 @@ exports.handler = async (event, context) => {
       const newPassword = generatePassword();
       const passwordHash = await hashPassword(newPassword);
 
-      await teachersStore.setJSON(emailLower, {
-        ...teacher,
+      await db.collection('teachers').doc(emailLower).update({
         passwordHash,
         passwordResetAt: new Date().toISOString(),
         passwordResetBy: sessionCheck.email
@@ -536,7 +537,7 @@ exports.handler = async (event, context) => {
     if (action === 'changePassword') {
       const { sessionToken, currentPassword, newPassword } = body;
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -575,8 +576,7 @@ exports.handler = async (event, context) => {
 
       const passwordHash = await hashPassword(newPassword);
 
-      await teachersStore.setJSON(sessionCheck.email, {
-        ...teacher,
+      await db.collection('teachers').doc(sessionCheck.email).update({
         passwordHash,
         passwordChangedAt: new Date().toISOString()
       });
@@ -594,7 +594,7 @@ exports.handler = async (event, context) => {
     if (action === 'deleteTeacher') {
       const { sessionToken, teacherEmail } = body;
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -631,9 +631,9 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacher = await teachersStore.get(emailLower, { type: 'json' });
+      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
       
-      if (!teacher) {
+      if (!teacherDoc.exists) {
         return {
           statusCode: 404,
           headers,
@@ -642,25 +642,21 @@ exports.handler = async (event, context) => {
       }
 
       // Delete the teacher
-      await teachersStore.delete(emailLower);
+      await db.collection('teachers').doc(emailLower).delete();
 
-      // Optionally reassign their classes to the admin
-      // For now, we just clear the teacherEmail on their classes
-      for await (const blob of classesStore.list()) {
-        try {
-          const classData = await classesStore.get(blob.key, { type: 'json' });
-          if (classData && classData.teacherEmail === emailLower) {
-            await classesStore.setJSON(blob.key, {
-              ...classData,
-              teacher: null,
-              teacherEmail: null,
-              updatedAt: new Date().toISOString()
-            });
-          }
-        } catch (e) {
-          console.error('Error updating class:', blob.key, e);
-        }
-      }
+      // Clear teacherEmail on their classes
+      const classesSnapshot = await db.collection('classes').where('teacherEmail', '==', emailLower).get();
+      const batch = db.batch();
+      
+      classesSnapshot.forEach(doc => {
+        batch.update(doc.ref, {
+          teacher: null,
+          teacherEmail: null,
+          updatedAt: new Date().toISOString()
+        });
+      });
+      
+      await batch.commit();
 
       return {
         statusCode: 200,
@@ -675,7 +671,7 @@ exports.handler = async (event, context) => {
     if (action === 'updateRole') {
       const { sessionToken, teacherEmail, newRole } = body;
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -720,9 +716,9 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacher = await teachersStore.get(emailLower, { type: 'json' });
+      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
       
-      if (!teacher) {
+      if (!teacherDoc.exists) {
         return {
           statusCode: 404,
           headers,
@@ -730,8 +726,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      await teachersStore.setJSON(emailLower, {
-        ...teacher,
+      await db.collection('teachers').doc(emailLower).update({
         role: newRole,
         roleUpdatedAt: new Date().toISOString(),
         roleUpdatedBy: sessionCheck.email
@@ -750,7 +745,7 @@ exports.handler = async (event, context) => {
     if (action === 'assignClasses') {
       const { sessionToken, teacherEmail, classIds } = body;
       
-      const sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+      const sessionCheck = await verifyTeacherSession(sessionToken, db);
       
       if (!sessionCheck.valid) {
         return {
@@ -777,9 +772,9 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacher = await teachersStore.get(emailLower, { type: 'json' });
+      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
       
-      if (!teacher) {
+      if (!teacherDoc.exists) {
         return {
           statusCode: 404,
           headers,
@@ -787,18 +782,18 @@ exports.handler = async (event, context) => {
         };
       }
 
+      const teacher = teacherDoc.data();
       const results = { assigned: [], notFound: [], errors: [] };
 
       for (const classId of classIds) {
         try {
-          const classData = await classesStore.get(classId, { type: 'json' });
-          if (!classData) {
+          const classDoc = await db.collection('classes').doc(classId).get();
+          if (!classDoc.exists) {
             results.notFound.push(classId);
             continue;
           }
 
-          await classesStore.setJSON(classId, {
-            ...classData,
+          await db.collection('classes').doc(classId).update({
             teacher: teacher.name,
             teacherEmail: emailLower,
             updatedAt: new Date().toISOString()
