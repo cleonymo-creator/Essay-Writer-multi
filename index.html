@@ -5066,6 +5066,7 @@
       const [error, setError] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [showPassword, setShowPassword] = useState(false);
+      const [showTeacherLogin, setShowTeacherLogin] = useState(false);
 
       const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
 
@@ -5120,6 +5121,21 @@
           setIsLoading(false);
         }
       };
+      
+      // Show teacher login form
+      if (showTeacherLogin) {
+        return (
+          <div className="app-container">
+            <div className="app-header" style={parseStyle("margin-bottom: var(--space-xl);")}>
+              <h1 className="gold-glow">Essay Writing Assistant</h1>
+            </div>
+            <TeacherLoginForm
+              onSuccess={(teacher) => onTeacherLogin(teacher)}
+              onBack={() => setShowTeacherLogin(false)}
+            />
+          </div>
+        );
+      }
 
       return (
         <div className="app-container">
@@ -5192,7 +5208,7 @@
               </p>
               <button 
                 type="button"
-                onClick={onTeacherLogin}
+                onClick={() => setShowTeacherLogin(true)}
                 style={parseStyle("background: none; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 0.9rem; text-decoration: underline;")}
               >
                 Teacher Login
