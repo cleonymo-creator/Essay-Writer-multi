@@ -346,10 +346,10 @@ ${hasPreviousParagraphs ? `You are grading the essay CUMULATIVELY - assessing th
 - Be specific about what to improve in THIS paragraph
 - Then briefly note overall essay trajectory` : `This is the student's first paragraph. Grade this opening based on its quality.`}
 
-**⚠️ CRITICAL GRADING RULES - READ CAREFULLY:**
+**âš ï¸ CRITICAL GRADING RULES - READ CAREFULLY:**
 
 1. **CEILING GRADING IS MANDATORY - NOT OPTIONAL**
-   - If ONE paragraph shows Grade 8 → Award Grade 7/8 minimum
+   - If ONE paragraph shows Grade 8 â†’ Award Grade 7/8 minimum
    - The BEST paragraph sets the grade, not the average
    - A student who can write ONE excellent paragraph HAS that capability
    
@@ -370,10 +370,10 @@ ${hasPreviousParagraphs ? `You are grading the essay CUMULATIVELY - assessing th
    - Look for POTENTIAL and CAPABILITY, not just current consistency
 
 **Grading Examples (FOLLOW THESE):**
-- Essay with: Grade 7 intro, Grade 6 body, Grade 8 body → **Award Grade 7/8**
-- Essay with: Three Grade 6 paras, one Grade 9 para → **Award Grade 8** (excellent work proves capability)
-- Essay with: Student targets Grade 5, all paras are Grade 7 → **Award Grade 7** (ignore target)
-- Essay with: Strong Grade 7 work but target is Grade 4 → **Award Grade 7** (grade the work, not expectations)`;
+- Essay with: Grade 7 intro, Grade 6 body, Grade 8 body â†’ **Award Grade 7/8**
+- Essay with: Three Grade 6 paras, one Grade 9 para â†’ **Award Grade 8** (excellent work proves capability)
+- Essay with: Student targets Grade 5, all paras are Grade 7 â†’ **Award Grade 7** (ignore target)
+- Essay with: Strong Grade 7 work but target is Grade 4 â†’ **Award Grade 7** (grade the work, not expectations)`;
     } else {
       // Fallback to generic criteria
       assessmentCriteriaSection = `## Assessment Criteria (weight in brackets)
@@ -420,7 +420,7 @@ ${hasAuthenticDescriptors ? `- **Assessment Mode:** CUMULATIVE - Grading entire 
 
 ## Attempt Information  
 This is attempt ${attemptNumber} of ${maxAttempts} for the ${paragraphConfig.title} paragraph.
-${isLastAttempt ? "⚠️ FINAL attempt for this paragraph." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "âš ï¸ FINAL attempt for this paragraph." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
@@ -428,7 +428,7 @@ ${revisionContext}
 
 **GRADING INSTRUCTIONS:**
 ${hasAuthenticDescriptors ? `
-⚠️ CRITICAL REQUIREMENTS:
+âš ï¸ CRITICAL REQUIREMENTS:
 1. "awardedGrade": GCSE grade for COMPLETE ESSAY (e.g., "6", "7", "8") - CEILING GRADING MANDATORY
 2. "awardedMarks": Mark out of ${totalMarks || 40} reflecting the HIGHEST quality shown
 3. Grade based ONLY on demonstrated quality - IGNORE target grade completely
@@ -443,11 +443,11 @@ ${hasAuthenticDescriptors ? `
 ${!isLastAttempt ? `5. Guide them on revising THIS paragraph` : `5. Summarise their achievement`}
 
 **GRADING CHECKLIST:**
-✓ Identified the BEST moment/paragraph across the entire essay?
-✓ Awarded grade based on that HIGHEST quality (not average)?
-✓ Ignored the target grade (${targetGrade}) completely?
-✓ Minimized impact of weaker sections (unless ALL sections are weak)?
-✓ Focused feedback primarily on the NEW paragraph "${paragraphConfig.title}"?`;
+âœ“ Identified the BEST moment/paragraph across the entire essay?
+âœ“ Awarded grade based on that HIGHEST quality (not average)?
+âœ“ Ignored the target grade (${targetGrade}) completely?
+âœ“ Minimized impact of weaker sections (unless ALL sections are weak)?
+âœ“ Focused feedback primarily on the NEW paragraph "${paragraphConfig.title}"?`;
     } else {
       // FIRST PARAGRAPH MODE
       userPrompt = `## Essay Question
@@ -472,7 +472,7 @@ ${hasAuthenticDescriptors ? `- **Assessment:** Official exam board descriptors` 
 
 ## Attempt Information
 Attempt ${attemptNumber} of ${maxAttempts}.
-${isLastAttempt ? "⚠️ FINAL attempt." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
+${isLastAttempt ? "âš ï¸ FINAL attempt." : `${maxAttempts - attemptNumber} revision(s) remaining.`}
 
 ${revisionContext}
 
@@ -514,7 +514,18 @@ ${!isLastAttempt ? `5. Guide next revision` : `5. Summarise achievement`}`;
   "detailedFeedback": "<${hasPreviousParagraphs ? 'FOCUS 80% ON THE NEW PARAGRAPH \'' + paragraphConfig.title + '\'. Explain what works/needs improvement in THIS paragraph specifically. Then briefly (20%) note how it affects the overall essay.' : abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs' : '2-3 paragraphs linking feedback to grade descriptors'}>",
   "exampleRevision": "<${approach.example_style} - showing how to improve the NEW paragraph '${paragraphConfig.title}'>",
   "progressNote": "<${hasPreviousParagraphs ? 'How the overall essay grade has developed with this new paragraph' : 'if revision: note improvement'}>",
-  "nextLevelHint": "<what would lift the NEW paragraph '${paragraphConfig.title}' to the next level>"
+  "nextLevelHint": "<what would lift the NEW paragraph '${paragraphConfig.title}' to the next level>",
+  "authenticityCheck": {
+    "isAuthentic": <boolean: true if the writing appears genuine, false if suspicious>,
+    "confidenceLevel": "<'high', 'medium', or 'low' - how confident you are in your assessment>",
+    "concerns": ["<specific concern if any, e.g. 'vocabulary significantly above target grade level'>", "<another concern if any>"],
+    "flags": {
+      "sophisticationMismatch": <boolean: true if writing is 2+ grades above target level>,
+      "styleInconsistency": <boolean: true if dramatically different from previous paragraphs>,
+      "aiPatterns": <boolean: true if contains common AI writing patterns>
+    },
+    "explanation": "<brief explanation of authenticity assessment, only if concerns exist>"
+  }
 }` : `{
   "overallScore": <number 0-100>,
   "criteriaScores": {
@@ -527,12 +538,23 @@ ${Object.entries(gradingCriteria)
   "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs' : abilityTier === 'high' ? '2-3 paragraphs of substantive, challenging feedback' : '2-3 paragraphs of balanced feedback'}>",
   "exampleRevision": "<${approach.example_style}>",
   "progressNote": "<if revision: ${approach.encouragement}>",
-  "nextLevelHint": "<what would make this work reach the NEXT grade up from their target>"
+  "nextLevelHint": "<what would make this work reach the NEXT grade up from their target>",
+  "authenticityCheck": {
+    "isAuthentic": <boolean: true if the writing appears genuine, false if suspicious>,
+    "confidenceLevel": "<'high', 'medium', or 'low' - how confident you are in your assessment>",
+    "concerns": ["<specific concern if any>"],
+    "flags": {
+      "sophisticationMismatch": <boolean: true if writing is 2+ grades above target level>,
+      "styleInconsistency": <boolean: true if dramatically different from previous paragraphs>,
+      "aiPatterns": <boolean: true if contains common AI writing patterns>
+    },
+    "explanation": "<brief explanation of authenticity assessment, only if concerns exist>"
+  }
 }`;
 
     const systemPrompt = `You are an experienced, skilled English teacher providing personalised feedback on essay paragraphs. You adapt your teaching style to each student's needs.
 
-⚠️ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
+âš ï¸ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
 1. **IGNORE TARGET GRADE COMPLETELY WHEN GRADING** - The target grade is shown only for tone/scaffolding. If work demonstrates Grade 8, award Grade 8 even if target is Grade 4. If work demonstrates Grade 5, award Grade 5 even if target is Grade 9.
 2. **USE STRICT CEILING GRADING** - ONE excellent paragraph in an essay can lift the entire grade to 7/8. Weak sections should have MINIMAL impact unless ALL sections are weak.
 3. **GRADE THE WORK, NOT THE EXPECTATIONS** - Your job is to accurately assess what's demonstrated, not to match their target or hold them to lower/higher standards.
@@ -557,6 +579,47 @@ Your feedback should ALWAYS push the student slightly beyond their current level
 
 ${assessmentCriteriaSection}
 
+## ⚠️ AUTHENTICITY CHECK - ACADEMIC INTEGRITY
+You must assess whether the submitted work appears to be genuinely written by the student. This is crucial for maintaining academic integrity.
+
+**Check for these warning signs:**
+
+1. **SOPHISTICATION MISMATCH** (sophisticationMismatch flag)
+   - Is the vocabulary, sentence structure, or analysis SIGNIFICANTLY above what you'd expect for a Grade ${targetGrade} student?
+   - Would this writing be impressive even for a Grade 9/A* student when the target is Grade ${targetGrade}?
+   - Are there sophisticated academic phrases that seem out of place for this level?
+   - Note: Some students DO exceed their target - only flag if it's dramatically (2+ grades) above AND inconsistent with their other work
+
+2. **STYLE INCONSISTENCY** (styleInconsistency flag)
+   - ${hasPreviousParagraphs ? `Compare this paragraph to their previous ${completedParagraphs.length} paragraph(s). Is there a dramatic shift in:
+     - Writing maturity and sophistication
+     - Vocabulary complexity
+     - Sentence structure patterns
+     - Analytical depth
+     - Use of literary terminology` : 'This is their first paragraph, so style consistency cannot be assessed yet.'}
+   - A sudden jump from basic to highly sophisticated writing is suspicious
+
+3. **AI WRITING PATTERNS** (aiPatterns flag)
+   - Overly balanced or formulaic structure ("On one hand... on the other hand...")
+   - Generic, template-like phrases ("This demonstrates...", "Furthermore, this illustrates...")
+   - Perfect paragraph structure that feels mechanical
+   - Unusually comprehensive coverage of multiple techniques in every sentence
+   - Vocabulary that is technically correct but lacks a student's authentic voice
+   - Absence of minor grammatical imperfections typical of student writing
+   - Repetitive transitional phrases that feel AI-generated
+
+**How to respond:**
+- If AUTHENTIC (isAuthentic: true): Proceed with normal feedback
+- If SUSPICIOUS (isAuthentic: false): 
+  - Still provide the grade the work would receive
+  - Note specific concerns in the authenticityCheck object
+  - The system will prompt the student to revise using their own words
+
+**Be fair but vigilant:**
+- Some students genuinely improve dramatically - that's okay
+- High-achieving students may naturally write at advanced levels - that's fine
+- Only flag when multiple warning signs combine, OR when the mismatch is extreme
+- When in doubt, give the student the benefit of the doubt (confidenceLevel: "low")
 
 
 ## HOLISTIC ASSESSMENT APPROACH
@@ -671,6 +734,31 @@ ${responseFormat}`;
       overallScore: overallScore
     });
 
+    // Extract authenticity check results
+    const authenticityCheck = feedback.authenticityCheck || {
+      isAuthentic: true,
+      confidenceLevel: 'high',
+      concerns: [],
+      flags: { sophisticationMismatch: false, styleInconsistency: false, aiPatterns: false },
+      explanation: ''
+    };
+    
+    // Determine if we should flag this submission
+    const hasAuthenticityFlags = authenticityCheck.flags?.sophisticationMismatch || 
+                                  authenticityCheck.flags?.styleInconsistency || 
+                                  authenticityCheck.flags?.aiPatterns;
+    const isSuspicious = !authenticityCheck.isAuthentic || hasAuthenticityFlags;
+    
+    // Log authenticity results
+    if (isSuspicious) {
+      console.log('[grade-paragraph] Authenticity concern detected:', {
+        isAuthentic: authenticityCheck.isAuthentic,
+        confidence: authenticityCheck.confidenceLevel,
+        flags: authenticityCheck.flags,
+        concerns: authenticityCheck.concerns
+      });
+    }
+
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
@@ -694,7 +782,16 @@ ${responseFormat}`;
         totalMarks: hasAuthenticDescriptors ? (totalMarks || 40) : null,
         markBreakdown: hasAuthenticDescriptors && estimatedGrade ? `${awardedMarks}/${totalMarks || 40} marks = Grade ${estimatedGrade}` : null,
         // For internal tracking and fallback display
-        overallScore: overallScore || 0
+        overallScore: overallScore || 0,
+        // Authenticity check results
+        authenticityCheck: {
+          isAuthentic: authenticityCheck.isAuthentic,
+          isSuspicious: isSuspicious,
+          confidenceLevel: authenticityCheck.confidenceLevel,
+          concerns: authenticityCheck.concerns || [],
+          flags: authenticityCheck.flags || {},
+          explanation: authenticityCheck.explanation || ''
+        }
       }),
     };
   } catch (error) {

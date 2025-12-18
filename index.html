@@ -6965,7 +6965,7 @@
     // FEEDBACK DISPLAY COMPONENT
     // =====================================================
     
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade }) {
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade, authenticityCheck }) {
       const scoreClass = getScoreClass(feedback.overallScore || 0);
       const grade = feedback.estimatedGrade || feedback.awardedGrade;
       const hasAuthenticGrade = Boolean(grade);
@@ -6977,6 +6977,10 @@
       // Cumulative grading indicator
       const isCumulative = cumulativeInfo?.isCumulative;
       const paragraphCount = cumulativeInfo?.paragraphCount;
+      
+      // Authenticity check results
+      const hasAuthenticityWarning = authenticityCheck?.isSuspicious || !authenticityCheck?.isAuthentic;
+      const authenticityFlags = authenticityCheck?.flags || {};
       
       // Build readable feedback text for TTS
       const buildFeedbackText = () => {
@@ -7013,6 +7017,101 @@
       
       return (
         <div className="feedback-panel ghost-appear">
+          {/* Authenticity Warning - shown if suspicious */}
+          {hasAuthenticityWarning && (
+            <div style={{
+              marginBottom: 'var(--space-lg)',
+              padding: 'var(--space-md)',
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
+              borderRadius: 'var(--radius-md)',
+              border: '2px solid var(--color-error)',
+              boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-sm)',
+                marginBottom: 'var(--space-sm)',
+                color: 'var(--color-error)',
+                fontWeight: 700,
+                fontSize: '1rem'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                Authenticity Check: Please Review
+              </div>
+              <p style={{
+                margin: '0 0 var(--space-sm) 0',
+                fontSize: '0.95rem',
+                color: 'var(--color-text)'
+              }}>
+                This submission has been flagged for review. Please ensure this is your own original work written in your own words.
+              </p>
+              {authenticityCheck?.concerns && authenticityCheck.concerns.length > 0 && (
+                <ul style={{
+                  margin: '0',
+                  paddingLeft: 'var(--space-lg)',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-text-secondary)'
+                }}>
+                  {authenticityCheck.concerns.map((concern, i) => (
+                    <li key={i} style={{ marginBottom: 'var(--space-xs)' }}>{concern}</li>
+                  ))}
+                </ul>
+              )}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-sm)',
+                marginTop: 'var(--space-md)'
+              }}>
+                {authenticityFlags.sophisticationMismatch && (
+                  <span style={{
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    color: 'var(--color-error)',
+                    padding: 'var(--space-xs) var(--space-sm)',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}>
+                    Sophistication Mismatch
+                  </span>
+                )}
+                {authenticityFlags.styleInconsistency && (
+                  <span style={{
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    color: 'var(--color-error)',
+                    padding: 'var(--space-xs) var(--space-sm)',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}>
+                    Style Inconsistency
+                  </span>
+                )}
+                {authenticityFlags.aiPatterns && (
+                  <span style={{
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    color: 'var(--color-error)',
+                    padding: 'var(--space-xs) var(--space-sm)',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}>
+                    AI Writing Patterns
+                  </span>
+                )}
+              </div>
+              <p style={{
+                margin: 'var(--space-md) 0 0 0',
+                fontSize: '0.85rem',
+                color: 'var(--color-text-muted)',
+                fontStyle: 'italic'
+              }}>
+                💡 Tip: If you used AI tools, please revise this paragraph using your own words and understanding. Your teacher wants to see YOUR thinking!
+              </p>
+            </div>
+          )}
+          
           <div className="feedback-header">
             {hasAuthenticGrade ? (
               <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md);")}>
@@ -7735,6 +7834,7 @@
       const [showFeedback, setShowFeedback] = useState(false);
       const [currentFeedback, setCurrentFeedback] = useState(null);
       const [cumulativeInfo, setCumulativeInfo] = useState(null);  // For cumulative grading display
+      const [authenticityCheck, setAuthenticityCheck] = useState(null);  // For authenticity check results
       const textareaRef = useRef(null);
       
       const wordCount = countWords(text);
@@ -7825,7 +7925,8 @@
           console.log('[ParagraphScreen] API response:', {
             success: data.success,
             usedAuthenticDescriptors: data.usedAuthenticDescriptors,
-            estimatedGrade: data.feedback?.estimatedGrade
+            estimatedGrade: data.feedback?.estimatedGrade,
+            authenticityCheck: data.authenticityCheck
           });
           
           if (data.success) {
@@ -7835,6 +7936,14 @@
               paragraphCount: data.paragraphCount,
               currentParagraphTitle: data.currentParagraphTitle
             });
+            // Store authenticity check results
+            setAuthenticityCheck(data.authenticityCheck || null);
+            
+            // Log if authenticity warning triggered
+            if (data.authenticityCheck?.isSuspicious) {
+              console.warn('[ParagraphScreen] Authenticity warning:', data.authenticityCheck);
+            }
+            
             setShowFeedback(true);
             onSubmitAttempt({
               text: text,
@@ -7843,7 +7952,8 @@
               canRevise: data.canRevise,
               isLastAttempt: data.isLastAttempt,
               estimatedGrade: data.feedback.estimatedGrade || null,
-              usedAuthenticDescriptors: data.usedAuthenticDescriptors || false
+              usedAuthenticDescriptors: data.usedAuthenticDescriptors || false,
+              authenticityCheck: data.authenticityCheck || null
             });
           } else {
             throw new Error(data.error || 'Failed to grade paragraph');
@@ -7859,6 +7969,7 @@
       const handleRevise = () => {
         setShowFeedback(false);
         setCurrentFeedback(null);
+        setAuthenticityCheck(null);  // Reset authenticity check on revision
         textareaRef.current?.focus();
       };
       
@@ -7969,6 +8080,7 @@
               onRevise={handleRevise}
               onAccept={handleAccept}
               targetGrade={targetGrade}
+              authenticityCheck={authenticityCheck}
             />
           )}
         </div>
