@@ -5007,24 +5007,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">►;</span>
+              <span className="tts-icon">â–º;</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">❚;❚;</span>
+                  <span className="tts-icon">âš;âš;</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">►;</span>
+                  <span className="tts-icon">â–º;</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">■;</span>
+                <span className="tts-icon">â– ;</span>
                 <span>Stop</span>
               </button>
             </>
@@ -6587,7 +6587,6 @@
     
     function EssaySelectionScreen({ onSelectEssay, onTeacherLogin }) {
       const [showTeacherLogin, setShowTeacherLogin] = useState(false);
-      const [teacherPassword, setTeacherPassword] = useState('');
       const [error, setError] = useState('');
       
       // Check for saved progress on each essay
@@ -6616,14 +6615,9 @@
         }
       };
       
-      const handleTeacherSubmit = (e) => {
-        e.preventDefault();
-        const correctPassword = GLOBAL.teacherPassword || 'teacher123';
-        if (teacherPassword === correctPassword) {
-          onTeacherLogin();
-        } else {
-          setError('Incorrect password');
-        }
+      const handleTeacherSubmit = async (teacher) => {
+        // Teacher is already authenticated via TeacherLoginForm
+        onTeacherLogin(teacher);
       };
       
       return (
@@ -6650,14 +6644,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? 'âœ“ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
+                      <div className="essay-card-icon">{essay.icon || 'ðŸ“š'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>📑 {essay.subject}</span>
-                        <span>🎓 {essay.yearGroup}</span>
+                        <span>ðŸ“‘ {essay.subject}</span>
+                        <span>ðŸŽ“ {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -6688,38 +6682,10 @@
               </div>
             </>
           ) : (
-            <div className="card" style={parseStyle("max-width: 400px; margin: 0 auto;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>Teacher Login</h3>
-              <form onSubmit={handleTeacherSubmit}>
-                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
-                    Password:
-                  </label>
-                  <input
-                    type="password"
-                    value={teacherPassword}
-                    onChange={(e) => { setTeacherPassword(e.target.value); setError(''); }}
-                    placeholder="Enter teacher password"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-md);")}
-                    autoFocus
-                  />
-                </div>
-                
-                {error && <p style={parseStyle("color: var(--color-error); margin-bottom: var(--space-md);")}>{error}</p>}
-                
-                <div style={parseStyle("display: flex; gap: var(--space-md);")}>
-                  <button type="submit" className="btn btn-primary">Login</button>
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary"
-                    onClick={() => { setShowTeacherLogin(false); setError(''); }}
-                  >
-                    Back
-                  </button>
-                </div>
-              </form>
-            </div>
+            <TeacherLoginForm
+              onSuccess={handleTeacherSubmit}
+              onBack={() => { setShowTeacherLogin(false); setError(''); }}
+            />
           )}
         </div>
       );
@@ -6984,7 +6950,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>▲ Areas to Improve</span></div>
+              <div className="feedback-section-title"><span>â–² Areas to Improve</span></div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -7024,7 +6990,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                  ✓ Complete & Continue to Next Section
+                  âœ“ Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -8295,7 +8261,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>✓ Improved Version</span></div>
+                        <div className="feedback-section-title"><span>âœ“ Improved Version</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8304,7 +8270,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>▲ Areas for Development</span></div>
+                        <div className="feedback-section-title"><span>â–² Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -8392,11 +8358,19 @@ ${examinerComment}
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
       
+      // Teacher auth state
+      const [teacherData, setTeacherData] = useState(TeacherAuth.getTeacher());
+      const [showChangePassword, setShowChangePassword] = useState(false);
+      const isAdmin = TeacherAuth.isAdmin();
+      
       // Fetch data from Netlify Blobs (fallback)
       const fetchFromNetlify = useCallback(async () => {
         try {
           setError(null);
-          const authParam = encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+          const sessionToken = TeacherAuth.getSessionToken();
+          const authParam = sessionToken 
+            ? encodeURIComponent(sessionToken)
+            : encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
           
           const [submissionsRes, progressRes] = await Promise.all([
             fetch(`/.netlify/functions/get-submissions?auth=${authParam}`),
@@ -8527,7 +8501,10 @@ ${examinerComment}
             <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);")}>
               <div>
                 <h1 className="gold-glow">Teacher Dashboard</h1>
-                <p className="subtitle">{GLOBAL.siteName || 'Essay Writing Practice'}</p>
+                <p className="subtitle">
+                  {teacherData?.name || 'Teacher'}
+                  {isAdmin && <span style={parseStyle("color: var(--color-warning); margin-left: var(--space-sm);")}>(Admin)</span>}
+                </p>
                 {FIREBASE_ENABLED && (
                   <span style={parseStyle("display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs); font-size: 0.8rem; color: var(--color-success);")}>
                     <span style={parseStyle("width: 8px; height: 8px; background: var(--color-success); border-radius: 50%; animation: pulse 2s infinite;")}></span>
@@ -8537,7 +8514,11 @@ ${examinerComment}
               </div>
               <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
                 <button className="btn btn-secondary" onClick={handleRefresh}> Refresh</button>
-                <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
+                <button className="btn btn-secondary" onClick={() => setShowChangePassword(true)}>Change Password</button>
+                <button className="btn btn-secondary" onClick={async () => {
+                  await TeacherAuth.logout();
+                  onLogout();
+                }}>Logout</button>
               </div>
             </div>
           </div>
@@ -8563,12 +8544,21 @@ ${examinerComment}
               >
                 Assignments
               </button>
+              {isAdmin && (
+                <button 
+                  className={activeTab === 'teachers' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setActiveTab('teachers')}
+                >
+                  Teachers
+                </button>
+              )}
             </div>
           </div>
           
           {/* Tab Content */}
           {activeTab === 'students' && <StudentManagementPanel />}
           {activeTab === 'assignments' && <AssignmentsPanel />}
+          {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
           
           {activeTab === 'submissions' && (
           <>
@@ -8845,6 +8835,1148 @@ ${examinerComment}
           )}
           </>
           )}
+          
+          {showChangePassword && (
+            <TeacherChangePasswordModal
+              onClose={() => setShowChangePassword(false)}
+              onSuccess={() => {
+                setShowChangePassword(false);
+                alert('Password changed successfully');
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // TEACHER AUTHENTICATION SYSTEM
+    // =====================================================
+    
+    const TeacherAuth = {
+      // Store session token
+      setSession(token, teacher) {
+        localStorage.setItem('teacherSessionToken', token);
+        localStorage.setItem('teacherData', JSON.stringify(teacher));
+      },
+      
+      // Get session token
+      getSessionToken() {
+        return localStorage.getItem('teacherSessionToken');
+      },
+      
+      // Get teacher data
+      getTeacher() {
+        try {
+          const data = localStorage.getItem('teacherData');
+          return data ? JSON.parse(data) : null;
+        } catch (e) {
+          return null;
+        }
+      },
+      
+      // Clear session
+      clearSession() {
+        localStorage.removeItem('teacherSessionToken');
+        localStorage.removeItem('teacherData');
+      },
+      
+      // Check if logged in
+      isLoggedIn() {
+        return !!this.getSessionToken();
+      },
+      
+      // Check if admin
+      isAdmin() {
+        const teacher = this.getTeacher();
+        return teacher && teacher.role === 'admin';
+      },
+      
+      // Verify session with server
+      async verifySession() {
+        const token = this.getSessionToken();
+        if (!token) return { valid: false };
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify', sessionToken: token })
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            localStorage.setItem('teacherData', JSON.stringify(result.teacher));
+            return { valid: true, teacher: result.teacher, isAdmin: result.isAdmin };
+          } else {
+            this.clearSession();
+            return { valid: false };
+          }
+        } catch (e) {
+          return { valid: false, error: e.message };
+        }
+      },
+      
+      // Login
+      async login(email, password) {
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'login', email, password })
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            this.setSession(result.sessionToken, result.teacher);
+            return { success: true, teacher: result.teacher };
+          } else {
+            return { success: false, error: result.error };
+          }
+        } catch (e) {
+          return { success: false, error: 'Connection failed. Please try again.' };
+        }
+      },
+      
+      // Logout
+      async logout() {
+        const token = this.getSessionToken();
+        if (token) {
+          try {
+            await fetch('/.netlify/functions/teacher-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'logout', sessionToken: token })
+            });
+          } catch (e) {
+            // Ignore logout errors
+          }
+        }
+        this.clearSession();
+      },
+      
+      // Check if teacher system is enabled (any teachers exist)
+      async isTeacherAuthEnabled() {
+        try {
+          // Try to access a protected endpoint
+          const response = await fetch('/.netlify/functions/manage-classes');
+          const result = await response.json();
+          return result.requiresAuth === true;
+        } catch (e) {
+          return false;
+        }
+      }
+    };
+    
+    // =====================================================
+    // TEACHER LOGIN FORM COMPONENT
+    // =====================================================
+    
+    function TeacherLoginForm({ onSuccess, onBack, onCreateFirstAdmin }) {
+      const [mode, setMode] = React.useState('login'); // 'login' or 'setup'
+      const [email, setEmail] = React.useState('');
+      const [password, setPassword] = React.useState('');
+      const [name, setName] = React.useState('');
+      const [confirmPassword, setConfirmPassword] = React.useState('');
+      const [error, setError] = React.useState('');
+      const [isLoading, setIsLoading] = React.useState(false);
+      const [checkingSetup, setCheckingSetup] = React.useState(true);
+      const [needsSetup, setNeedsSetup] = React.useState(false);
+
+      // Check if we need first-time setup
+      React.useEffect(() => {
+        const checkSetup = async () => {
+          try {
+            const response = await fetch('/.netlify/functions/teacher-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'register', email: '', password: '', name: '' })
+            });
+            const result = await response.json();
+            // If error says email required, system is ready for first admin
+            // Check list response to see if teachers exist
+            const listResponse = await fetch('/.netlify/functions/teacher-auth?sessionToken=none');
+            // 401 means teachers exist but need auth
+            // For first setup, we try to register without auth
+            setNeedsSetup(false); // Will be determined by registration attempt
+          } catch (e) {
+            // Network error, assume login mode
+          }
+          setCheckingSetup(false);
+        };
+        checkSetup();
+      }, []);
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!email || !password) {
+          setError('Please enter email and password');
+          return;
+        }
+        
+        setIsLoading(true);
+        
+        const result = await TeacherAuth.login(email, password);
+        
+        if (result.success) {
+          onSuccess(result.teacher);
+        } else {
+          setError(result.error);
+        }
+        
+        setIsLoading(false);
+      };
+
+      const handleSetup = async (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!email || !password || !name) {
+          setError('Please fill in all fields');
+          return;
+        }
+        
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+        
+        setIsLoading(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'register',
+              email,
+              password,
+              name
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            // Auto-login after registration
+            const loginResult = await TeacherAuth.login(email, password);
+            if (loginResult.success) {
+              if (onCreateFirstAdmin) {
+                onCreateFirstAdmin(loginResult.teacher);
+              } else {
+                onSuccess(loginResult.teacher);
+              }
+            } else {
+              setError('Account created. Please log in.');
+              setMode('login');
+            }
+          } else {
+            if (result.error && result.error.includes('Admin authentication required')) {
+              setError('Teacher accounts already exist. Please log in.');
+              setMode('login');
+            } else {
+              setError(result.error || 'Failed to create account');
+            }
+          }
+        } catch (e) {
+          setError('Connection failed. Please try again.');
+        }
+        
+        setIsLoading(false);
+      };
+
+      if (checkingSetup) {
+        return (
+          <div className="card" style={parseStyle("max-width: 400px; margin: 0 auto; text-align: center;")}>
+            <div className="loading-spinner"></div>
+            <p style={parseStyle("margin-top: var(--space-md); color: var(--color-text-muted);")}>
+              Checking authentication...
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="card" style={parseStyle("max-width: 420px; margin: 0 auto;")}>
+          <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg); text-align: center;")}>
+            {mode === 'setup' ? 'Create Admin Account' : 'Teacher Login'}
+          </h3>
+          
+          {mode === 'setup' && (
+            <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-info-bg); border: 1px solid var(--color-info); border-radius: var(--radius-md);")}>
+              <p style={parseStyle("font-size: 0.9rem; color: var(--color-info);")}>
+                <strong>First-time setup:</strong> Create the first admin account. This account will be able to create other teacher accounts.
+              </p>
+            </div>
+          )}
+          
+          <form onSubmit={mode === 'setup' ? handleSetup : handleLogin}>
+            {mode === 'setup' && (
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+            
+            <div style={parseStyle("margin-bottom: var(--space-md);")}>
+              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                placeholder="teacher@school.com"
+                className="paragraph-editor"
+                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+            
+            <div style={parseStyle("margin-bottom: var(--space-md);")}>
+              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                placeholder={mode === 'setup' ? 'At least 8 characters' : 'Enter password'}
+                className="paragraph-editor"
+                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                disabled={isLoading}
+              />
+            </div>
+            
+            {mode === 'setup' && (
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                  placeholder="Confirm your password"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+            
+            {error && (
+              <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                {error}
+              </div>
+            )}
+            
+            <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: space-between; align-items: center; flex-wrap: wrap;")}>
+              <button type="button" className="btn btn-secondary" onClick={onBack} disabled={isLoading}>
+                Back
+              </button>
+              
+              <div style={parseStyle("display: flex; gap: var(--space-sm);")}>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => { setMode('setup'); setError(''); }}
+                    disabled={isLoading}
+                    style={parseStyle("font-size: 0.85rem;")}
+                  >
+                    First-time Setup
+                  </button>
+                )}
+                {mode === 'setup' && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => { setMode('login'); setError(''); }}
+                    disabled={isLoading}
+                  >
+                    Back to Login
+                  </button>
+                )}
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Please wait...' : (mode === 'setup' ? 'Create Account' : 'Login')}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // TEACHER MANAGEMENT PANEL (Admin Only)
+    // =====================================================
+    
+    function TeacherManagementPanel() {
+      const [teachers, setTeachers] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+      const [error, setError] = React.useState('');
+      const [showAddTeacher, setShowAddTeacher] = React.useState(false);
+      const [actionLoading, setActionLoading] = React.useState(null);
+      
+      const sessionToken = TeacherAuth.getSessionToken();
+      const currentTeacher = TeacherAuth.getTeacher();
+
+      const loadTeachers = async () => {
+        setLoading(true);
+        setError('');
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth?sessionToken=' + encodeURIComponent(sessionToken));
+          const result = await response.json();
+          
+          if (result.success) {
+            setTeachers(result.teachers || []);
+          } else {
+            setError(result.error || 'Failed to load teachers');
+          }
+        } catch (e) {
+          setError('Connection failed');
+        }
+        
+        setLoading(false);
+      };
+
+      React.useEffect(() => {
+        loadTeachers();
+      }, []);
+
+      const handleResetPassword = async (email) => {
+        if (!confirm('Reset password for ' + email + '?')) return;
+        
+        setActionLoading(email);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'resetPassword',
+              sessionToken,
+              teacherEmail: email
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            alert('New password: ' + result.newPassword + '\n\nPlease save this password and share it securely with the teacher.');
+          } else {
+            alert('Error: ' + result.error);
+          }
+        } catch (e) {
+          alert('Connection failed');
+        }
+        
+        setActionLoading(null);
+      };
+
+      const handleDeleteTeacher = async (email) => {
+        if (!confirm('Delete teacher account for ' + email + '?\n\nThis will unassign all their classes.')) return;
+        
+        setActionLoading(email);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'deleteTeacher',
+              sessionToken,
+              teacherEmail: email
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            loadTeachers();
+          } else {
+            alert('Error: ' + result.error);
+          }
+        } catch (e) {
+          alert('Connection failed');
+        }
+        
+        setActionLoading(null);
+      };
+
+      const handleToggleRole = async (email, currentRole) => {
+        const newRole = currentRole === 'admin' ? 'teacher' : 'admin';
+        if (!confirm('Change ' + email + ' to ' + newRole + '?')) return;
+        
+        setActionLoading(email);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateRole',
+              sessionToken,
+              teacherEmail: email,
+              newRole
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            loadTeachers();
+          } else {
+            alert('Error: ' + result.error);
+          }
+        } catch (e) {
+          alert('Connection failed');
+        }
+        
+        setActionLoading(null);
+      };
+
+      if (loading) {
+        return (
+          <div className="card">
+            <div className="loading-spinner"></div>
+            <p style={parseStyle("text-align: center; margin-top: var(--space-md); color: var(--color-text-muted);")}>
+              Loading teachers...
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);")}>
+              <h3 style={parseStyle("margin: 0;")}>Teacher Accounts</h3>
+              <button className="btn btn-primary" onClick={() => setShowAddTeacher(true)}>
+                + Add Teacher
+              </button>
+            </div>
+            
+            {error && (
+              <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                {error}
+              </div>
+            )}
+            
+            {teachers.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl);")}>
+                No teachers found. Add one to get started.
+              </p>
+            ) : (
+              <div style={parseStyle("overflow-x: auto;")}>
+                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                  <thead>
+                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Name</th>
+                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Email</th>
+                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Role</th>
+                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Last Login</th>
+                      <th style={parseStyle("text-align: right; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teachers.map(teacher => (
+                      <tr key={teacher.email} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                        <td style={parseStyle("padding: var(--space-sm);")}>
+                          <strong>{teacher.name}</strong>
+                          {teacher.email === currentTeacher?.email && (
+                            <span style={parseStyle("margin-left: var(--space-xs); font-size: 0.75rem; color: var(--color-primary); background: var(--color-primary-glow); padding: 2px 6px; border-radius: var(--radius-full);")}>(you)</span>
+                          )}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{teacher.email}</td>
+                        <td style={parseStyle("padding: var(--space-sm);")}>
+                          <span style={parseStyle("display: inline-block; padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; " + (teacher.role === 'admin' ? "background: var(--color-warning-bg); color: var(--color-warning);" : "background: var(--color-info-bg); color: var(--color-info);"))}>
+                            {teacher.role || 'teacher'}
+                          </span>
+                        </td>
+                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                          {teacher.lastLogin ? new Date(teacher.lastLogin).toLocaleDateString() : 'Never'}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-sm); text-align: right;")}>
+                          <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: flex-end; flex-wrap: wrap;")}>
+                            <button
+                              className="btn btn-secondary"
+                              style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                              onClick={() => handleResetPassword(teacher.email)}
+                              disabled={actionLoading === teacher.email}
+                            >
+                              Reset Password
+                            </button>
+                            {teacher.email !== currentTeacher?.email && (
+                              <>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                                  onClick={() => handleToggleRole(teacher.email, teacher.role)}
+                                  disabled={actionLoading === teacher.email}
+                                >
+                                  Make {teacher.role === 'admin' ? 'Teacher' : 'Admin'}
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem; color: var(--color-error);")}
+                                  onClick={() => handleDeleteTeacher(teacher.email)}
+                                  disabled={actionLoading === teacher.email}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          
+          {showAddTeacher && (
+            <AddTeacherModal
+              sessionToken={sessionToken}
+              onClose={() => setShowAddTeacher(false)}
+              onSuccess={() => {
+                setShowAddTeacher(false);
+                loadTeachers();
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // ADD TEACHER MODAL
+    // =====================================================
+    
+    function AddTeacherModal({ sessionToken, onClose, onSuccess }) {
+      const [email, setEmail] = React.useState('');
+      const [name, setName] = React.useState('');
+      const [password, setPassword] = React.useState('');
+      const [role, setRole] = React.useState('teacher');
+      const [error, setError] = React.useState('');
+      const [isLoading, setIsLoading] = React.useState(false);
+      const [createdPassword, setCreatedPassword] = React.useState('');
+
+      // Generate random password
+      React.useEffect(() => {
+        const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        let pwd = '';
+        for (let i = 0; i < 12; i++) {
+          pwd += chars[Math.floor(Math.random() * chars.length)];
+        }
+        setPassword(pwd);
+      }, []);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!email || !name || !password) {
+          setError('Please fill in all fields');
+          return;
+        }
+        
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters');
+          return;
+        }
+        
+        setIsLoading(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'register',
+              sessionToken,
+              email,
+              name,
+              password,
+              role
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            setCreatedPassword(password);
+          } else {
+            setError(result.error || 'Failed to create teacher');
+          }
+        } catch (e) {
+          setError('Connection failed');
+        }
+        
+        setIsLoading(false);
+      };
+
+      if (createdPassword) {
+        return (
+          <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+            <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+              <div style={parseStyle("text-align: center; margin-bottom: var(--space-lg);")}>
+                <div style={parseStyle("font-size: 3rem; margin-bottom: var(--space-md);")}>&#10003;</div>
+                <h3 style={parseStyle("color: var(--color-success);")}>Teacher Account Created</h3>
+              </div>
+              
+              <div style={parseStyle("background: var(--glass-bg); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                <p style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <strong>Email:</strong> {email}
+                </p>
+                <p style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <strong>Password:</strong>{' '}
+                  <code style={parseStyle("background: var(--color-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-family: var(--font-mono);")}>{createdPassword}</code>
+                </p>
+                <p style={parseStyle("margin-bottom: 0;")}>
+                  <strong>Role:</strong> {role}
+                </p>
+              </div>
+              
+              <div style={parseStyle("padding: var(--space-md); background: var(--color-warning-bg); border: 1px solid var(--color-warning); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                <p style={parseStyle("color: var(--color-warning); font-size: 0.9rem; margin: 0;")}>
+                  <strong>Important:</strong> Save this password and share it securely with the teacher. It will not be shown again.
+                </p>
+              </div>
+              
+              <button className="btn btn-primary" style={parseStyle("width: 100%;")} onClick={onSuccess}>
+                Done
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Teacher</h3>
+            
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Teacher's full name"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="teacher@school.com"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Password
+                </label>
+                <input
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: var(--font-mono);")}
+                  disabled={isLoading}
+                />
+                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                  Auto-generated. You can modify it if needed.
+                </p>
+              </div>
+              
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Role
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                >
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                  {error}
+                </div>
+              )}
+              
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Creating...' : 'Create Teacher'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // MIGRATION WIZARD (For existing classes)
+    // =====================================================
+    
+    function MigrationWizard({ onComplete }) {
+      const [status, setStatus] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [assigning, setAssigning] = React.useState(false);
+      const [selectedAssignments, setSelectedAssignments] = React.useState({});
+      const [error, setError] = React.useState('');
+      
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      const loadStatus = async () => {
+        setLoading(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/migrate-classes?sessionToken=' + encodeURIComponent(sessionToken));
+          const result = await response.json();
+          
+          if (result.success) {
+            setStatus(result);
+          } else {
+            setError(result.error);
+          }
+        } catch (e) {
+          setError('Failed to load migration status');
+        }
+        
+        setLoading(false);
+      };
+
+      React.useEffect(() => {
+        loadStatus();
+      }, []);
+
+      const handleClaimAll = async () => {
+        if (!confirm('Assign all unassigned classes to yourself?')) return;
+        
+        setAssigning(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/migrate-classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'claimUnassigned',
+              sessionToken
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            loadStatus();
+          } else {
+            setError(result.error);
+          }
+        } catch (e) {
+          setError('Failed to claim classes');
+        }
+        
+        setAssigning(false);
+      };
+
+      const handleAssignClass = async (classId, teacherEmail) => {
+        setAssigning(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/migrate-classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'assignClass',
+              sessionToken,
+              classId,
+              teacherEmail
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            loadStatus();
+          } else {
+            setError(result.error);
+          }
+        } catch (e) {
+          setError('Failed to assign class');
+        }
+        
+        setAssigning(false);
+      };
+
+      if (loading) {
+        return (
+          <div className="card">
+            <div className="loading-spinner"></div>
+            <p style={parseStyle("text-align: center; margin-top: var(--space-md);")}>Loading migration status...</p>
+          </div>
+        );
+      }
+
+      if (!status || status.status.unassignedClasses === 0) {
+        return (
+          <div className="card" style={parseStyle("text-align: center;")}>
+            <div style={parseStyle("font-size: 3rem; margin-bottom: var(--space-md);")}>&#10003;</div>
+            <h3 style={parseStyle("color: var(--color-success); margin-bottom: var(--space-md);")}>All Classes Assigned</h3>
+            <p style={parseStyle("color: var(--color-text-muted); margin-bottom: var(--space-lg);")}>
+              All {status?.status.totalClasses || 0} classes have been assigned to teachers.
+            </p>
+            <button className="btn btn-primary" onClick={onComplete}>
+              Continue to Dashboard
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="card">
+          <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>Class Migration</h3>
+          
+          <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-warning-bg); border: 1px solid var(--color-warning); border-radius: var(--radius-md);")}>
+            <p style={parseStyle("color: var(--color-warning); margin: 0;")}>
+              <strong>{status.status.unassignedClasses}</strong> classes need to be assigned to teachers.
+            </p>
+          </div>
+          
+          {error && (
+            <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+              {error}
+            </div>
+          )}
+          
+          <div style={parseStyle("margin-bottom: var(--space-xl);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Quick Actions</h4>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleClaimAll}
+              disabled={assigning}
+            >
+              {assigning ? 'Assigning...' : 'Assign All to Me'}
+            </button>
+          </div>
+          
+          <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Unassigned Classes</h4>
+          
+          <div style={parseStyle("display: flex; flex-direction: column; gap: var(--space-md);")}>
+            {status.unassignedClasses.map(cls => (
+              <div key={cls.id} style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-md); background: var(--glass-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); flex-wrap: wrap; gap: var(--space-md);")}>
+                <div>
+                  <strong>{cls.name}</strong>
+                  <span style={parseStyle("margin-left: var(--space-sm); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                    ({cls.studentCount} students)
+                  </span>
+                </div>
+                <div style={parseStyle("display: flex; gap: var(--space-sm); align-items: center;")}>
+                  <select
+                    value={selectedAssignments[cls.id] || ''}
+                    onChange={(e) => setSelectedAssignments({...selectedAssignments, [cls.id]: e.target.value})}
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-xs) var(--space-sm); min-width: 200px;")}
+                  >
+                    <option value="">Select teacher...</option>
+                    {status.teachers.map(t => (
+                      <option key={t.email} value={t.email}>{t.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleAssignClass(cls.id, selectedAssignments[cls.id])}
+                    disabled={!selectedAssignments[cls.id] || assigning}
+                  >
+                    Assign
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div style={parseStyle("margin-top: var(--space-xl); display: flex; justify-content: flex-end;")}>
+            <button className="btn btn-secondary" onClick={onComplete}>
+              Skip for Now
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
+    // =====================================================
+    // TEACHER CHANGE PASSWORD MODAL
+    // =====================================================
+    
+    function TeacherChangePasswordModal({ onClose, onSuccess }) {
+      const [currentPassword, setCurrentPassword] = React.useState('');
+      const [newPassword, setNewPassword] = React.useState('');
+      const [confirmPassword, setConfirmPassword] = React.useState('');
+      const [error, setError] = React.useState('');
+      const [isLoading, setIsLoading] = React.useState(false);
+      
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          setError('Please fill in all fields');
+          return;
+        }
+        
+        if (newPassword.length < 8) {
+          setError('New password must be at least 8 characters');
+          return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          setError('New passwords do not match');
+          return;
+        }
+        
+        setIsLoading(true);
+        
+        try {
+          const response = await fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'changePassword',
+              sessionToken,
+              currentPassword,
+              newPassword
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            onSuccess();
+          } else {
+            setError(result.error || 'Failed to change password');
+          }
+        } catch (e) {
+          setError('Connection failed');
+        }
+        
+        setIsLoading(false);
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
+            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h3>
+            
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                  {error}
+                </div>
+              )}
+              
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Change Password'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       );
     }
@@ -8859,6 +9991,9 @@ ${examinerComment}
       const [currentStudent, setCurrentStudent] = useState(null);
       const [sessionToken, setSessionToken] = useState(null);
       const [authLoading, setAuthLoading] = useState(true);
+      
+      // Teacher authentication state
+      const [teacherData, setTeacherData] = useState(null);
       
       // Existing state
       const [screen, setScreen] = useState('login');
@@ -8881,9 +10016,21 @@ ${examinerComment}
       const PARAGRAPHS = CONFIG?.paragraphs || [];
       const GRADING_CRITERIA = CONFIG ? getGradingCriteria(CONFIG) : {};
       
-      // Check for existing session on load
+      // Check for existing session on load (both student and teacher)
       useEffect(() => {
         const checkSession = async () => {
+          // Check for teacher session first
+          if (TeacherAuth.isLoggedIn()) {
+            const teacherResult = await TeacherAuth.verifySession();
+            if (teacherResult.valid) {
+              setTeacherData(teacherResult.teacher);
+              setScreen('dashboard');
+              setAuthLoading(false);
+              return;
+            }
+          }
+          
+          // Check for student session
           const savedToken = localStorage.getItem('studentSession');
           const savedStudent = localStorage.getItem('studentData');
           
@@ -9228,8 +10375,15 @@ ${examinerComment}
         setScreen('writing');
       };
       
-      const handleTeacherLogin = () => {
+      const handleTeacherLogin = (teacher) => {
+        setTeacherData(teacher);
         setScreen('dashboard');
+      };
+      
+      const handleTeacherLogout = async () => {
+        await TeacherAuth.logout();
+        setTeacherData(null);
+        setScreen('login');
       };
       
       const handleSubmitAttempt = (paragraphId, attemptData) => {
@@ -9628,7 +10782,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
       }
       
       if (screen === 'dashboard') {
-        return <TeacherDashboard onLogout={handleLogout} onPreview={handlePreviewMode} />;
+        return <TeacherDashboard onLogout={handleTeacherLogout} onPreview={handlePreviewMode} />;
       }
       
       if (screen === 'preview-entry') {
