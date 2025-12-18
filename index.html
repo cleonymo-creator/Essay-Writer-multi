@@ -3817,6 +3817,11 @@
       transform: scale(1.2);
     }
     
+    .error-progress-dot.skipped {
+      background: var(--color-text-muted);
+      opacity: 0.5;
+    }
+    
     .error-card {
       background: rgba(0, 0, 0, 0.2);
       border-radius: var(--radius-md);
@@ -3974,10 +3979,16 @@
       color: var(--color-success);
     }
     
+    .correction-feedback.skipped {
+      background: rgba(100, 100, 120, 0.2);
+      color: var(--color-text-muted);
+    }
+    
     .technical-check-actions {
       display: flex;
       gap: var(--space-md);
       justify-content: flex-end;
+      flex-wrap: wrap;
     }
     
     .technical-all-clear {
@@ -4032,6 +4043,204 @@
     .celebration-text {
       color: var(--color-text-secondary);
       margin-bottom: var(--space-lg);
+    }
+    
+    /* =====================================================
+       ESSAY COMPARISON - Original vs Improved
+       ===================================================== */
+    
+    .essay-comparison {
+      background: linear-gradient(145deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98));
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      box-shadow: var(--shadow-lg), var(--shadow-gold);
+    }
+    
+    .comparison-header {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .comparison-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .comparison-subtitle {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    
+    .grade-comparison-boxes {
+      display: flex;
+      gap: var(--space-xl);
+      justify-content: center;
+      align-items: center;
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+    }
+    
+    .grade-box {
+      text-align: center;
+      padding: var(--space-lg) var(--space-xl);
+      border-radius: var(--radius-lg);
+      min-width: 160px;
+    }
+    
+    .grade-box.original {
+      background: linear-gradient(135deg, rgba(100, 100, 120, 0.3), rgba(80, 80, 100, 0.2));
+      border: 2px solid rgba(150, 150, 170, 0.3);
+    }
+    
+    .grade-box.improved {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+      border: 2px solid var(--color-success);
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+    }
+    
+    .grade-box-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .grade-box-grade {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--space-xs);
+    }
+    
+    .grade-box.original .grade-box-grade {
+      color: var(--color-text-secondary);
+    }
+    
+    .grade-box.improved .grade-box-grade {
+      color: var(--color-success);
+    }
+    
+    .grade-box-marks {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    
+    .comparison-arrow {
+      font-size: 2rem;
+      color: var(--color-primary);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    
+    .improvement-summary {
+      text-align: center;
+      padding: var(--space-lg);
+      background: linear-gradient(135deg, rgba(184, 134, 11, 0.15), rgba(184, 134, 11, 0.08));
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .improvement-headline {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--color-accent);
+      margin-bottom: var(--space-sm);
+    }
+    
+    .marks-gained {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .improvement-details {
+      margin-top: var(--space-xl);
+    }
+    
+    .improvement-details-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--color-primary-light);
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .improvement-item {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+      border-left: 3px solid var(--color-success);
+    }
+    
+    .improvement-item-area {
+      font-weight: 600;
+      color: var(--color-success);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .improvement-item-before {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    
+    .improvement-item-before::before {
+      content: "Before: ";
+      color: var(--color-error);
+      font-weight: 500;
+    }
+    
+    .improvement-item-after {
+      font-size: 0.9rem;
+      color: var(--color-text);
+    }
+    
+    .improvement-item-after::before {
+      content: "After: ";
+      color: var(--color-success);
+      font-weight: 500;
+    }
+    
+    .comparison-progress-comment {
+      padding: var(--space-lg);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      margin-top: var(--space-lg);
+    }
+    
+    .comparison-progress-label {
+      font-size: 0.85rem;
+      color: var(--color-success);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .comparison-progress-text {
+      font-size: 1rem;
+      color: var(--color-text);
+      line-height: 1.6;
     }
     
         /* Mobile task toggle button */
@@ -8119,9 +8328,10 @@
     }) {
       const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
       const [correctedErrors, setCorrectedErrors] = useState([]);
+      const [skippedErrors, setSkippedErrors] = useState([]); // Track skipped errors
       const [currentText, setCurrentText] = useState(originalText);
       const [correctionInput, setCorrectionInput] = useState('');
-      const [correctionStatus, setCorrectionStatus] = useState(null); // null, 'checking', 'error', 'success'
+      const [correctionStatus, setCorrectionStatus] = useState(null); // null, 'checking', 'error', 'success', 'skipped'
       const [correctionMessage, setCorrectionMessage] = useState('');
       const [showCelebration, setShowCelebration] = useState(false);
       
@@ -8136,12 +8346,14 @@
       };
       
       // Check if the correction is valid (different from error and not empty)
+      // CASE-SENSITIVE comparison so "dickens" -> "Dickens" is valid
       const validateCorrection = (correction, errorText) => {
         if (!correction.trim()) {
           return { valid: false, message: 'Please type your correction.' };
         }
-        if (correction.trim().toLowerCase() === errorText.trim().toLowerCase()) {
-          return { valid: false, message: 'Your correction looks the same as the original. Try again!' };
+        // Case-sensitive comparison - "Dickens" is different from "dickens"
+        if (correction.trim() === errorText.trim()) {
+          return { valid: false, message: 'Your correction looks exactly the same as the original. Try again!' };
         }
         return { valid: true };
       };
@@ -8173,18 +8385,44 @@
         
         // Move to next error after a brief delay
         setTimeout(() => {
-          if (currentErrorIndex + 1 >= errors.length) {
+          moveToNextOrComplete(updatedText);
+        }, 1000);
+      };
+      
+      // Skip the current error without correcting
+      const handleSkipError = () => {
+        setCorrectionStatus('skipped');
+        setCorrectionMessage('Skipped - you can review this later.');
+        
+        // Mark this error as skipped
+        setSkippedErrors([...skippedErrors, currentError.id]);
+        
+        // Move to next error after a brief delay
+        setTimeout(() => {
+          moveToNextOrComplete(currentText);
+        }, 500);
+      };
+      
+      // Move to next error or complete if done
+      const moveToNextOrComplete = (textToUse) => {
+        if (currentErrorIndex + 1 >= errors.length) {
+          // Check if any errors were actually corrected
+          const totalCorrected = correctedErrors.length + (correctionStatus === 'success' ? 1 : 0);
+          if (totalCorrected > 0 || skippedErrors.length < errors.length) {
             setShowCelebration(true);
             setTimeout(() => {
-              onAllCorrected(updatedText);
+              onAllCorrected(textToUse);
             }, 2000);
           } else {
-            setCurrentErrorIndex(currentErrorIndex + 1);
-            setCorrectionInput('');
-            setCorrectionStatus(null);
-            setCorrectionMessage('');
+            // All errors were skipped - proceed without celebration
+            onAllCorrected(textToUse);
           }
-        }, 1000);
+        } else {
+          setCurrentErrorIndex(currentErrorIndex + 1);
+          setCorrectionInput('');
+          setCorrectionStatus(null);
+          setCorrectionMessage('');
+        }
       };
       
       // Highlight the error in context
@@ -8194,7 +8432,7 @@
         const context = currentError.errorContext || '';
         const errorText = currentError.errorText || '';
         
-        // Try to highlight the error within the context
+        // Try to highlight the error within the context (case-insensitive for highlighting)
         const parts = context.split(new RegExp(`(${errorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'));
         
         return (
@@ -8208,16 +8446,25 @@
         );
       };
       
-      // Show celebration when all errors are fixed
+      // Show celebration when all errors are handled
       if (showCelebration) {
+        const correctedCount = correctedErrors.length;
+        const skippedCount = skippedErrors.length;
+        
         return (
           <div className="technical-check-panel">
             <div className="errors-complete-celebration">
               <div className="celebration-icon">🎉</div>
-              <h3 className="celebration-title">All Errors Corrected!</h3>
+              <h3 className="celebration-title">Technical Check Complete!</h3>
               <p className="celebration-text">
-                Great work! You've fixed all {errors.length} technical error{errors.length > 1 ? 's' : ''}. 
-                Your writing is now ready for feedback.
+                {correctedCount > 0 ? (
+                  <>
+                    Great work! You fixed {correctedCount} error{correctedCount !== 1 ? 's' : ''}.
+                    {skippedCount > 0 && ` (${skippedCount} skipped)`}
+                  </>
+                ) : (
+                  'Moving on to get feedback on your writing.'
+                )}
               </p>
               <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
               <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginTop: 'var(--space-md)' }}>
@@ -8245,8 +8492,14 @@
                     key={i} 
                     className={`error-progress-dot ${
                       correctedErrors.includes(errors[i]?.id) ? 'completed' : 
+                      skippedErrors.includes(errors[i]?.id) ? 'skipped' :
                       i === currentErrorIndex ? 'current' : ''
                     }`}
+                    title={
+                      correctedErrors.includes(errors[i]?.id) ? 'Corrected' :
+                      skippedErrors.includes(errors[i]?.id) ? 'Skipped' :
+                      i === currentErrorIndex ? 'Current' : 'Pending'
+                    }
                   />
                 ))}
               </div>
@@ -8311,7 +8564,7 @@
               />
               {correctionMessage && (
                 <div className={`correction-feedback ${correctionStatus}`}>
-                  {correctionStatus === 'success' ? '✓' : '✗'} {correctionMessage}
+                  {correctionStatus === 'success' ? '✓' : correctionStatus === 'skipped' ? '⏭️' : '✗'} {correctionMessage}
                 </div>
               )}
             </div>
@@ -8321,14 +8574,24 @@
             <button 
               className="btn btn-secondary"
               onClick={onSkip}
-              style={{ opacity: 0.7 }}
+              style={{ opacity: 0.6, fontSize: '0.85rem' }}
+              title="Skip all remaining technical checks"
             >
-              Skip Technical Check
+              Skip All Remaining
+            </button>
+            <button 
+              className="btn btn-secondary"
+              onClick={handleSkipError}
+              disabled={correctionStatus === 'success' || correctionStatus === 'skipped'}
+              style={{ opacity: 0.8 }}
+              title="Skip just this error and move to the next one"
+            >
+              Skip This Error →
             </button>
             <button 
               className="btn btn-primary"
               onClick={handleSubmitCorrection}
-              disabled={!correctionInput.trim() || correctionStatus === 'success'}
+              disabled={!correctionInput.trim() || correctionStatus === 'success' || correctionStatus === 'skipped'}
             >
               {correctionStatus === 'success' ? 'Correct! ✓' : 'Submit Correction'}
             </button>
@@ -8352,6 +8615,7 @@
       const [submissionStage, setSubmissionStage] = useState('writing'); // 'writing', 'technical-check', 'correcting', 'grading'
       const [technicalErrors, setTechnicalErrors] = useState([]);
       const [isCheckingTechnical, setIsCheckingTechnical] = useState(false);
+      const [originalTextBeforeCorrections, setOriginalTextBeforeCorrections] = useState(null); // Captures text before any corrections
       
       const textareaRef = useRef(null);
       
@@ -8399,6 +8663,12 @@
         setIsCheckingTechnical(true);
         setSubmissionStage('technical-check');
         
+        // Capture the original text BEFORE any corrections
+        // This is the student's raw first attempt
+        if (!originalTextBeforeCorrections) {
+          setOriginalTextBeforeCorrections(text);
+        }
+        
         try {
           const response = await fetch('/.netlify/functions/check-technical', {
             method: 'POST',
@@ -8427,7 +8697,7 @@
             } else {
               // No errors - proceed directly to grading
               setIsCheckingTechnical(false);
-              await handleMainGrading();
+              await handleMainGrading(text, text); // original and corrected are the same
             }
           } else {
             throw new Error(data.error || 'Technical check failed');
@@ -8436,7 +8706,7 @@
           console.error('Technical check error:', error);
           // On error, skip technical check and proceed to grading
           setIsCheckingTechnical(false);
-          await handleMainGrading();
+          await handleMainGrading(text, text);
         }
       };
       
@@ -8445,7 +8715,8 @@
         setText(correctedText);
         setSubmissionStage('grading');
         setTechnicalErrors([]);
-        await handleMainGrading(correctedText);
+        // Pass both original and corrected text
+        await handleMainGrading(correctedText, originalTextBeforeCorrections || text);
       };
       
       // Called when user updates text during correction
@@ -8457,12 +8728,14 @@
       const handleSkipTechnicalCheck = async () => {
         setSubmissionStage('grading');
         setTechnicalErrors([]);
-        await handleMainGrading();
+        // When skipping, original and corrected are the same
+        await handleMainGrading(text, originalTextBeforeCorrections || text);
       };
       
       // Stage 2: Main Grading (original handleSubmit logic)
-      const handleMainGrading = async (textToGrade) => {
+      const handleMainGrading = async (textToGrade, originalText) => {
         const paragraphText = textToGrade || text;
+        const originalParagraphText = originalText || originalTextBeforeCorrections || paragraphText;
         setIsSubmitting(true);
         setShowFeedback(false);
         setSubmissionStage('grading');
@@ -8483,7 +8756,8 @@
         console.log('[ParagraphScreen] Cumulative grading:', {
           completedCount: completedParagraphs.length,
           currentParagraph: paragraph.title,
-          hasGradeBoundaries: !!gradeBoundaries
+          hasGradeBoundaries: !!gradeBoundaries,
+          hasOriginalText: originalParagraphText !== paragraphText
         });
         
         try {
@@ -8535,6 +8809,7 @@
             setShowFeedback(true);
             onSubmitAttempt({
               text: paragraphText,
+              originalText: originalParagraphText, // Pass original text for comparison
               feedback: data.feedback,
               attemptNumber: attemptNumber,
               canRevise: data.canRevise,
@@ -8665,6 +8940,13 @@
                 }}
                 placeholder="Start writing your paragraph here..."
                 disabled={isSubmitting || submissionStage === 'grading'}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                autoComplete="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
               
               <div className={`word-count ${wordCountClass}`}>
@@ -8720,6 +9002,18 @@
       const [activeTab, setActiveTab] = useState('essay');
       const [autoRequestedFeedback, setAutoRequestedFeedback] = useState(false);
       
+      // Comparison states
+      const [essayComparison, setEssayComparison] = useState(null);
+      const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+      const [autoRequestedComparison, setAutoRequestedComparison] = useState(false);
+      
+      // Check if there are differences between original and final
+      const hasOriginalVersions = paragraphs.some(p => {
+        const state = paragraphStates[p.id];
+        return state?.originalBeforeCorrections && state?.finalText && 
+               state.originalBeforeCorrections !== state.finalText;
+      });
+      
       // Auto-request feedback when compilation screen loads (if not already done)
       useEffect(() => {
         if (!essayFeedback && !isLoadingFeedback && !autoRequestedFeedback) {
@@ -8728,6 +9022,59 @@
           onRequestFeedback();
         }
       }, [essayFeedback, isLoadingFeedback, autoRequestedFeedback, onRequestFeedback]);
+      
+      // Auto-request comparison after feedback loads (if originals exist)
+      useEffect(() => {
+        if (essayFeedback && hasOriginalVersions && !essayComparison && !isLoadingComparison && !autoRequestedComparison) {
+          console.log('[EssayCompilationScreen] Auto-requesting essay comparison');
+          setAutoRequestedComparison(true);
+          fetchEssayComparison();
+        }
+      }, [essayFeedback, hasOriginalVersions, essayComparison, isLoadingComparison, autoRequestedComparison]);
+      
+      // Fetch comparison between original and improved essays
+      const fetchEssayComparison = async () => {
+        setIsLoadingComparison(true);
+        
+        try {
+          const originalParagraphs = paragraphs.map(p => ({
+            title: p.title,
+            type: p.type,
+            text: paragraphStates[p.id]?.originalBeforeCorrections || paragraphStates[p.id]?.initialText || paragraphStates[p.id]?.finalText || ''
+          }));
+          
+          const improvedParagraphs = paragraphs.map(p => ({
+            title: p.title,
+            type: p.type,
+            text: paragraphStates[p.id]?.finalText || ''
+          }));
+          
+          const response = await fetch('/.netlify/functions/compare-essays', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              studentName,
+              essayTitle: config?.essayTitle,
+              originalParagraphs,
+              improvedParagraphs,
+              gradeBoundaries: config?.gradeBoundaries || null,
+              totalMarks: config?.totalMarks || 40,
+              targetGrade: essayFeedback?.targetGrade || '5',
+              gradeSystem: config?.gradeSystem || 'gcse'
+            })
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            setEssayComparison(data.comparison);
+            console.log('[EssayCompilationScreen] Comparison loaded:', data.comparison);
+          }
+        } catch (error) {
+          console.error('Failed to fetch essay comparison:', error);
+        } finally {
+          setIsLoadingComparison(false);
+        }
+      };
       
       useEffect(() => {
         if (essayFeedback) setShowFeedback(true);
@@ -9218,6 +9565,107 @@ ${examinerComment}
                   {essayFeedback.closingEncouragement && (
                     <div className="encouragement-box">
                       <p>{essayFeedback.closingEncouragement}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Essay Comparison - Original vs Improved */}
+              {isLoadingComparison && (
+                <div className="card" style={parseStyle("text-align: center; padding: var(--space-xl); margin-top: var(--space-xl);")}>
+                  <LoadingSpinner text="Comparing your original and improved essays..." />
+                </div>
+              )}
+              
+              {essayComparison && (
+                <div className="essay-comparison ghost-appear">
+                  <div className="comparison-header">
+                    <h2 className="comparison-title">📊 Your Progress: Original vs Improved</h2>
+                    <p className="comparison-subtitle">See how your corrections and revisions improved your essay</p>
+                  </div>
+                  
+                  <div className="grade-comparison-boxes">
+                    <div className="grade-box original">
+                      <div className="grade-box-label">Original Essay</div>
+                      <div className="grade-box-grade">
+                        Grade {essayComparison.originalGrade}
+                      </div>
+                      <div className="grade-box-marks">
+                        {essayComparison.originalMarks}/{essayComparison.totalMarks} marks
+                      </div>
+                    </div>
+                    
+                    <div className="comparison-arrow">→</div>
+                    
+                    <div className="grade-box improved">
+                      <div className="grade-box-label">Improved Essay</div>
+                      <div className="grade-box-grade">
+                        Grade {essayComparison.improvedGrade}
+                      </div>
+                      <div className="grade-box-marks">
+                        {essayComparison.improvedMarks}/{essayComparison.totalMarks} marks
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="improvement-summary">
+                    <div className="improvement-headline">
+                      {essayComparison.gradeImprovement}
+                    </div>
+                    {essayComparison.marksGained > 0 ? (
+                      <div className="marks-gained">
+                        <span>📈</span>
+                        +{essayComparison.marksGained} marks gained through improvements!
+                      </div>
+                    ) : (
+                      <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                        {essayComparison.essaysAreDifferent 
+                          ? 'Your corrections maintained your grade level'
+                          : 'No changes were made between versions'}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {essayComparison.keyImprovements && essayComparison.keyImprovements.length > 0 && (
+                    <div className="improvement-details">
+                      <h3 className="improvement-details-title">
+                        <span>✨</span> Key Improvements Made
+                      </h3>
+                      {essayComparison.keyImprovements.map((improvement, i) => (
+                        <div key={i} className="improvement-item">
+                          <div className="improvement-item-area">{improvement.area}</div>
+                          <div className="improvement-item-before">{improvement.before}</div>
+                          <div className="improvement-item-after">{improvement.after}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {essayComparison.overallProgressComment && (
+                    <div className="comparison-progress-comment">
+                      <div className="comparison-progress-label">
+                        <span>🌟</span> Overall Progress
+                      </div>
+                      <div className="comparison-progress-text">
+                        {essayComparison.overallProgressComment}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {essayComparison.wouldHaveBeenGrade && (
+                    <div style={{
+                      marginTop: 'var(--space-lg)',
+                      padding: 'var(--space-md)',
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: 'var(--radius-md)',
+                      textAlign: 'center'
+                    }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                        💡 Without your improvements, your original would have received: 
+                      </span>
+                      <span style={{ color: 'var(--color-warning)', fontWeight: 600, marginLeft: 'var(--space-xs)' }}>
+                        Grade {essayComparison.wouldHaveBeenGrade}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -11338,14 +11786,17 @@ ${examinerComment}
               ...current,
               attempts: attemptData.attemptNumber,
               currentText: attemptData.text,
-              // Store initial text on first attempt
-              initialText: current.initialText || (attemptData.attemptNumber === 1 ? attemptData.text : current.initialText),
+              // Store initial text on first attempt - use originalText if provided (before technical corrections)
+              initialText: current.initialText || (attemptData.attemptNumber === 1 ? (attemptData.originalText || attemptData.text) : current.initialText),
+              // Also store the raw original before any corrections
+              originalBeforeCorrections: current.originalBeforeCorrections || (attemptData.attemptNumber === 1 ? (attemptData.originalText || attemptData.text) : current.originalBeforeCorrections),
               lastFeedback: attemptData.feedback,
               estimatedGrade: attemptData.estimatedGrade || attemptData.feedback?.estimatedGrade || null,
               feedbackHistory: [
                 ...current.feedbackHistory,
                 { 
                   text: attemptData.text, 
+                  originalText: attemptData.originalText || attemptData.text,
                   feedback: attemptData.feedback.detailedFeedback, 
                   score: attemptData.feedback.overallScore,
                   estimatedGrade: attemptData.estimatedGrade || attemptData.feedback?.estimatedGrade || null
