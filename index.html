@@ -5632,24 +5632,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">Ã¢â€“Âº;</span>
+              <span className="tts-icon">▶</span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">Ã¢ÂÅ¡;Ã¢ÂÅ¡;</span>
+                  <span className="tts-icon">❚❚</span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">Ã¢â€“Âº;</span>
+                  <span className="tts-icon">▶</span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">Ã¢â€“Â ;</span>
+                <span className="tts-icon">■</span>
                 <span>Stop</span>
               </button>
             </>
@@ -7387,14 +7387,14 @@
                     >
                       {savedProgress && (
                         <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? 'Ã¢Å“â€œ Complete' : `${savedProgress.percentComplete}% done`}
+                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || 'Ã°Å¸â€œÅ¡'}</div>
+                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>Ã°Å¸â€œâ€˜ {essay.subject}</span>
-                        <span>Ã°Å¸Å½â€œ {essay.yearGroup}</span>
+                        <span>📑 {essay.subject}</span>
+                        <span>🎓 {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -7792,7 +7792,7 @@
           
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
-              <div className="feedback-section-title"><span>Ã¢â€“Â² Areas to Improve</span></div>
+              <div className="feedback-section-title"><span>▲ Areas to Improve</span></div>
               <ul className="feedback-list improvements">
                 {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
@@ -7832,7 +7832,7 @@
               </>
             ) : (
               <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                  Ã¢Å“â€œ Complete & Continue to Next Section
+                  ✓ Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -7894,20 +7894,31 @@
 // ENTRY SCREEN
     // =====================================================
 
-    function EntryScreen({ config, onStudentStart, onBack }) {
-      const [studentName, setStudentName] = useState('');
-      const [studentEmail, setStudentEmail] = useState('');
+    function EntryScreen({ config, onStudentStart, onBack, loggedInStudent }) {
+      // If student is logged in, use their info automatically
+      const [studentName, setStudentName] = useState(loggedInStudent?.name || '');
+      const [studentEmail, setStudentEmail] = useState(loggedInStudent?.email || '');
       const [targetGrade, setTargetGrade] = useState('');
       const [error, setError] = useState('');
       const [checkingProgress, setCheckingProgress] = useState(false);
       const [existingProgress, setExistingProgress] = useState(null);
 
       const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
+      
+      // Check if student is already logged in
+      const isLoggedIn = !!(loggedInStudent?.name && loggedInStudent?.email);
 
       // Determine grade system from config
       const gradeSystem = getGradeSystem(config);
       const gradeSystemInfo = GRADE_SYSTEMS[gradeSystem];
       const abilityTier = targetGrade ? getAbilityTier(targetGrade, gradeSystem) : null;
+      
+      // Auto-check for existing progress when logged in
+      useEffect(() => {
+        if (isLoggedIn && loggedInStudent?.email) {
+          checkExistingProgress(loggedInStudent.email);
+        }
+      }, [isLoggedIn, loggedInStudent?.email]);
 
       // Check for existing progress when email changes
       const checkExistingProgress = async (email) => {
@@ -7952,37 +7963,44 @@
 
       const handleStartFresh = () => {
         setExistingProgress(null);
-        // Clear any pre-filled data
-        setStudentName('');
+        // Clear any pre-filled data (only if not logged in)
+        if (!isLoggedIn) {
+          setStudentName('');
+        }
         setTargetGrade('');
       };
 
       const handleStudentSubmit = (e) => {
         e.preventDefault();
 
-        // Validate name
-        if (studentName.trim().length < 2) {
+        // Use logged-in student info if available
+        const finalName = isLoggedIn ? loggedInStudent.name : studentName.trim();
+        const finalEmail = isLoggedIn ? loggedInStudent.email : studentEmail.trim().toLowerCase();
+
+        // Validate name (skip if logged in)
+        if (!isLoggedIn && finalName.length < 2) {
           setError('Please enter your name (at least 2 characters)');
           return;
         }
 
-        // Validate email
-        const emailLower = studentEmail.trim().toLowerCase();
-        if (!emailLower) {
-          setError('Please enter your school email address');
-          return;
-        }
+        // Validate email (skip if logged in)
+        if (!isLoggedIn) {
+          if (!finalEmail) {
+            setError('Please enter your school email address');
+            return;
+          }
 
-        if (!emailLower.endsWith(REQUIRED_EMAIL_DOMAIN)) {
-          setError(`Please use your school email (must end with ${REQUIRED_EMAIL_DOMAIN})`);
-          return;
-        }
+          if (!finalEmail.endsWith(REQUIRED_EMAIL_DOMAIN)) {
+            setError(`Please use your school email (must end with ${REQUIRED_EMAIL_DOMAIN})`);
+            return;
+          }
 
-        // Basic email format check
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(emailLower)) {
-          setError('Please enter a valid email address');
-          return;
+          // Basic email format check
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(finalEmail)) {
+            setError('Please enter a valid email address');
+            return;
+          }
         }
 
         // Validate target grade
@@ -7991,7 +8009,7 @@
           return;
         }
 
-        onStudentStart(studentName.trim(), emailLower, targetGrade, gradeSystem);
+        onStudentStart(finalName, finalEmail, targetGrade, gradeSystem);
       };
 
       const getGradeButtonClass = (grade) => {
@@ -8024,80 +8042,98 @@
               </p>
 
               <form onSubmit={handleStudentSubmit}>
-                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
-                    Your full name:
-                  </label>
-                  <input
-                    type="text"
-                    value={studentName}
-                    onChange={(e) => { setStudentName(e.target.value); setError(''); }}
-                    placeholder="e.g. John Smith"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-md);")}
-                    autoFocus
-                  />
-                </div>
-
-                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
-                    Your school email:
-                  </label>
-                  <input
-                    type="email"
-                    value={studentEmail}
-                    onChange={(e) => { setStudentEmail(e.target.value); setError(''); setExistingProgress(null); }}
-                    onBlur={(e) => checkExistingProgress(e.target.value)}
-                    placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-md);")}
-                  />
-                  <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
-                    Must end with {REQUIRED_EMAIL_DOMAIN}
-                  </p>
-                  
-                  {checkingProgress && (
-                    <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-sm);")}>
-                      Checking for saved progress...
+                {/* Show logged-in student info or ask for name/email */}
+                {isLoggedIn ? (
+                  <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-success-bg); border-radius: var(--radius-md); border: 1px solid var(--color-success);")}>
+                    <p style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs);")}>
+                      ✓ Logged in as:
                     </p>
-                  )}
-                  
-                  {existingProgress && !checkingProgress && (
-                    <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: rgba(255, 215, 0, 0.1); border: 1px solid var(--color-gold); border-radius: var(--radius-md);")}>
-                      <p style={parseStyle("font-weight: 600; margin-bottom: var(--space-sm); color: var(--color-gold);")}>
-                        Saved progress found!
-                      </p>
-                      <p style={parseStyle("font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
-                        You have {existingProgress.percentComplete || 0}% completed 
-                        ({existingProgress.completedParagraphs || 0} of {existingProgress.totalParagraphs || '?'} paragraphs)
-                        {existingProgress.lastUpdate && (
-                          <span style={parseStyle("color: var(--color-text-muted);")}> - last saved {new Date(existingProgress.lastUpdate).toLocaleDateString()}</span>
-                        )}
-                      </p>
-                      <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
-                        <button 
-                          type="button" 
-                          className="btn btn-primary"
-                          onClick={handleResumeProgress}
-                        >
-                          Continue where I left off
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary"
-                          onClick={handleStartFresh}
-                        >
-                          Start fresh instead
-                        </button>
-                      </div>
+                    <p style={parseStyle("font-size: 1.1rem; font-weight: 600; margin: 0;")}>
+                      {loggedInStudent.name}
+                    </p>
+                    <p style={parseStyle("font-size: 0.9rem; color: var(--color-text-muted); margin: 0;")}>
+                      {loggedInStudent.email}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                        Your full name:
+                      </label>
+                      <input
+                        type="text"
+                        value={studentName}
+                        onChange={(e) => { setStudentName(e.target.value); setError(''); }}
+                        placeholder="e.g. John Smith"
+                        className="paragraph-editor"
+                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                        autoFocus
+                      />
                     </div>
-                  )}
-                </div>
+
+                    <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                        Your school email:
+                      </label>
+                      <input
+                        type="email"
+                        value={studentEmail}
+                        onChange={(e) => { setStudentEmail(e.target.value); setError(''); setExistingProgress(null); }}
+                        onBlur={(e) => checkExistingProgress(e.target.value)}
+                        placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
+                        className="paragraph-editor"
+                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                      />
+                      <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                        Must end with {REQUIRED_EMAIL_DOMAIN}
+                      </p>
+                    </div>
+                  </>
+                )}
+                
+                {/* Progress check - shown for both logged in and not */}
+                {checkingProgress && (
+                  <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-md);")}>
+                    Checking for saved progress...
+                  </p>
+                )}
+                  
+                {existingProgress && !checkingProgress && (
+                  <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(255, 215, 0, 0.1); border: 1px solid var(--color-gold); border-radius: var(--radius-md);")}>
+                    <p style={parseStyle("font-weight: 600; margin-bottom: var(--space-sm); color: var(--color-gold);")}>
+                      Saved progress found!
+                    </p>
+                    <p style={parseStyle("font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
+                      You have {existingProgress.percentComplete || 0}% completed 
+                      ({existingProgress.completedParagraphs || 0} of {existingProgress.totalParagraphs || '?'} paragraphs)
+                      {existingProgress.lastUpdate && (
+                        <span style={parseStyle("color: var(--color-text-muted);")}> - last saved {new Date(existingProgress.lastUpdate).toLocaleDateString()}</span>
+                      )}
+                    </p>
+                    <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+                      <button 
+                        type="button" 
+                        className="btn btn-primary"
+                        onClick={handleResumeProgress}
+                      >
+                        Continue where I left off
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={handleStartFresh}
+                      >
+                        Start fresh instead
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
                   <label className="grade-selector-label">
-                     What grade are you aiming for? What grade are you aiming for?
+                     🎯 What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -9526,13 +9562,13 @@ ${examinerComment}
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
                 <VersionCard version={initialVersion} title=" Initial Version (First Attempt)" isImproved={false} />
-                <VersionCard version={improvedVersion} title="? Improved Version (Final) Improved Version (Final)" isImproved={true} />
+                <VersionCard version={improvedVersion} title="✅ Improved Version (Final)" isImproved={true} />
               </div>
               
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}> What grade are you aiming for? Next Steps to Improve Further</h4>
+                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}> 📈 Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={parseStyle("margin-bottom: var(--space-sm);")}>{target}</li>
@@ -9611,7 +9647,7 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>Ã¢Å“â€œ Improved Version</span></div>
+                        <div className="feedback-section-title"><span>✓ Improved Version</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -9620,7 +9656,7 @@ ${examinerComment}
                     
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>Ã¢â€“Â² Areas for Development</span></div>
+                        <div className="feedback-section-title"><span>▲ Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -9775,16 +9811,16 @@ ${examinerComment}
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
             <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-md);")}> Download Your Full Report</h3>
+              <h3 style={parseStyle("margin-bottom: var(--space-md);">📄 Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;")}>
                 <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                   Print Full Report
+                  🖨️ Print Full Report
                 </button>
                 <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                   Copy to Clipboard
+                  📋 Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -9962,7 +9998,7 @@ ${examinerComment}
                 )}
               </div>
               <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-                <button className="btn btn-secondary" onClick={handleRefresh}> Refresh</button>
+                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
                 <button className="btn btn-secondary" onClick={() => setShowChangePassword(true)}>Change Password</button>
                 <button className="btn btn-secondary" onClick={async () => {
                   await TeacherAuth.logout();
@@ -12277,7 +12313,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
       }
       
       if (screen === 'entry') {
-        return <EntryScreen config={CONFIG} onStudentStart={handleStudentStart} onBack={isAuthenticated ? () => setScreen('student-dashboard') : handleBackToEssayList} />;
+        return <EntryScreen config={CONFIG} onStudentStart={handleStudentStart} onBack={isAuthenticated ? () => setScreen('student-dashboard') : handleBackToEssayList} loggedInStudent={isAuthenticated ? currentStudent : null} />;
       }
       
       if (screen === 'dashboard') {
