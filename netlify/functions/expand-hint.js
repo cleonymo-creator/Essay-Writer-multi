@@ -55,18 +55,18 @@ exports.handler = async (event) => {
 - Use short sentences and simple vocabulary
 - Give a concrete, relatable example
 - Avoid jargon or explain any technical terms used
-- Keep the explanation to 2-3 short paragraphs maximum`,
+- Keep the explanation to 1 short paragraph maximum`,
       intermediate: `Explain clearly with appropriate academic vocabulary for a GCSE/A-Level student.
 - Define key terms
 - Give a relevant example showing how to apply this
 - Connect to exam success where relevant
-- Keep the explanation focused and practical (3-4 paragraphs)`,
+- Keep the explanation focused and practical (2 paragraphs)`,
       advanced: `Provide a sophisticated explanation suitable for a high-achieving student.
 - Use precise academic terminology
 - Explain nuances and complexities
 - Suggest how this could be used to achieve top grades
 - Reference exam board expectations where relevant
-- Can be more detailed (4-5 paragraphs) but stay focused`
+- Can be more detailed (2-3 paragraphs) but stay focused`
     };
 
     const systemPrompt = `You are a knowledgeable and helpful teacher providing additional explanation for essay writing hints and tips.
