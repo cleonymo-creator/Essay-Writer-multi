@@ -5104,12 +5104,8 @@
         await firebaseReadyPromise;
         if (!db) return null;
         try {
-          // Only get progress from last 24 hours
-          const cutoff = new Date();
-          cutoff.setHours(cutoff.getHours() - 24);
-          
+          // Get all in-progress essays (no time limit - keep until completed)
           const snapshot = await db.collection('progress')
-            .where('updatedAt', '>', cutoff)
             .orderBy('updatedAt', 'desc')
             .get();
           return snapshot.docs.map(doc => ({
@@ -5183,11 +5179,9 @@
       // Subscribe to real-time progress updates
       subscribeToProgress(callback) {
         if (!db) return () => {};
-        const cutoff = new Date();
-        cutoff.setHours(cutoff.getHours() - 24);
-        
+
+        // Get all in-progress essays (no time limit - keep until completed)
         return db.collection('progress')
-          .where('updatedAt', '>', cutoff)
           .orderBy('updatedAt', 'desc')
           .onSnapshot(snapshot => {
             const progress = snapshot.docs.map(doc => ({
@@ -6705,6 +6699,7 @@
       const [selectedEssay, setSelectedEssay] = useState('all');
       const [viewMode, setViewMode] = useState('by-essay'); // 'by-essay' or 'by-student'
       const [expandedEssay, setExpandedEssay] = useState(null);
+      const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
 
       const loadData = async () => {
         setLoading(true);
@@ -7070,28 +7065,115 @@
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {stats.progress.map((prog, idx) => (
-                                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                                        <td style={parseStyle("padding: var(--space-sm);")}>{prog.studentName || '-'}</td>
-                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{prog.studentEmail || '-'}</td>
-                                        <td style={parseStyle("padding: var(--space-sm); text-align: center;")}>
-                                          <div style={parseStyle("display: flex; align-items: center; justify-content: center; gap: var(--space-xs);")}>
-                                            <div style={parseStyle("width: 60px; height: 6px; background: var(--color-border); border-radius: 3px; overflow: hidden;")}>
-                                              <div style={{ width: `${prog.percentComplete || 0}%`, height: '100%', background: 'var(--color-warning)', borderRadius: '3px' }} />
-                                            </div>
-                                            <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>
-                                              {prog.completedParagraphs || 0}/{prog.totalParagraphs || '?'}
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
-                                          {prog.currentParagraph || `Paragraph ${prog.currentParagraphIndex || 1}`}
-                                        </td>
-                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
-                                          {prog.lastUpdate ? formatDateTime(prog.lastUpdate) : '-'}
-                                        </td>
-                                      </tr>
-                                    ))}
+                                    {stats.progress.map((prog, idx) => {
+                                      const progressKey = `${prog.studentEmail}-${prog.essayId}`;
+                                      const isExpanded = expandedProgress === progressKey;
+                                      return (
+                                        <React.Fragment key={idx}>
+                                          <tr
+                                            style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
+                                            onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                                            title="Click to view paragraph details"
+                                          >
+                                            <td style={parseStyle("padding: var(--space-sm);")}>
+                                              <span style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                                                <span style={parseStyle(`transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s; color: var(--color-text-muted); font-size: 0.8rem;`)}>▶</span>
+                                                {prog.studentName || '-'}
+                                              </span>
+                                            </td>
+                                            <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{prog.studentEmail || '-'}</td>
+                                            <td style={parseStyle("padding: var(--space-sm); text-align: center;")}>
+                                              <div style={parseStyle("display: flex; align-items: center; justify-content: center; gap: var(--space-xs);")}>
+                                                <div style={parseStyle("width: 60px; height: 6px; background: var(--color-border); border-radius: 3px; overflow: hidden;")}>
+                                                  <div style={{ width: `${prog.percentComplete || 0}%`, height: '100%', background: 'var(--color-warning)', borderRadius: '3px' }} />
+                                                </div>
+                                                <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>
+                                                  {prog.completedParagraphs || 0}/{prog.totalParagraphs || '?'}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
+                                              {prog.currentParagraph || `Paragraph ${prog.currentParagraphIndex || 1}`}
+                                            </td>
+                                            <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
+                                              {prog.lastUpdate ? formatDateTime(prog.lastUpdate) : '-'}
+                                            </td>
+                                          </tr>
+                                          {isExpanded && (
+                                            <tr>
+                                              <td colSpan={5} style={parseStyle("padding: 0; background: var(--color-bg-secondary);")}>
+                                                <div style={parseStyle("padding: var(--space-sm) var(--space-md); border-bottom: 2px solid var(--color-border);")}>
+                                                  <h6 style={parseStyle("margin-bottom: var(--space-xs); color: var(--color-text); font-size: 0.85rem;")}>Paragraph Progress</h6>
+                                                  {prog.paragraphScores && prog.paragraphScores.length > 0 ? (
+                                                    <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-xs);")}>
+                                                      {prog.paragraphScores.map((para, pIdx) => {
+                                                        const isCurrentPara = pIdx === (prog.currentParagraphIndex || 0);
+                                                        const hasScore = para.score !== undefined && para.score !== null;
+                                                        const scoreColor = hasScore
+                                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                                          : 'var(--color-text-muted)';
+                                                        return (
+                                                          <div
+                                                            key={pIdx}
+                                                            style={parseStyle(`
+                                                              padding: var(--space-xs) var(--space-sm);
+                                                              border-radius: var(--radius-sm);
+                                                              background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
+                                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                                              border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
+                                                              min-width: 65px;
+                                                              text-align: center;
+                                                              font-size: 0.8rem;
+                                                            `)}
+                                                          >
+                                                            <div style={parseStyle("font-size: 0.7rem; opacity: 0.8;")}>
+                                                              {para.id || `P${pIdx + 1}`}
+                                                            </div>
+                                                            <div style={parseStyle("font-weight: 600;")}>
+                                                              {hasScore ? `${para.score}%` : (isCurrentPara ? 'Current' : '-')}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
+                                                  ) : (
+                                                    <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-xs);")}>
+                                                      {Array.from({ length: prog.totalParagraphs || 4 }, (_, pIdx) => {
+                                                        const isCompleted = pIdx < (prog.completedParagraphs || 0);
+                                                        const isCurrentPara = pIdx === (prog.currentParagraphIndex || 0);
+                                                        return (
+                                                          <div
+                                                            key={pIdx}
+                                                            style={parseStyle(`
+                                                              padding: var(--space-xs) var(--space-sm);
+                                                              border-radius: var(--radius-sm);
+                                                              background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
+                                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                                              min-width: 65px;
+                                                              text-align: center;
+                                                              font-size: 0.8rem;
+                                                            `)}
+                                                          >
+                                                            <div style={parseStyle("font-size: 0.7rem; opacity: 0.8;")}>P{pIdx + 1}</div>
+                                                            <div style={parseStyle("font-weight: 600;")}>
+                                                              {isCurrentPara ? 'Current' : isCompleted ? 'Done' : '-'}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
+                                                  )}
+                                                  <div style={parseStyle("margin-top: var(--space-xs); font-size: 0.75rem; color: var(--color-text-muted);")}>
+                                                    <span style={parseStyle("margin-right: var(--space-sm);")}><strong>Target:</strong> {prog.targetGrade || '-'}</span>
+                                                    <span><strong>System:</strong> {prog.gradeSystem || '-'}</span>
+                                                  </div>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </React.Fragment>
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
@@ -11027,6 +11109,7 @@ ${examinerComment}
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
       const [sidebarOpen, setSidebarOpen] = useState(false);
+      const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
 
       // Teacher auth state
       const [teacherData, setTeacherData] = useState(TeacherAuth.getTeacher());
@@ -11377,32 +11460,118 @@ ${examinerComment}
                   <tbody>
                     {filteredInProgress.map((student, index) => {
                       const essayInfo = getEssayList().find(e => e.id === student.essayId);
+                      const progressKey = `${student.studentEmail}-${student.essayId}`;
+                      const isExpanded = expandedProgress === progressKey;
+                      const colSpan = filterEssayId === 'all' ? 6 : 5;
                       return (
-                        <tr key={index} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                          <td style={parseStyle("padding: var(--space-md);")}>{student.studentName}</td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{student.studentEmail || '-'}</td>
-                          {filterEssayId === 'all' && (
-                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                              {essayInfo?.icon} {essayInfo?.title || student.essayTitle || '-'}
-                            </td>
-                          )}
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>
-                            {student.currentParagraph || `Paragraph ${student.currentParagraphIndex || 1}`}
-                          </td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <div style={parseStyle("display: flex; align-items: center; justify-content: center; gap: var(--space-sm);")}>
-                              <div style={parseStyle("width: 100px; height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
-                                <div style={{ width: `${student.percentComplete || 0}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
-                              </div>
-                              <span style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                                {student.completedParagraphs || 0}/{student.totalParagraphs || '?'}
+                        <React.Fragment key={index}>
+                          <tr
+                            style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
+                            onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                            title="Click to view paragraph details"
+                          >
+                            <td style={parseStyle("padding: var(--space-md);")}>
+                              <span style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                                <span style={parseStyle(`transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s; color: var(--color-text-muted);`)}>▶</span>
+                                {student.studentName}
                               </span>
-                            </div>
-                          </td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                            {student.lastUpdate ? formatDateTime(student.lastUpdate) : '-'}
-                          </td>
-                        </tr>
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{student.studentEmail || '-'}</td>
+                            {filterEssayId === 'all' && (
+                              <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                                {essayInfo?.icon} {essayInfo?.title || student.essayTitle || '-'}
+                              </td>
+                            )}
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>
+                              {student.currentParagraph || `Paragraph ${student.currentParagraphIndex || 1}`}
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <div style={parseStyle("display: flex; align-items: center; justify-content: center; gap: var(--space-sm);")}>
+                                <div style={parseStyle("width: 100px; height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
+                                  <div style={{ width: `${student.percentComplete || 0}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
+                                </div>
+                                <span style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
+                                  {student.completedParagraphs || 0}/{student.totalParagraphs || '?'}
+                                </span>
+                              </div>
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                              {student.lastUpdate ? formatDateTime(student.lastUpdate) : '-'}
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={colSpan} style={parseStyle("padding: 0; background: var(--color-bg-secondary);")}>
+                                <div style={parseStyle("padding: var(--space-md) var(--space-lg); border-bottom: 2px solid var(--color-border);")}>
+                                  <h5 style={parseStyle("margin-bottom: var(--space-sm); color: var(--color-text);")}>Paragraph Progress</h5>
+                                  {student.paragraphScores && student.paragraphScores.length > 0 ? (
+                                    <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-sm);")}>
+                                      {student.paragraphScores.map((para, pIdx) => {
+                                        const isCurrentPara = pIdx === (student.currentParagraphIndex || 0);
+                                        const hasScore = para.score !== undefined && para.score !== null;
+                                        const scoreColor = hasScore
+                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                          : 'var(--color-text-muted)';
+                                        return (
+                                          <div
+                                            key={pIdx}
+                                            style={parseStyle(`
+                                              padding: var(--space-sm) var(--space-md);
+                                              border-radius: var(--radius-md);
+                                              background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
+                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                              border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
+                                              min-width: 80px;
+                                              text-align: center;
+                                            `)}
+                                          >
+                                            <div style={parseStyle("font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px;")}>
+                                              {para.id || `Para ${pIdx + 1}`}
+                                            </div>
+                                            <div style={parseStyle("font-weight: 600;")}>
+                                              {hasScore ? `${para.score}%` : (isCurrentPara ? 'Current' : 'Pending')}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-sm);")}>
+                                      {Array.from({ length: student.totalParagraphs || 4 }, (_, pIdx) => {
+                                        const isCompleted = pIdx < (student.completedParagraphs || 0);
+                                        const isCurrentPara = pIdx === (student.currentParagraphIndex || 0);
+                                        return (
+                                          <div
+                                            key={pIdx}
+                                            style={parseStyle(`
+                                              padding: var(--space-sm) var(--space-md);
+                                              border-radius: var(--radius-md);
+                                              background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
+                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                              min-width: 80px;
+                                              text-align: center;
+                                            `)}
+                                          >
+                                            <div style={parseStyle("font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px;")}>
+                                              Paragraph {pIdx + 1}
+                                            </div>
+                                            <div style={parseStyle("font-weight: 600;")}>
+                                              {isCurrentPara ? 'Current' : isCompleted ? 'Done' : 'Pending'}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  <div style={parseStyle("margin-top: var(--space-md); font-size: 0.85rem; color: var(--color-text-muted);")}>
+                                    <span style={parseStyle("margin-right: var(--space-md);")}><strong>Target Grade:</strong> {student.targetGrade || '-'}</span>
+                                    <span><strong>Grade System:</strong> {student.gradeSystem || '-'}</span>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
