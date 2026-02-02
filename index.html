@@ -58,7 +58,7 @@
     window.ESSAYS = {};
     window.ESSAY_LIST = [];
     window.ESSAYS_LOADED = false;
-    
+
     // Dynamic essay loader - fetches manifest.json and loads essay configs
     async function loadEssays() {
       try {
@@ -69,7 +69,7 @@
         }
         const essayIds = await response.json();
         console.log('Found essays in manifest:', essayIds);
-        
+
         // Load each essay config file dynamically
         const loadPromises = essayIds.map(id => {
           return new Promise((resolve) => {
@@ -86,18 +86,42 @@
             document.head.appendChild(script);
           });
         });
-        
+
         // Wait for all essays to load
         await Promise.all(loadPromises);
-        
+
         // Build ESSAY_LIST from loaded ESSAYS object
         window.ESSAY_LIST = Object.values(window.ESSAYS);
         window.ESSAYS_LOADED = true;
-        console.log('All essays loaded:', (window.ESSAY_LIST || []).map(e => e.id));
-        
+        console.log('Static essays loaded:', (window.ESSAY_LIST || []).map(e => e.id));
+
       } catch (error) {
         console.error('Failed to load essays:', error);
         window.ESSAYS_LOADED = true; // Mark as loaded even on error so app can render
+      }
+    }
+
+    // Load custom essays from Firebase (called after Firebase is initialized)
+    async function loadCustomEssays() {
+      try {
+        // Try to fetch custom essays from the netlify function
+        const response = await fetch('/.netlify/functions/manage-essays');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.essays) {
+            console.log('Loading custom essays:', data.essays.length);
+            data.essays.forEach(essay => {
+              if (essay.id && !window.ESSAYS[essay.id]) {
+                window.ESSAYS[essay.id] = { ...essay, isCustom: true };
+              }
+            });
+            // Rebuild ESSAY_LIST
+            window.ESSAY_LIST = Object.values(window.ESSAYS);
+            console.log('Total essays after custom load:', window.ESSAY_LIST.length);
+          }
+        }
+      } catch (error) {
+        console.log('Custom essays not loaded (may require admin auth):', error.message);
       }
     }
   </script>
@@ -4816,7 +4840,61 @@
             console.error('Progress subscription error:', error);
           });
       },
-      
+
+      // =====================================================
+      // ESSAY MANAGEMENT METHODS (Admin only)
+      // =====================================================
+
+      // Get all custom essays from Firebase
+      async getCustomEssays() {
+        await firebaseReadyPromise;
+        if (!db) return [];
+        try {
+          const snapshot = await db.collection('essays').orderBy('createdAt', 'desc').get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+            isCustom: true
+          }));
+        } catch (error) {
+          console.error('Firebase getCustomEssays error:', error);
+          return [];
+        }
+      },
+
+      // Save/import a custom essay
+      async saveCustomEssay(essay) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const essayId = essay.id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          await db.collection('essays').doc(essayId).set({
+            ...essay,
+            id: essayId,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            isCustom: true
+          }, { merge: true });
+          return { success: true, essayId: essayId };
+        } catch (error) {
+          console.error('Firebase saveCustomEssay error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Delete a custom essay
+      async deleteCustomEssay(essayId) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          await db.collection('essays').doc(essayId).delete();
+          return { success: true };
+        } catch (error) {
+          console.error('Firebase deleteCustomEssay error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
       // =====================================================
       // STUDENT AUTHENTICATION METHODS
       // =====================================================
@@ -10770,6 +10848,14 @@ ${examinerComment}
               </button>
               {isAdmin && (
                 <button
+                  className={activeTab === 'essays' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setActiveTab('essays')}
+                >
+                  Essays
+                </button>
+              )}
+              {isAdmin && (
+                <button
                   className={activeTab === 'teachers' ? 'btn btn-primary' : 'btn btn-secondary'}
                   onClick={() => setActiveTab('teachers')}
                 >
@@ -10778,11 +10864,12 @@ ${examinerComment}
               )}
             </div>
           </div>
-          
+
           {/* Tab Content */}
           {activeTab === 'students' && <StudentManagementPanel />}
           {activeTab === 'assignments' && <AssignmentsPanel />}
           {activeTab === 'performance' && <StudentPerformancePanel />}
+          {activeTab === 'essays' && isAdmin && <EssayManagementPanel />}
           {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
           
           {activeTab === 'submissions' && (
@@ -11488,11 +11575,370 @@ ${examinerComment}
         </div>
       );
     }
-    
+
+    // =====================================================
+    // ESSAY MANAGEMENT PANEL (Admin Only)
+    // =====================================================
+
+    function EssayManagementPanel() {
+      const [essays, setEssays] = useState([]);
+      const [customEssays, setCustomEssays] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [showImport, setShowImport] = useState(false);
+      const [importText, setImportText] = useState('');
+      const [importError, setImportError] = useState('');
+      const [importLoading, setImportLoading] = useState(false);
+      const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      const loadEssays = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          // Get static essays
+          const staticEssays = window.ESSAY_LIST || [];
+
+          // Get custom essays from Firebase
+          const firebaseReady = await FirebaseDB.isReady();
+          let customList = [];
+          if (firebaseReady) {
+            customList = await FirebaseDB.getCustomEssays();
+          } else {
+            // Try netlify function
+            const response = await fetch('/.netlify/functions/manage-essays', {
+              headers: { 'Authorization': `Bearer ${sessionToken}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+              customList = data.essays || [];
+            }
+          }
+
+          setEssays(staticEssays);
+          setCustomEssays(customList);
+        } catch (err) {
+          console.error('Load essays error:', err);
+          setError('Failed to load essays');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadEssays();
+      }, []);
+
+      const handleImport = async () => {
+        setImportError('');
+        setImportLoading(true);
+
+        try {
+          // Try to parse the input as JSON
+          let essayData;
+          let jsonText = importText.trim();
+
+          // Handle JavaScript format: window.ESSAYS['id'] = {...}
+          if (jsonText.startsWith('window.ESSAYS')) {
+            const match = jsonText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+            if (match) {
+              jsonText = match[2];
+            }
+          }
+
+          // Handle window.ESSAY_CONFIG = {...}
+          if (jsonText.startsWith('window.ESSAY_CONFIG')) {
+            const match = jsonText.match(/window\.ESSAY_CONFIG\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+            if (match) {
+              jsonText = match[1];
+            }
+          }
+
+          // Try parsing as JSON
+          try {
+            essayData = JSON.parse(jsonText);
+          } catch (e) {
+            // Try evaluating as JavaScript object (safely)
+            try {
+              essayData = eval('(' + jsonText + ')');
+            } catch (e2) {
+              throw new Error('Could not parse essay data. Please provide valid JSON or JavaScript object format.');
+            }
+          }
+
+          // Validate required fields
+          if (!essayData.id) {
+            throw new Error('Essay must have an "id" field');
+          }
+          if (!essayData.title) {
+            throw new Error('Essay must have a "title" field');
+          }
+          if (!essayData.paragraphs || !Array.isArray(essayData.paragraphs)) {
+            throw new Error('Essay must have a "paragraphs" array');
+          }
+
+          // Save via netlify function
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({ essay: essayData })
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to import essay');
+          }
+
+          // Add to window.ESSAYS so it's immediately available
+          window.ESSAYS = window.ESSAYS || {};
+          window.ESSAYS[result.essayId] = { ...essayData, id: result.essayId, isCustom: true };
+          window.ESSAY_LIST = Object.values(window.ESSAYS);
+
+          alert(`Essay "${essayData.title}" imported successfully!`);
+          setShowImport(false);
+          setImportText('');
+          loadEssays();
+        } catch (err) {
+          console.error('Import error:', err);
+          setImportError(err.message || 'Failed to import essay');
+        } finally {
+          setImportLoading(false);
+        }
+      };
+
+      const handleDelete = async (essayId) => {
+        try {
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({ action: 'delete', essayId: essayId })
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to delete essay');
+          }
+
+          // Remove from window.ESSAYS
+          if (window.ESSAYS && window.ESSAYS[essayId]) {
+            delete window.ESSAYS[essayId];
+            window.ESSAY_LIST = Object.values(window.ESSAYS);
+          }
+
+          setDeleteConfirm(null);
+          loadEssays();
+        } catch (err) {
+          console.error('Delete error:', err);
+          alert('Failed to delete essay: ' + err.message);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center;")}>
+            <LoadingSpinner text="Loading essays..." />
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          {error && (
+            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: rgba(239, 68, 68, 0.1); border-color: var(--color-error);")}>
+              <p style={parseStyle("color: var(--color-error); margin: 0;")}>{error}</p>
+            </div>
+          )}
+
+          {/* Import Button */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center;")}>
+              <div>
+                <h4 style={parseStyle("margin: 0 0 var(--space-xs) 0;")}>Essay Management</h4>
+                <p style={parseStyle("margin: 0; color: var(--color-text-muted); font-size: 0.85rem;")}>
+                  Import and manage custom essays. Static essays ({essays.length}) cannot be edited.
+                </p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setShowImport(true)}>
+                Import Essay
+              </button>
+            </div>
+          </div>
+
+          {/* Import Modal */}
+          {showImport && (
+            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")} onClick={() => setShowImport(false)}>
+              <div className="card" style={parseStyle("max-width: 800px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
+                  <h3 style={parseStyle("margin: 0;")}>Import Essay</h3>
+                  <button className="btn btn-secondary" onClick={() => setShowImport(false)}>Close</button>
+                </div>
+
+                <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-md);")}>
+                  Paste your essay configuration below. Accepts JSON format or JavaScript format (window.ESSAYS['id'] = {...}).
+                </p>
+
+                <textarea
+                  value={importText}
+                  onChange={e => setImportText(e.target.value)}
+                  placeholder={`{
+  "id": "my-essay-id",
+  "title": "Essay Title",
+  "subject": "GCSE English",
+  "essayTitle": "The essay question...",
+  "paragraphs": [
+    {
+      "id": 1,
+      "title": "Introduction",
+      "type": "introduction",
+      "learningMaterial": {
+        "foundation": "...",
+        "intermediate": "...",
+        "advanced": "..."
+      },
+      "writingPrompt": "..."
+    }
+  ]
+}`}
+                  style={parseStyle("width: 100%; height: 300px; padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-family: monospace; font-size: 0.85rem; resize: vertical;")}
+                />
+
+                {importError && (
+                  <p style={parseStyle("color: var(--color-error); margin-top: var(--space-md); margin-bottom: 0;")}>{importError}</p>
+                )}
+
+                <div style={parseStyle("display: flex; justify-content: flex-end; gap: var(--space-md); margin-top: var(--space-lg);")}>
+                  <button className="btn btn-secondary" onClick={() => setShowImport(false)} disabled={importLoading}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={handleImport} disabled={importLoading || !importText.trim()}>
+                    {importLoading ? 'Importing...' : 'Import Essay'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Essays */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Custom Essays ({customEssays.length})</h4>
+            {customEssays.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No custom essays imported yet. Click "Import Essay" to add one.
+              </p>
+            ) : (
+              <div style={parseStyle("overflow-x: auto;")}>
+                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                  <thead>
+                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Created By</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customEssays.map((essay, idx) => (
+                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                        <td style={parseStyle("padding: var(--space-md);")}>
+                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
+                          {essay.title}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.createdByName || essay.createdBy || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                          {deleteConfirm === essay.id ? (
+                            <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: center;")}>
+                              <button
+                                className="btn btn-secondary"
+                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                                onClick={() => setDeleteConfirm(null)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="btn"
+                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem; background: var(--color-error); color: white;")}
+                                onClick={() => handleDelete(essay.id)}
+                              >
+                                Confirm
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="btn btn-secondary"
+                              style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                              onClick={() => setDeleteConfirm(essay.id)}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Static Essays (Read Only) */}
+          <div className="card">
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Static Essays ({essays.length})</h4>
+            <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-md);")}>
+              These essays are defined in static files and cannot be edited through this interface.
+            </p>
+            {essays.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No static essays found.
+              </p>
+            ) : (
+              <div style={parseStyle("overflow-x: auto;")}>
+                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                  <thead>
+                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {essays.filter(e => !e.isCustom).map((essay, idx) => (
+                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                        <td style={parseStyle("padding: var(--space-md);")}>
+                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
+                          {essay.title}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // =====================================================
     // TEACHER MANAGEMENT PANEL (Admin Only)
     // =====================================================
-    
+
     function TeacherManagementPanel() {
       const [teachers, setTeachers] = React.useState([]);
       const [loading, setLoading] = React.useState(true);
@@ -12282,6 +12728,15 @@ ${examinerComment}
       // Check for existing session on load (both student and teacher)
       useEffect(() => {
         const checkSession = async () => {
+          // Load custom essays from Firebase if available
+          if (typeof loadCustomEssays === 'function') {
+            try {
+              await loadCustomEssays();
+            } catch (e) {
+              console.log('Custom essays load skipped:', e.message);
+            }
+          }
+
           // Check for teacher session first
           if (TeacherAuth.isLoggedIn()) {
             const teacherResult = await TeacherAuth.verifySession();
@@ -12292,7 +12747,7 @@ ${examinerComment}
               return;
             }
           }
-          
+
           // Check for student session
           const savedToken = localStorage.getItem('studentSession');
           const savedStudent = localStorage.getItem('studentData');
