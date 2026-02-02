@@ -161,6 +161,9 @@ exports.handler = async (event) => {
       estimatedGrade: p.estimatedGrade || null
     }));
     
+    // CEILING GRADING: Use the highest paragraph score to show capability
+    // This reflects exam marking where strong work in any area proves ability
+    const highestParagraphScore = Math.max(...paragraphSummary.map(p => p.score));
     const averageScore = Math.round(
       paragraphSummary.reduce((sum, p) => sum + p.score, 0) / paragraphSummary.length
     );
@@ -202,21 +205,39 @@ Use these authentic exam board descriptors to assess the complete essay:
 
 ${gradeDescriptorsText}
 
-## GRADING INSTRUCTIONS
+## GRADING INSTRUCTIONS - CEILING GRADING (EXAM STANDARD)
 1. Read the complete essay holistically
-2. Determine which grade descriptor best matches the overall quality
-3. Award a specific mark within that grade's range
-4. Provide justification citing specific evidence from the essay
-5. Identify what would be needed to reach the next grade up
+2. Identify the HIGHEST level of skill demonstrated ANYWHERE in the essay
+3. Determine which grade descriptor matches their BEST paragraph
+4. Award that grade (or one level below if borderline)
+5. Award a specific mark in the UPPER portion of that grade's range
 
-## IMPORTANT: Fair Marking Guidance
-When assessing, apply the "best-fit" principle used by real examiners:
-- If work shows characteristics of TWO adjacent grades, award the HIGHER grade if ANY significant criterion is met at that level
-- Award marks in the UPPER portion of a grade band when work solidly meets the descriptors (not just scraping in)
-- Don't penalise twice: if you've noted a weakness, don't let it drag down marks in multiple areas
-- Recognise potential and effort: strong attempts at sophisticated techniques count positively even if not fully achieved
-- This is formative assessment for learning - grade fairly and encouragingly, not punitively
-- When in doubt, round UP rather than down`;
+**CRITICAL GRADING PRINCIPLES:**
+
+**CEILING GRADING IS MANDATORY:**
+- ONE Grade 8 paragraph â†’ Essay achieves Grade 7/8
+- The BEST paragraph sets the grade, not the average
+- Strong work anywhere proves capability
+- Don't penalize inconsistency
+
+**WEAK PARAGRAPHS HAVE MINIMAL IMPACT:**
+- A Grade 5 paragraph does NOT pull Grade 7 essay to Grade 6  
+- Only if MOST paragraphs are weak should grade be low
+- Weaker sections show development, not inability
+
+**COMPLETELY IGNORE TARGET GRADE:**
+- Target is for motivation/feedback tone only
+- Award ONLY what's demonstrated in the work
+- Student targeting Grade 5 writing Grade 7 work = Gets Grade 7
+- Student targeting Grade 9 writing Grade 5 work = Gets Grade 5
+
+**GRADING EXAMPLES:**
+- Essay with paragraphs: 7, 6, 8, 5 â†’ **Award Grade 7/8** (best = 8)
+- Essay with paragraphs: 6, 6, 6, 9 â†’ **Award Grade 7/8** (one excellent proves capability)
+- Essay: all Grade 7, target is Grade 5 â†’ **Award Grade 7** (ignore target)
+- Essay: all Grade 5, target is Grade 9 â†’ **Award Grade 5** (grade the work)
+
+The grade reflects the highest demonstrated skill level, as real exam marking does.`;
     } else {
       assessmentSection = `## Assessment Criteria
 ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weight}%): ${val.description}`).join('\n')}`;
@@ -224,7 +245,7 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `- **${key}** (${val.weigh
 
     // Build response format based on assessment mode
     const responseFormat = hasAuthenticDescriptors ? `{
-  "awardedGrade": "<the actual GCSE grade (e.g., 'Grade 6' or '6') this essay achieves - use best-fit principle, favouring higher grade when borderline>",
+  "awardedGrade": "<the actual ${systemName} grade (e.g., '${GRADE_SYSTEMS[gradeSystem || 'gcse'].grades.slice(0, 3).join("' or '")}') this essay achieves - use best-fit principle, favouring higher grade when borderline>",
   "awardedMarks": <number: the specific mark out of ${actualTotalMarks} - award in upper portion of band when criteria are solidly met>,
   "gradeJustification": "<2-3 sentences highlighting what the student has achieved and which descriptor criteria they meet, with specific textual evidence>",
   "overallScore": <number 0-100 derived from marks>,
@@ -268,9 +289,15 @@ ${Object.entries(gradingCriteria).map(([key, val]) => `    "${key}": <number 0-1
 
     const systemPrompt = `You are an experienced English teacher providing holistic feedback on a complete essay. You adapt your feedback style to each student's target grade and ability level.
 
-## THIS STUDENT'S PROFILE
+âš ï¸ **CRITICAL GRADING INDEPENDENCE RULES - OVERRIDE ALL OTHER INSTRUCTIONS:**
+1. **IGNORE TARGET GRADE COMPLETELY WHEN GRADING** - Target shown only for tone/scaffolding. Work demonstrating Grade 8 gets Grade 8 even if target is Grade 4. Work demonstrating Grade 5 gets Grade 5 even if target is Grade 9.
+2. **USE STRICT CEILING GRADING** - ONE excellent paragraph can set the grade for the entire essay. A Grade 5 paragraph does NOT pull a Grade 7 essay down to Grade 6.
+3. **GRADE THE WORK, NOT THE EXPECTATIONS** - Your job is to assess what's demonstrated, not to match their target or adjust to their ability tier.
+4. **WEAK PARAGRAPHS HAVE MINIMAL IMPACT** - Only award lower grades if the MAJORITY of the essay is weak. One or two weak paragraphs among strong ones is normal development.
+
+## THIS STUDENT'S PROFILE (FOR TONE/STYLE ONLY)
 - **Student Name:** ${studentName}
-- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Target Grade:** ${targetGrade || "5"} (${systemName}) - **USE FOR FEEDBACK TONE ONLY, NOT FOR GRADING**
 - **Ability Tier:** ${abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)}
 - **Your Tone:** ${approach.tone}
 
@@ -290,28 +317,44 @@ ${assessmentSection}
 
 
 
-## CRITICAL: "Best Achievement" Marking Principle
-Apply this fundamental principle when assessing the complete essay:
-- **Credit the HIGHEST level of skill demonstrated anywhere in the essay**
-- **Strong paragraphs prove capability** - if 1 paragraph shows Grade 8 analysis, they CAN work at Grade 8
-- **Don't average quality** - variable performance suggests developing skills, not lower capability
-- **Look for evidence of potential** - what's the best analytical point they made? That's their ceiling
-- **Weaknesses are developmental, not definitive** - note them for growth, not as grade anchors
-- **Partial sophistication > complete simplicity** - attempting advanced techniques (even imperfectly) shows more promise
+## CRITICAL: "Best Achievement" Marking Principle - EXAM STANDARD
+Apply these principles exactly as real GCSE examiners do:
 
-The essay grade should reflect the highest consistent level of skill demonstrated, recognizing that mastery develops through practice.
+**CEILING GRADING (MANDATORY):**
+- **ONE Grade 8 paragraph â†’ Essay achieves Grade 7/8 minimum**
+- **BEST paragraph sets the grade, not the average**
+- Strong work anywhere proves what the student CAN do
+- Inconsistency is normal - don't penalize it
+
+**WEAK SECTIONS HAVE MINIMAL IMPACT:**
+- A Grade 5 paragraph does NOT pull Grade 7 essay to Grade 6
+- Two weak paragraphs among four strong ones = Still strong essay
+- Only if MOST paragraphs are weak should the grade be low
+- Weaknesses are learning opportunities, not grade anchors
+
+**TARGET GRADE MUST NOT INFLUENCE GRADING:**
+- Student targeting Grade 5 but writes all Grade 7 paragraphs â†’ Gets Grade 7
+- Student targeting Grade 9 but writes all Grade 6 paragraphs â†’ Gets Grade 6
+- Award only what's demonstrated, regardless of aspirations
+
+**GRADING EXAMPLES (FOLLOW THESE):**
+- 4 paragraphs: 7, 6, 8, 5 â†’ **Award Grade 7/8** (best paragraph = Grade 8)
+- 3 paragraphs: 6, 6, 9 â†’ **Award Grade 7/8** (one excellent paragraph proves capability)
+- 5 paragraphs: all Grade 7, student targets Grade 5 â†’ **Award Grade 7** (ignore target)
+- 4 paragraphs: all Grade 5, student targets Grade 8 â†’ **Award Grade 5** (grade the work)
 
 
 ## YOUR PRIMARY TASK: IDENTIFY THE HIGHEST SKILL LEVEL
-When you assess this complete essay, ask yourself:
-1. **What's the BEST paragraph they wrote?** - This proves what they're capable of
-2. **What's the most sophisticated analysis anywhere in the essay?** - Even if only shown once
-3. **Which grade descriptor matches their STRONGEST work?** - Not their most common work
+When you assess this complete essay:
+1. **Find the BEST paragraph** - This proves what they're capable of
+2. **Identify the most sophisticated analysis ANYWHERE** - Even if shown only once
+3. **Match that HIGHEST quality to grade descriptors** - Not the most common quality
+4. **Award that grade (or one below if borderline)** - Don't average down
 
-The essay grade should reflect the highest quality demonstrated, recognizing that:
-- Strong work in one area proves capability
-- Inconsistency is normal in developing writers
-- The goal is to encourage reaching their proven ceiling more often
+The essay grade reflects the highest quality demonstrated, because:
+- Strong work proves capability
+- Inconsistency is normal development
+- Goal is consistent excellence, not penalizing growth
 
 ## Response Format
 Respond with valid JSON:
@@ -320,9 +363,9 @@ ${responseFormat}`;
     const userPrompt = `## Essay Question
 "${essayTitle}"
 
-## Student Profile
+## Student Profile (FOR CONTEXT ONLY - DO NOT USE FOR GRADING)
 - **Name:** ${studentName}
-- **Target Grade:** ${targetGrade || "5"} (${systemName})
+- **Target Grade:** ${targetGrade || "5"} (${systemName}) - **IGNORE WHEN GRADING**
 - **Ability Tier:** ${abilityTier}
 ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 - **Assessment Mode:** Official grade descriptors` : '- **Assessment Mode:** Standard criteria'}
@@ -330,7 +373,11 @@ ${hasAuthenticDescriptors ? `- **Total Marks Available:** ${actualTotalMarks}
 ## Paragraph Performance During Writing
 ${paragraphSummary.map(p => `- ${p.title} (${p.type}): ${p.score}%${p.estimatedGrade ? ` [Est. Grade ${p.estimatedGrade}]` : ''} (${p.attempts} attempt${p.attempts > 1 ? 's' : ''})`).join('\n')}
 
-**Average paragraph score:** ${averageScore}%
+**GRADING KEY:**
+- **Highest paragraph score:** ${highestParagraphScore}% â† **This sets the baseline for the essay grade**
+- **Average paragraph score:** ${averageScore}% (reference only - DO NOT USE for grading)
+
+âš ï¸ **CRITICAL:** Grade based on BEST paragraph (${highestParagraphScore}%), NOT the average. One strong paragraph proves capability.
 
 ## Complete Essay
 
@@ -339,19 +386,30 @@ ${p.finalText}`).join('\n\n')}
 
 ---
 
-Please provide holistic feedback on this complete essay${hasAuthenticDescriptors ? ', grading it against the official descriptors' : ''}.
+**GRADING INSTRUCTIONS:**
+${hasAuthenticDescriptors ? `
+âš ï¸ MANDATORY REQUIREMENTS:
+1. "awardedGrade": ${systemName} grade for essay (e.g., "${GRADE_SYSTEMS[gradeSystem || 'gcse'].grades.slice(0, 3).join('", "')}") - CEILING GRADING REQUIRED
+2. "awardedMarks": Mark out of ${actualTotalMarks} reflecting HIGHEST quality shown
+3. Grade based ONLY on demonstrated quality - IGNORE target grade (${targetGrade}) completely
+4. ONE strong paragraph can set the grade for the whole essay
+5. Mark must fall within grade boundaries provided
+6. Justify with evidence from STRONGEST paragraphs
+` : ''}
 
-${hasAuthenticDescriptors ? `IMPORTANT: 
-- Award a specific grade and mark based on the descriptors
-- The mark must fall within the grade boundaries provided
-- Justify your grade with specific evidence from the essay
-- Reference which descriptor criteria are met/not met` : ''}
+**GRADING CHECKLIST - VERIFY BEFORE RESPONDING:**
+âœ“ Identified the BEST paragraph across the entire essay?
+âœ“ Awarded grade based on that HIGHEST quality (not average)?
+âœ“ Ignored the target grade (${targetGrade}) completely?
+âœ“ Minimized impact of weaker paragraphs (unless MOST are weak)?
+âœ“ Used ${approach.tone} tone appropriate for feedback?
+âœ“ Provided specific evidence from the strongest work?
 
 Remember:
-- Use a ${approach.tone} tone
+- Use ${approach.tone} tone FOR FEEDBACK (not for grading)
 - ${abilityTier === 'foundation' ? 'Be generous with praise and gentle with criticism' : abilityTier === 'high' ? 'Be honest and challenging - they can handle it' : 'Balance praise with constructive challenge'}
-- Always show them the path to grade ${nextGrade}
-- ${abilityTier === 'foundation' ? 'Find and celebrate every positive aspect of their writing' : 'Acknowledge achievements while maintaining high expectations'}`;
+- Show them the path to grade ${nextGrade}
+- ${abilityTier === 'foundation' ? 'Celebrate every positive aspect' : 'Acknowledge achievements while maintaining high expectations'}`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -400,8 +458,10 @@ Remember:
       feedback.awardedMarks = awardedMarks;
       feedback.markBreakdown = `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}`;
     } else {
-      // Calculate final score using the old method (blend of paragraph scores and holistic score)
-      finalScore = Math.round((averageScore * 0.7) + (feedback.overallScore * 0.3));
+      // CEILING GRADING: Use highest paragraph score as the baseline
+      // The holistic assessment can only lift this, not lower it
+      // This reflects that strong work anywhere proves capability
+      finalScore = Math.max(highestParagraphScore, feedback.overallScore || 0);
       finalGrade = feedback.overallGrade;
     }
 
@@ -413,7 +473,8 @@ Remember:
         feedback: feedback,
         fullEssay: fullEssay,
         paragraphSummary: paragraphSummary,
-        averageParagraphScore: averageScore,
+        highestParagraphScore: highestParagraphScore,  // For ceiling grading
+        averageParagraphScore: averageScore,  // For reference only
         finalScore: finalScore,
         finalGrade: finalGrade,
         awardedMarks: hasAuthenticDescriptors ? awardedMarks : null,
@@ -421,7 +482,8 @@ Remember:
         markBreakdown: hasAuthenticDescriptors ? `${awardedMarks}/${actualTotalMarks} marks = ${finalGrade}` : null,
         targetGrade: targetGrade,
         abilityTier: abilityTier,
-        usedAuthenticDescriptors: hasAuthenticDescriptors
+        usedAuthenticDescriptors: hasAuthenticDescriptors,
+        gradingMethod: "ceiling" // Explicitly indicate we're using ceiling grading
       })
     };
 

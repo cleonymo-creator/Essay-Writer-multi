@@ -6,6 +6,10 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  # Exclude node_modules from secrets scanning (Firebase has examples that trigger false positives)
+  SECRETS_SCAN_PATHS_TO_EXCLUDE = "node_modules/**"
+
 # Functions configuration
 [functions]
   # Use Node.js 18 for all functions
