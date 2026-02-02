@@ -6243,9 +6243,483 @@
     }
     
     // =====================================================
+    // STUDENT PERFORMANCE PANEL (Teacher Dashboard)
+    // =====================================================
+
+    function StudentPerformancePanel() {
+      const [students, setStudents] = useState([]);
+      const [classes, setClasses] = useState([]);
+      const [submissions, setSubmissions] = useState([]);
+      const [progress, setProgress] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedClass, setSelectedClass] = useState('all');
+      const [selectedEssay, setSelectedEssay] = useState('all');
+      const [viewMode, setViewMode] = useState('by-essay'); // 'by-essay' or 'by-student'
+      const [expandedEssay, setExpandedEssay] = useState(null);
+
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
+            const [studentList, classList, submissionList, progressList] = await Promise.all([
+              FirebaseDB.getStudents(),
+              FirebaseDB.getClasses(),
+              FirebaseDB.getSubmissions(),
+              FirebaseDB.getProgress()
+            ]);
+            setStudents(studentList || []);
+            setClasses(classList || []);
+            setSubmissions(submissionList || []);
+            setProgress(progressList || []);
+          } else {
+            const [studentsRes, classesRes, submissionsRes, progressRes] = await Promise.all([
+              fetch('/.netlify/functions/manage-students'),
+              fetch('/.netlify/functions/manage-classes'),
+              fetch('/.netlify/functions/get-submissions'),
+              fetch('/.netlify/functions/save-progress')
+            ]);
+            const studentsData = await studentsRes.json();
+            const classesData = await classesRes.json();
+            const submissionsData = await submissionsRes.json();
+            const progressData = await progressRes.json();
+            if (studentsData.success) setStudents(studentsData.students || []);
+            if (classesData.success) setClasses(classesData.classes || []);
+            if (submissionsData.submissions) setSubmissions(submissionsData.submissions || []);
+            if (progressData.inProgress) setProgress(progressData.inProgress || []);
+          }
+        } catch (err) {
+          console.error('Load error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      // Get students filtered by class
+      const getFilteredStudents = () => {
+        if (selectedClass === 'all') return students;
+        return students.filter(s => {
+          const studentClassIds = s.classIds || (s.classId ? [s.classId] : []);
+          return studentClassIds.includes(selectedClass);
+        });
+      };
+
+      // Get student emails for filtering
+      const filteredStudentEmails = new Set(getFilteredStudents().map(s => s.email?.toLowerCase()));
+
+      // Filter submissions by class (via student membership)
+      const filteredSubmissions = selectedClass === 'all'
+        ? submissions
+        : submissions.filter(s => filteredStudentEmails.has(s.studentEmail?.toLowerCase()));
+
+      // Filter progress by class
+      const filteredProgress = selectedClass === 'all'
+        ? progress
+        : progress.filter(p => filteredStudentEmails.has(p.studentEmail?.toLowerCase()));
+
+      // Get all available essays from submissions and progress
+      const availableEssays = [...new Set([
+        ...submissions.map(s => s.essayId).filter(Boolean),
+        ...progress.map(p => p.essayId).filter(Boolean)
+      ])];
+
+      // Get essay info helper
+      const getEssayInfo = (essayId) => {
+        const essays = typeof getEssayList === 'function' ? getEssayList() : [];
+        return essays.find(e => e.id === essayId) || { id: essayId, title: essayId, icon: '' };
+      };
+
+      // Calculate performance stats per essay
+      const getEssayStats = (essayId) => {
+        const essaySubmissions = filteredSubmissions.filter(s => s.essayId === essayId);
+        const essayProgress = filteredProgress.filter(p => p.essayId === essayId);
+
+        const completedStudents = essaySubmissions.length;
+        const inProgressStudents = essayProgress.length;
+        const totalAttempted = completedStudents + inProgressStudents;
+
+        const scores = essaySubmissions.map(s => s.score).filter(s => typeof s === 'number');
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+        const highestScore = scores.length > 0 ? Math.max(...scores) : null;
+        const lowestScore = scores.length > 0 ? Math.min(...scores) : null;
+
+        // Grade distribution
+        const gradeDistribution = {};
+        essaySubmissions.forEach(s => {
+          const grade = s.grade || 'Ungraded';
+          gradeDistribution[grade] = (gradeDistribution[grade] || 0) + 1;
+        });
+
+        return {
+          completedStudents,
+          inProgressStudents,
+          totalAttempted,
+          avgScore,
+          highestScore,
+          lowestScore,
+          gradeDistribution,
+          submissions: essaySubmissions,
+          progress: essayProgress
+        };
+      };
+
+      // Calculate student performance across all essays
+      const getStudentStats = (studentEmail) => {
+        const studentSubmissions = filteredSubmissions.filter(s => s.studentEmail?.toLowerCase() === studentEmail.toLowerCase());
+        const studentProgress = filteredProgress.filter(p => p.studentEmail?.toLowerCase() === studentEmail.toLowerCase());
+
+        const completedEssays = studentSubmissions.length;
+        const inProgressEssays = studentProgress.length;
+
+        const scores = studentSubmissions.map(s => s.score).filter(s => typeof s === 'number');
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+
+        return {
+          completedEssays,
+          inProgressEssays,
+          avgScore,
+          submissions: studentSubmissions,
+          progress: studentProgress
+        };
+      };
+
+      // Get grade color
+      const getGradeColor = (grade) => {
+        if (!grade) return 'var(--color-text-muted)';
+        const g = grade.toUpperCase();
+        if (g.includes('A') || g === '9' || g === '8') return 'var(--color-success)';
+        if (g.includes('B') || g === '7' || g === '6') return '#22d3ee';
+        if (g.includes('C') || g === '5' || g === '4') return 'var(--color-warning)';
+        return 'var(--color-error)';
+      };
+
+      // Get score color
+      const getScoreColor = (score) => {
+        if (score === null || score === undefined) return 'var(--color-text-muted)';
+        if (score >= 80) return 'var(--color-success)';
+        if (score >= 60) return '#22d3ee';
+        if (score >= 40) return 'var(--color-warning)';
+        return 'var(--color-error)';
+      };
+
+      if (loading) {
+        return (
+          <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center;")}>
+            <LoadingSpinner text="Loading performance data..." />
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          {/* Filters */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Student Performance Dashboard</h4>
+            <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; align-items: flex-end;")}>
+              {/* Class Filter */}
+              <div>
+                <label style={parseStyle("display: block; font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>
+                  Filter by Class
+                </label>
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  style={parseStyle("padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); min-width: 200px;")}
+                >
+                  <option value="all">All Classes</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.teacher || 'No teacher'})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div>
+                <label style={parseStyle("display: block; font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>
+                  View Mode
+                </label>
+                <div style={parseStyle("display: flex; gap: var(--space-xs);")}>
+                  <button
+                    className={viewMode === 'by-essay' ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={() => setViewMode('by-essay')}
+                    style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.9rem;")}
+                  >
+                    By Essay
+                  </button>
+                  <button
+                    className={viewMode === 'by-student' ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={() => setViewMode('by-student')}
+                    style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.9rem;")}
+                  >
+                    By Student
+                  </button>
+                </div>
+              </div>
+
+              {/* Refresh Button */}
+              <button className="btn btn-secondary" onClick={loadData} style={parseStyle("padding: var(--space-sm) var(--space-md);")}>
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Overview</h4>
+            <div style={parseStyle("display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-md);")}>
+              <div style={parseStyle("text-align: center; padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md);")}>
+                <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-primary);")}>{getFilteredStudents().length}</div>
+                <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Total Students</div>
+              </div>
+              <div style={parseStyle("text-align: center; padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md);")}>
+                <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-success);")}>{filteredSubmissions.length}</div>
+                <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Completed Essays</div>
+              </div>
+              <div style={parseStyle("text-align: center; padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md);")}>
+                <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-warning);")}>{filteredProgress.length}</div>
+                <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>In Progress</div>
+              </div>
+              <div style={parseStyle("text-align: center; padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md);")}>
+                <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-info);")}>{availableEssays.length}</div>
+                <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Essays Attempted</div>
+              </div>
+            </div>
+          </div>
+
+          {/* By Essay View */}
+          {viewMode === 'by-essay' && (
+            <div>
+              {availableEssays.length === 0 ? (
+                <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center; color: var(--color-text-muted);")}>
+                  No essays have been attempted yet.
+                </div>
+              ) : (
+                availableEssays.map(essayId => {
+                  const essayInfo = getEssayInfo(essayId);
+                  const stats = getEssayStats(essayId);
+                  const isExpanded = expandedEssay === essayId;
+
+                  return (
+                    <div key={essayId} className="card" style={parseStyle("margin-bottom: var(--space-md);")}>
+                      {/* Essay Header */}
+                      <div
+                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-sm);") }
+                        onClick={() => setExpandedEssay(isExpanded ? null : essayId)}
+                      >
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md);")}>
+                          <span style={parseStyle("font-size: 1.5rem;")}>{essayInfo.icon}</span>
+                          <div>
+                            <h4 style={parseStyle("margin: 0;")}>{essayInfo.title || essayId}</h4>
+                            <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
+                              {stats.completedStudents} completed, {stats.inProgressStudents} in progress
+                            </div>
+                          </div>
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-lg);")}>
+                          {stats.avgScore !== null && (
+                            <div style={parseStyle("text-align: center;")}>
+                              <div style={{ fontSize: '1.25rem', fontWeight: '700', color: getScoreColor(stats.avgScore) }}>{stats.avgScore}%</div>
+                              <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Avg Score</div>
+                            </div>
+                          )}
+                          <div style={parseStyle("font-size: 1.2rem; color: var(--color-text-muted);")}>
+                            {isExpanded ? '▼' : '▶'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border);")}>
+                          {/* Stats Row */}
+                          <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-lg); flex-wrap: wrap;")}>
+                            {stats.highestScore !== null && (
+                              <div>
+                                <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Highest: </span>
+                                <span style={{ fontWeight: '600', color: getScoreColor(stats.highestScore) }}>{stats.highestScore}%</span>
+                              </div>
+                            )}
+                            {stats.lowestScore !== null && (
+                              <div>
+                                <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Lowest: </span>
+                                <span style={{ fontWeight: '600', color: getScoreColor(stats.lowestScore) }}>{stats.lowestScore}%</span>
+                              </div>
+                            )}
+                            {Object.keys(stats.gradeDistribution).length > 0 && (
+                              <div>
+                                <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Grades: </span>
+                                {Object.entries(stats.gradeDistribution).map(([grade, count], i) => (
+                                  <span key={grade} style={{ marginLeft: i > 0 ? '8px' : '0', color: getGradeColor(grade) }}>
+                                    {grade}: {count}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Completed Students Table */}
+                          {stats.submissions.length > 0 && (
+                            <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                              <h5 style={parseStyle("margin-bottom: var(--space-sm); color: var(--color-success);")}>Completed ({stats.submissions.length})</h5>
+                              <div style={parseStyle("overflow-x: auto;")}>
+                                <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
+                                  <thead>
+                                    <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Score</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Grade</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Submitted</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {stats.submissions.map((sub, idx) => (
+                                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                                        <td style={parseStyle("padding: var(--space-sm);")}>{sub.studentName || '-'}</td>
+                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{sub.studentEmail || '-'}</td>
+                                        <td style={{ padding: 'var(--space-sm)', textAlign: 'center', fontWeight: '600', color: getScoreColor(sub.score) }}>
+                                          {sub.score !== undefined ? `${sub.score}%` : '-'}
+                                        </td>
+                                        <td style={{ padding: 'var(--space-sm)', textAlign: 'center', fontWeight: '600', color: getGradeColor(sub.grade) }}>
+                                          {sub.grade || '-'}
+                                        </td>
+                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
+                                          {sub.submittedAt ? formatDateTime(sub.submittedAt) : '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* In Progress Students Table */}
+                          {stats.progress.length > 0 && (
+                            <div>
+                              <h5 style={parseStyle("margin-bottom: var(--space-sm); color: var(--color-warning);")}>In Progress ({stats.progress.length})</h5>
+                              <div style={parseStyle("overflow-x: auto;")}>
+                                <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
+                                  <thead>
+                                    <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Progress</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Current Section</th>
+                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Last Active</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {stats.progress.map((prog, idx) => (
+                                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                                        <td style={parseStyle("padding: var(--space-sm);")}>{prog.studentName || '-'}</td>
+                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{prog.studentEmail || '-'}</td>
+                                        <td style={parseStyle("padding: var(--space-sm); text-align: center;")}>
+                                          <div style={parseStyle("display: flex; align-items: center; justify-content: center; gap: var(--space-xs);")}>
+                                            <div style={parseStyle("width: 60px; height: 6px; background: var(--color-border); border-radius: 3px; overflow: hidden;")}>
+                                              <div style={{ width: `${prog.percentComplete || 0}%`, height: '100%', background: 'var(--color-warning)', borderRadius: '3px' }} />
+                                            </div>
+                                            <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>
+                                              {prog.completedParagraphs || 0}/{prog.totalParagraphs || '?'}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
+                                          {prog.currentParagraph || `Paragraph ${prog.currentParagraphIndex || 1}`}
+                                        </td>
+                                        <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>
+                                          {prog.lastUpdate ? formatDateTime(prog.lastUpdate) : '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* By Student View */}
+          {viewMode === 'by-student' && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Student Performance</h4>
+              {getFilteredStudents().length === 0 ? (
+                <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                  No students found{selectedClass !== 'all' ? ' in this class' : ''}.
+                </p>
+              ) : (
+                <div style={parseStyle("overflow-x: auto;")}>
+                  <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                    <thead>
+                      <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
+                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
+                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
+                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredStudents().map((student, idx) => {
+                        const stats = getStudentStats(student.email);
+                        const studentClasses = classes.filter(c => {
+                          const studentClassIds = student.classIds || (student.classId ? [student.classId] : []);
+                          return studentClassIds.includes(c.id);
+                        });
+
+                        return (
+                          <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                            <td style={parseStyle("padding: var(--space-md);")}>{student.name || '-'}</td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{student.email || '-'}</td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>
+                              {studentClasses.map(c => c.name).join(', ') || '-'}
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              {stats.completedEssays > 0 ? (
+                                <span style={parseStyle("color: var(--color-success); font-weight: 600;")}>{stats.completedEssays}</span>
+                              ) : (
+                                <span style={parseStyle("color: var(--color-text-muted);")}>0</span>
+                              )}
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              {stats.inProgressEssays > 0 ? (
+                                <span style={parseStyle("color: var(--color-warning); font-weight: 600;")}>{stats.inProgressEssays}</span>
+                              ) : (
+                                <span style={parseStyle("color: var(--color-text-muted);")}>0</span>
+                              )}
+                            </td>
+                            <td style={{ padding: 'var(--space-md)', textAlign: 'center', fontWeight: stats.avgScore !== null ? '600' : 'normal', color: getScoreColor(stats.avgScore) }}>
+                              {stats.avgScore !== null ? `${stats.avgScore}%` : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
     // STUDENT MANAGEMENT PANEL (Teacher Dashboard)
     // =====================================================
-    
+
     function StudentManagementPanel() {
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
@@ -10023,14 +10497,20 @@ ${examinerComment}
               >
                 Students
               </button>
-              <button 
+              <button
                 className={activeTab === 'assignments' ? 'btn btn-primary' : 'btn btn-secondary'}
                 onClick={() => setActiveTab('assignments')}
               >
                 Assignments
               </button>
+              <button
+                className={activeTab === 'performance' ? 'btn btn-primary' : 'btn btn-secondary'}
+                onClick={() => setActiveTab('performance')}
+              >
+                Performance
+              </button>
               {isAdmin && (
-                <button 
+                <button
                   className={activeTab === 'teachers' ? 'btn btn-primary' : 'btn btn-secondary'}
                   onClick={() => setActiveTab('teachers')}
                 >
@@ -10043,6 +10523,7 @@ ${examinerComment}
           {/* Tab Content */}
           {activeTab === 'students' && <StudentManagementPanel />}
           {activeTab === 'assignments' && <AssignmentsPanel />}
+          {activeTab === 'performance' && <StudentPerformancePanel />}
           {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
           
           {activeTab === 'submissions' && (
