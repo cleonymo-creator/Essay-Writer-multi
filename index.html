@@ -6725,18 +6725,43 @@
             <div className="card">
               <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Comprehensive Grades Table</h4>
               <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-lg);")}>
-                Showing 1st draft and final draft scores for all essays. {selectedClass !== 'all' && 'Students who have not attempted any essays are also shown.'}
+                Showing 1st draft and final draft scores for assigned essays. {selectedClass !== 'all' && 'Students who have not attempted any essays are also shown.'}
               </p>
 
               {(() => {
-                // Get all essays that have been attempted (for column headers)
-                const allEssayIds = [...new Set([
-                  ...submissions.map(s => s.essayId).filter(Boolean),
-                  ...progress.map(p => p.essayId).filter(Boolean)
-                ])];
-
                 // Get students to display - when class filtered, show ALL class members
                 const studentsToShow = getFilteredStudents();
+
+                // Get assigned essays based on filter
+                let assignedEssayIds = [];
+
+                if (selectedClass !== 'all') {
+                  // Get essays assigned to the selected class
+                  const selectedClassData = classes.find(c => c.id === selectedClass);
+                  const classAssignedEssays = selectedClassData?.assignedEssays || [];
+
+                  // Also get individual assignments for students in this class
+                  const individualAssignments = studentsToShow.flatMap(s => s.individualAssignments || []);
+
+                  assignedEssayIds = [...new Set([...classAssignedEssays, ...individualAssignments])];
+                } else {
+                  // Get all essays assigned to any class
+                  const allClassAssignments = classes.flatMap(c => c.assignedEssays || []);
+
+                  // Get all individual assignments
+                  const allIndividualAssignments = students.flatMap(s => s.individualAssignments || []);
+
+                  assignedEssayIds = [...new Set([...allClassAssignments, ...allIndividualAssignments])];
+                }
+
+                // If no assignments yet, show message
+                if (assignedEssayIds.length === 0) {
+                  return (
+                    <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                      No essays have been assigned yet. Assign essays in the Assignments tab.
+                    </p>
+                  );
+                }
 
                 // Build a map of student email -> essay submissions for quick lookup
                 const studentSubmissionMap = {};
@@ -6756,14 +6781,16 @@
                   studentProgressMap[email][prog.essayId] = prog;
                 });
 
-                // Check if student has any activity at all
+                // Check if student has any activity on assigned essays
                 const hasAnyActivity = (email) => {
                   const emailLower = email?.toLowerCase();
-                  return (studentSubmissionMap[emailLower] && Object.keys(studentSubmissionMap[emailLower]).length > 0) ||
-                         (studentProgressMap[emailLower] && Object.keys(studentProgressMap[emailLower]).length > 0);
+                  const subs = studentSubmissionMap[emailLower] || {};
+                  const prog = studentProgressMap[emailLower] || {};
+                  // Check if they have activity on any of the assigned essays
+                  return assignedEssayIds.some(essayId => subs[essayId] || prog[essayId]);
                 };
 
-                // Students with no activity (only shown when class filtered)
+                // Students with no activity on assigned essays (only shown when class filtered)
                 const studentsWithNoActivity = selectedClass !== 'all'
                   ? studentsToShow.filter(s => !hasAnyActivity(s.email))
                   : [];
@@ -6774,7 +6801,7 @@
                       <thead>
                         <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
                           <th style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
-                          {allEssayIds.map(essayId => {
+                          {assignedEssayIds.map(essayId => {
                             const essayInfo = getEssayInfo(essayId);
                             return (
                               <th key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
@@ -6788,7 +6815,7 @@
                         </tr>
                         <tr style={parseStyle("border-bottom: 1px solid var(--color-border); background: var(--color-bg);")}>
                           <th style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
-                          {allEssayIds.map(essayId => (
+                          {assignedEssayIds.map(essayId => (
                             <React.Fragment key={essayId}>
                               <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
                               <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
@@ -6799,7 +6826,7 @@
                       <tbody>
                         {studentsToShow.length === 0 ? (
                           <tr>
-                            <td colSpan={1 + allEssayIds.length * 2} style={parseStyle("padding: var(--space-lg); text-align: center; color: var(--color-text-muted);")}>
+                            <td colSpan={1 + assignedEssayIds.length * 2} style={parseStyle("padding: var(--space-lg); text-align: center; color: var(--color-text-muted);")}>
                               No students found{selectedClass !== 'all' ? ' in this class' : ''}.
                             </td>
                           </tr>
@@ -6825,7 +6852,7 @@
                                     <div style={parseStyle("font-size: 0.7rem; color: var(--color-error); font-style: italic;")}>No attempts</div>
                                   )}
                                 </td>
-                                {allEssayIds.map(essayId => {
+                                {assignedEssayIds.map(essayId => {
                                   const submission = studentSubs[essayId];
                                   const inProgress = studentProg[essayId];
 
