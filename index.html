@@ -9565,8 +9565,9 @@
               setIsCheckingTechnical(false);
             } else {
               // No errors - proceed directly to grading
+              // Pass null for originalText so it falls back to originalTextBeforeCorrections
               setIsCheckingTechnical(false);
-              await handleMainGrading(text, text); // original and corrected are the same
+              await handleMainGrading(text, null);
             }
           } else {
             throw new Error(data.error || 'Technical check failed');
@@ -9574,8 +9575,9 @@
         } catch (error) {
           console.error('Technical check error:', error);
           // On error, skip technical check and proceed to grading
+          // Pass null for originalText so it falls back to originalTextBeforeCorrections
           setIsCheckingTechnical(false);
-          await handleMainGrading(text, text);
+          await handleMainGrading(text, null);
         }
       };
       
@@ -12904,12 +12906,18 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         setIsLoadingOfficialGrading(true);
         
         try {
-          const paragraphData = PARAGRAPHS.map(p => ({
-            config: p,
-            finalText: paragraphStates[p.id]?.finalText || '',
-            initialText: paragraphStates[p.id]?.initialText || paragraphStates[p.id]?.finalText || '',
-            attempts: paragraphStates[p.id]?.attempts || 0
-          }));
+          const paragraphData = PARAGRAPHS.map(p => {
+            const state = paragraphStates[p.id] || {};
+            // Use initialText first, then originalBeforeCorrections, but NOT finalText
+            // This ensures we get the true first draft, not the improved version
+            const firstDraftText = state.initialText || state.originalBeforeCorrections || '';
+            return {
+              config: p,
+              finalText: state.finalText || '',
+              initialText: firstDraftText,
+              attempts: state.attempts || 0
+            };
+          });
           
           const response = await fetch('/.netlify/functions/grade-official', {
             method: 'POST',
