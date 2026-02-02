@@ -83,41 +83,30 @@
     window.ESSAY_LIST = [];
     window.ESSAYS_LOADED = false;
 
-    // Dynamic essay loader - fetches manifest.json and loads essay configs
+    // Unified essay loader - fetches all essays from database API
     async function loadEssays() {
       try {
-        // Fetch manifest to get list of essay IDs
-        const response = await fetch('manifest.json');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch manifest: ${response.status}`);
+        console.log('Loading essays from database...');
+        const response = await fetch('/.netlify/functions/manage-essays');
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.essays) {
+            console.log('Loaded essays from database:', data.essays.length);
+            data.essays.forEach(essay => {
+              if (essay.id) {
+                window.ESSAYS[essay.id] = essay;
+              }
+            });
+          }
+        } else {
+          console.warn('Failed to load essays from database:', response.status);
         }
-        const essayIds = await response.json();
-        console.log('Found essays in manifest:', essayIds);
-
-        // Load each essay config file dynamically
-        const loadPromises = essayIds.map(id => {
-          return new Promise((resolve) => {
-            const script = document.createElement('script');
-            script.src = `${id}.js`;
-            script.onload = () => {
-              console.log(`Loaded essay: ${id}`);
-              resolve(true);
-            };
-            script.onerror = () => {
-              console.warn(`Failed to load essay: ${id}`);
-              resolve(false); // Continue even if one fails
-            };
-            document.head.appendChild(script);
-          });
-        });
-
-        // Wait for all essays to load
-        await Promise.all(loadPromises);
 
         // Build ESSAY_LIST from loaded ESSAYS object
         window.ESSAY_LIST = Object.values(window.ESSAYS);
         window.ESSAYS_LOADED = true;
-        console.log('Static essays loaded:', (window.ESSAY_LIST || []).map(e => e.id));
+        console.log('Essays loaded:', window.ESSAY_LIST.map(e => e.id));
 
       } catch (error) {
         console.error('Failed to load essays:', error);
@@ -125,27 +114,12 @@
       }
     }
 
-    // Load custom essays from Firebase (called after Firebase is initialized)
+    // Alias for backwards compatibility (some code may call loadCustomEssays)
     async function loadCustomEssays() {
-      try {
-        // Try to fetch custom essays from the netlify function
-        const response = await fetch('/.netlify/functions/manage-essays');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.essays) {
-            console.log('Loading custom essays:', data.essays.length);
-            data.essays.forEach(essay => {
-              if (essay.id && !window.ESSAYS[essay.id]) {
-                window.ESSAYS[essay.id] = { ...essay, isCustom: true };
-              }
-            });
-            // Rebuild ESSAY_LIST
-            window.ESSAY_LIST = Object.values(window.ESSAYS);
-            console.log('Total essays after custom load:', window.ESSAY_LIST.length);
-          }
-        }
-      } catch (error) {
-        console.log('Custom essays not loaded (may require admin auth):', error.message);
+      // No longer needed - loadEssays now loads all essays from database
+      // This function exists for backwards compatibility
+      if (!window.ESSAYS_LOADED) {
+        await loadEssays();
       }
     }
   </script>
@@ -12262,40 +12236,34 @@ ${examinerComment}
         setLoading(true);
         setError('');
         try {
-          // Get static essays
-          const staticEssays = window.ESSAY_LIST || [];
+          // All essays now come from the database API
+          let allEssays = [];
 
-          // Get custom essays - try both Firebase client and Netlify function
-          let customList = [];
-
-          // First try Firebase client SDK
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            customList = await FirebaseDB.getCustomEssays();
-          }
-
-          // If Firebase returned empty or wasn't ready, also try netlify function
-          // (This handles cases where Firebase security rules block client reads
-          //  but server-side Admin SDK can still read/write)
-          if (customList.length === 0 && sessionToken) {
-            try {
-              const response = await fetch('/.netlify/functions/manage-essays', {
-                headers: { 'Authorization': `Bearer ${sessionToken}` }
-              });
-              if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.essays && data.essays.length > 0) {
-                  customList = data.essays;
-                  console.log('Loaded custom essays from Netlify function:', customList.length);
-                }
+          try {
+            const response = await fetch('/.netlify/functions/manage-essays');
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.essays) {
+                allEssays = data.essays;
+                console.log('Loaded essays from database:', allEssays.length);
               }
-            } catch (fetchErr) {
-              console.warn('Netlify function fetch failed:', fetchErr.message);
             }
+          } catch (fetchErr) {
+            console.warn('Failed to load essays:', fetchErr.message);
           }
 
-          setEssays(staticEssays);
-          setCustomEssays(customList);
+          // Update global window.ESSAYS for other parts of the app
+          window.ESSAYS = {};
+          allEssays.forEach(essay => {
+            if (essay.id) {
+              window.ESSAYS[essay.id] = essay;
+            }
+          });
+          window.ESSAY_LIST = allEssays;
+
+          // All essays go into customEssays now (unified list)
+          setEssays([]);
+          setCustomEssays(allEssays);
         } catch (err) {
           console.error('Load essays error:', err);
           setError('Failed to load essays');
@@ -12699,18 +12667,18 @@ ${examinerComment}
             </div>
           )}
 
-          {/* Custom Essays - Grouped by Subject */}
+          {/* All Essays - Grouped by Subject */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}>
               <span style={parseStyle("color: var(--color-success);")}></span>
-              Custom Essays
+              All Essays
               <span style={parseStyle("font-size: 0.85rem; font-weight: normal; color: var(--color-text-muted);")}>
                 ({filterEssays(customEssays).length}{filterEssays(customEssays).length !== customEssays.length ? ` of ${customEssays.length}` : ''})
               </span>
             </h4>
             {customEssays.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
-                No custom essays imported yet. Click "Import Essay" to add one.
+                No essays found. Use "Generate New Essay" or "Import Essay" to add one.
               </p>
             ) : filterEssays(customEssays).length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
@@ -12721,16 +12689,16 @@ ${examinerComment}
                 {Object.entries(groupBySubject(filterEssays(customEssays))).map(([subject, essayGroup]) => (
                   <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
                     <div
-                      onClick={() => toggleCategory('custom-' + subject)}
+                      onClick={() => toggleCategory('essay-' + subject)}
                       style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
-                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['custom-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
+                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['essay-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
                         <span style={parseStyle("font-weight: 600;")}>{subject}</span>
                         <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
                       </div>
                     </div>
-                    {expandedCategories['custom-' + subject] !== false && (
+                    {expandedCategories['essay-' + subject] !== false && (
                       <div style={parseStyle("overflow-x: auto;")}>
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
@@ -12738,7 +12706,7 @@ ${examinerComment}
                               <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
                               <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
                               <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Created By</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Source</th>
                               <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
                             </tr>
                           </thead>
@@ -12751,7 +12719,7 @@ ${examinerComment}
                                 </td>
                                 <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.yearGroup || '-'}</td>
                                 <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
-                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.8rem;")}>{essay.createdByName || essay.createdBy || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.8rem;")}>{essay.migratedFrom === 'static-js-file' ? 'System' : (essay.createdByName || essay.createdBy || 'Generated')}</td>
                                 <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
                                   {deleteConfirm === essay.id ? (
                                     <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: center;")}>
@@ -12762,71 +12730,6 @@ ${examinerComment}
                                     <button className="btn btn-secondary" style={parseStyle("padding: 2px 8px; font-size: 0.75rem;")} onClick={() => setDeleteConfirm(essay.id)}>Delete</button>
                                   )}
                                 </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Static Essays - Grouped by Subject */}
-          <div className="card">
-            <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}>
-              <span style={parseStyle("color: #3b82f6;")}></span>
-              Static Essays
-              <span style={parseStyle("font-size: 0.85rem; font-weight: normal; color: var(--color-text-muted);")}>
-                ({filterEssays(essays.filter(e => !e.isCustom)).length}{filterEssays(essays.filter(e => !e.isCustom)).length !== essays.filter(e => !e.isCustom).length ? ` of ${essays.filter(e => !e.isCustom).length}` : ''})
-              </span>
-            </h4>
-            <p style={parseStyle("color: var(--color-text-muted); font-size: 0.8rem; margin-bottom: var(--space-md);")}>
-              These essays are defined in static files and cannot be edited here.
-            </p>
-            {essays.length === 0 ? (
-              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
-                No static essays found.
-              </p>
-            ) : filterEssays(essays.filter(e => !e.isCustom)).length === 0 ? (
-              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
-                No essays match your current filters.
-              </p>
-            ) : (
-              <div>
-                {Object.entries(groupBySubject(filterEssays(essays.filter(e => !e.isCustom)))).map(([subject, essayGroup]) => (
-                  <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
-                    <div
-                      onClick={() => toggleCategory('static-' + subject)}
-                      style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
-                    >
-                      <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
-                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['static-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
-                        <span style={parseStyle("font-weight: 600;")}>{subject}</span>
-                        <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
-                      </div>
-                    </div>
-                    {expandedCategories['static-' + subject] !== false && (
-                      <div style={parseStyle("overflow-x: auto;")}>
-                        <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
-                          <thead>
-                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {essayGroup.map((essay, idx) => (
-                              <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                                <td style={parseStyle("padding: var(--space-sm) var(--space-md);")}>
-                                  <div style={parseStyle("font-weight: 500;")}>{essay.title}</div>
-                                  <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted); font-family: monospace;")}>{essay.id}</div>
-                                </td>
-                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.yearGroup || '-'}</td>
-                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
                               </tr>
                             ))}
                           </tbody>
