@@ -13014,9 +13014,16 @@ ${examinerComment}
               <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
-                  <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
-                    placeholder="e.g., GCSE English Literature" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  <select value={subject} onChange={e => setSubject(e.target.value)}
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    <option value="">Select a subject...</option>
+                    <option value="KS3 English">KS3 English</option>
+                    <option value="GCSE English Language">GCSE English Language</option>
+                    <option value="GCSE English Literature">GCSE English Literature</option>
+                    <option value="A Level English Language">A Level English Language</option>
+                    <option value="A Level English Literature">A Level English Literature</option>
+                  </select>
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Year Group *</label>
@@ -13029,9 +13036,14 @@ ${examinerComment}
               <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
-                  <input type="text" value={examBoard} onChange={e => setExamBoard(e.target.value)}
-                    placeholder="e.g., AQA" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  <select value={examBoard} onChange={e => setExamBoard(e.target.value)}
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    <option value="">Select exam board...</option>
+                    <option value="AQA">AQA</option>
+                    <option value="Edexcel">Edexcel</option>
+                    <option value="Eduqas">Eduqas</option>
+                  </select>
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
