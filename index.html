@@ -12265,19 +12265,32 @@ ${examinerComment}
           // Get static essays
           const staticEssays = window.ESSAY_LIST || [];
 
-          // Get custom essays from Firebase
-          const firebaseReady = await FirebaseDB.isReady();
+          // Get custom essays - try both Firebase client and Netlify function
           let customList = [];
+
+          // First try Firebase client SDK
+          const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             customList = await FirebaseDB.getCustomEssays();
-          } else {
-            // Try netlify function
-            const response = await fetch('/.netlify/functions/manage-essays', {
-              headers: { 'Authorization': `Bearer ${sessionToken}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-              customList = data.essays || [];
+          }
+
+          // If Firebase returned empty or wasn't ready, also try netlify function
+          // (This handles cases where Firebase security rules block client reads
+          //  but server-side Admin SDK can still read/write)
+          if (customList.length === 0 && sessionToken) {
+            try {
+              const response = await fetch('/.netlify/functions/manage-essays', {
+                headers: { 'Authorization': `Bearer ${sessionToken}` }
+              });
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.essays && data.essays.length > 0) {
+                  customList = data.essays;
+                  console.log('Loaded custom essays from Netlify function:', customList.length);
+                }
+              }
+            } catch (fetchErr) {
+              console.warn('Netlify function fetch failed:', fetchErr.message);
             }
           }
 
