@@ -11590,8 +11590,25 @@ ${examinerComment}
       const [importError, setImportError] = useState('');
       const [importLoading, setImportLoading] = useState(false);
       const [deleteConfirm, setDeleteConfirm] = useState(null);
+      const [selectedFileName, setSelectedFileName] = useState('');
 
       const sessionToken = TeacherAuth.getSessionToken();
+
+      // Handle file selection for import
+      const handleFileSelect = (file) => {
+        setImportError('');
+        setSelectedFileName(file.name);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImportText(e.target.result);
+        };
+        reader.onerror = () => {
+          setImportError('Failed to read file');
+          setSelectedFileName('');
+        };
+        reader.readAsText(file);
+      };
 
       const loadEssays = async () => {
         setLoading(true);
@@ -11639,8 +11656,11 @@ ${examinerComment}
           let essayData;
           let jsonText = importText.trim();
 
+          // Remove common JavaScript preamble lines
+          jsonText = jsonText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
+
           // Handle JavaScript format: window.ESSAYS['id'] = {...}
-          if (jsonText.startsWith('window.ESSAYS')) {
+          if (jsonText.includes('window.ESSAYS[')) {
             const match = jsonText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
             if (match) {
               jsonText = match[2];
@@ -11648,22 +11668,24 @@ ${examinerComment}
           }
 
           // Handle window.ESSAY_CONFIG = {...}
-          if (jsonText.startsWith('window.ESSAY_CONFIG')) {
+          if (jsonText.includes('window.ESSAY_CONFIG')) {
             const match = jsonText.match(/window\.ESSAY_CONFIG\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
             if (match) {
               jsonText = match[1];
             }
           }
 
-          // Try parsing as JSON
+          // Try parsing as JSON first
           try {
             essayData = JSON.parse(jsonText);
           } catch (e) {
-            // Try evaluating as JavaScript object (safely)
+            // Try evaluating as JavaScript object
             try {
-              essayData = eval('(' + jsonText + ')');
+              // Create a safe evaluation context
+              const evalFunc = new Function('return (' + jsonText + ')');
+              essayData = evalFunc();
             } catch (e2) {
-              throw new Error('Could not parse essay data. Please provide valid JSON or JavaScript object format.');
+              throw new Error('Could not parse essay data. Please ensure the file contains valid JSON or JavaScript object format.');
             }
           }
 
@@ -11702,6 +11724,7 @@ ${examinerComment}
           alert(`Essay "${essayData.title}" imported successfully!`);
           setShowImport(false);
           setImportText('');
+          setSelectedFileName('');
           loadEssays();
         } catch (err) {
           console.error('Import error:', err);
@@ -11775,46 +11798,58 @@ ${examinerComment}
           {/* Import Modal */}
           {showImport && (
             <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")} onClick={() => setShowImport(false)}>
-              <div className="card" style={parseStyle("max-width: 800px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
+              <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
                 <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
                   <h3 style={parseStyle("margin: 0;")}>Import Essay</h3>
                   <button className="btn btn-secondary" onClick={() => setShowImport(false)}>Close</button>
                 </div>
 
-                <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-md);")}>
-                  Paste your essay configuration below. Accepts JSON format or JavaScript format (window.ESSAYS['id'] = {'{'} ... {'}'}).
+                <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-lg);")}>
+                  Select a JSON or JavaScript essay configuration file to import.
                 </p>
 
-                <textarea
-                  value={importText}
-                  onChange={e => setImportText(e.target.value)}
-                  placeholder={`{
-  "id": "my-essay-id",
-  "title": "Essay Title",
-  "subject": "GCSE English",
-  "essayTitle": "The essay question...",
-  "paragraphs": [
-    {
-      "id": 1,
-      "title": "Introduction",
-      "type": "introduction",
-      "learningMaterial": {
-        "foundation": "...",
-        "intermediate": "...",
-        "advanced": "..."
-      },
-      "writingPrompt": "..."
-    }
-  ]
-}`}
-                  style={parseStyle("width: 100%; height: 300px; padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-family: monospace; font-size: 0.85rem; resize: vertical;")}
-                />
+                {/* File Input */}
+                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                  <label
+                    style={parseStyle("display: block; padding: var(--space-xl); border: 2px dashed var(--color-border); border-radius: var(--radius-lg); text-align: center; cursor: pointer; transition: all 0.2s ease;")}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+                    onDragLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = 'var(--color-border)';
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleFileSelect(file);
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept=".json,.js"
+                      style={parseStyle("display: none;")}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleFileSelect(file);
+                      }}
+                    />
+                    <div style={parseStyle("font-size: 2rem; margin-bottom: var(--space-sm);")}>{importText ? '✓' : '📄'}</div>
+                    {importText ? (
+                      <div>
+                        <div style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs);")}>{selectedFileName || 'File loaded'}</div>
+                        <div style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Click or drop another file to replace</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={parseStyle("font-weight: 600; margin-bottom: var(--space-xs);")}>Click to select file or drag & drop</div>
+                        <div style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Accepts .json or .js files</div>
+                      </div>
+                    )}
+                  </label>
+                </div>
 
                 {importError && (
-                  <p style={parseStyle("color: var(--color-error); margin-top: var(--space-md); margin-bottom: 0;")}>{importError}</p>
+                  <p style={parseStyle("color: var(--color-error); margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border-radius: var(--radius-sm);")}>{importError}</p>
                 )}
 
-                <div style={parseStyle("display: flex; justify-content: flex-end; gap: var(--space-md); margin-top: var(--space-lg);")}>
+                <div style={parseStyle("display: flex; justify-content: flex-end; gap: var(--space-md);")}>
                   <button className="btn btn-secondary" onClick={() => setShowImport(false)} disabled={importLoading}>
                     Cancel
                   </button>
