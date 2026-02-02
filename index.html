@@ -360,9 +360,195 @@
     }
     
     .dashboard-container {
-      max-width: 1200px;
+      max-width: 1400px;
     }
-    
+
+    /* =====================================================
+       SIDEBAR NAVIGATION
+       ===================================================== */
+
+    .dashboard-layout {
+      display: flex;
+      gap: var(--space-lg);
+      align-items: flex-start;
+    }
+
+    .dashboard-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      position: sticky;
+      top: var(--space-lg);
+    }
+
+    .dashboard-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--color-border);
+      background: rgba(184, 134, 11, 0.1);
+    }
+
+    .sidebar-header h3 {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-section {
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .sidebar-section:last-child {
+      border-bottom: none;
+    }
+
+    .sidebar-section-title {
+      padding: var(--space-xs) var(--space-lg);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-lg);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
+      font-size: 0.9rem;
+    }
+
+    .sidebar-item:hover {
+      background: rgba(184, 134, 11, 0.1);
+      color: var(--color-text);
+    }
+
+    .sidebar-item.active {
+      background: rgba(184, 134, 11, 0.15);
+      color: var(--color-primary-light);
+      border-left-color: var(--color-primary);
+      font-weight: 500;
+    }
+
+    .sidebar-item-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .sidebar-item-badge {
+      margin-left: auto;
+      background: var(--color-primary);
+      color: var(--color-bg);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-user {
+      padding: var(--space-md) var(--space-lg);
+      border-top: 1px solid var(--color-border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-user-name {
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+
+    .sidebar-user-role {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .sidebar-user-role.admin {
+      color: var(--color-warning);
+    }
+
+    /* Mobile sidebar toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: var(--space-lg);
+      right: var(--space-lg);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: var(--color-bg);
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-layout {
+        flex-direction: column;
+      }
+
+      .dashboard-sidebar {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: -100%;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+      }
+
+      .dashboard-sidebar.open {
+        left: 0;
+      }
+
+      .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-overlay.open {
+        display: block;
+      }
+
+      .dashboard-main {
+        width: 100%;
+      }
+    }
+
     /* =====================================================
        HEADER - VICTORIAN GOLD
        ===================================================== */
@@ -10674,9 +10860,11 @@ ${examinerComment}
       const [selectedSubmission, setSelectedSubmission] = useState(null);
       const [error, setError] = useState(null);
       const [filterEssayId, setFilterEssayId] = useState('all');
+      const [studentSearch, setStudentSearch] = useState('');
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
-      
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+
       // Teacher auth state
       const [teacherData, setTeacherData] = useState(TeacherAuth.getTeacher());
       const [showChangePassword, setShowChangePassword] = useState(false);
@@ -10776,14 +10964,21 @@ ${examinerComment}
         }
       };
       
-      // Filter submissions and progress by selected essay
-      const filteredSubmissions = filterEssayId === 'all' 
-        ? submissions 
-        : submissions.filter(s => s.essayId === filterEssayId);
-      
-      const filteredInProgress = filterEssayId === 'all'
-        ? inProgress
-        : inProgress.filter(p => p.essayId === filterEssayId);
+      // Filter submissions and progress by selected essay and student search
+      const matchesStudentSearch = (item) => {
+        if (!studentSearch.trim()) return true;
+        const search = studentSearch.toLowerCase();
+        return (item.studentName || '').toLowerCase().includes(search) ||
+               (item.studentEmail || '').toLowerCase().includes(search);
+      };
+
+      const filteredSubmissions = submissions
+        .filter(s => filterEssayId === 'all' || s.essayId === filterEssayId)
+        .filter(matchesStudentSearch);
+
+      const filteredInProgress = inProgress
+        .filter(p => filterEssayId === 'all' || p.essayId === filterEssayId)
+        .filter(matchesStudentSearch);
       
       // Get unique essay IDs from submissions for filter
       const availableEssays = [...new Set([
@@ -10816,110 +11011,168 @@ ${examinerComment}
       
       return (
         <div className="app-container dashboard-container">
-          <div className="app-header">
-            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);")}>
-              <div>
-                <h1 className="gold-glow">Teacher Dashboard</h1>
-                <p className="subtitle">
-                  {teacherData?.name || 'Teacher'}
-                  {isAdmin && <span style={parseStyle("color: var(--color-warning); margin-left: var(--space-sm);")}>(Admin)</span>}
-                </p>
-                {FIREBASE_ENABLED && (
-                  <span style={parseStyle("display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs); font-size: 0.8rem; color: var(--color-success);")}>
-                    <span style={parseStyle("width: 8px; height: 8px; background: var(--color-success); border-radius: 50%; animation: pulse 2s infinite;")}></span>
-                    Real-time updates enabled
-                  </span>
-                )}
-              </div>
-              <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-                <button className="btn btn-secondary" onClick={handleRefresh}>🔄 Refresh</button>
-                <button className="btn btn-secondary" onClick={() => setShowChangePassword(true)}>Change Password</button>
-                <button className="btn btn-secondary" onClick={async () => {
-                  await TeacherAuth.logout();
-                  onLogout();
-                }}>Logout</button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Tab Navigation */}
-          <div className="card" style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md);")}>
-            <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
-              <button 
-                className={activeTab === 'submissions' ? 'btn btn-primary' : 'btn btn-secondary'}
-                onClick={() => setActiveTab('submissions')}
-              >
-                Submissions
-              </button>
-              <button 
-                className={activeTab === 'students' ? 'btn btn-primary' : 'btn btn-secondary'}
-                onClick={() => setActiveTab('students')}
-              >
-                Students
-              </button>
-              <button
-                className={activeTab === 'assignments' ? 'btn btn-primary' : 'btn btn-secondary'}
-                onClick={() => setActiveTab('assignments')}
-              >
-                Assignments
-              </button>
-              <button
-                className={activeTab === 'performance' ? 'btn btn-primary' : 'btn btn-secondary'}
-                onClick={() => setActiveTab('performance')}
-              >
-                Performance
-              </button>
-              {isAdmin && (
-                <button
-                  className={activeTab === 'essays' ? 'btn btn-primary' : 'btn btn-secondary'}
-                  onClick={() => setActiveTab('essays')}
-                >
-                  Essays
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  className={activeTab === 'teachers' ? 'btn btn-primary' : 'btn btn-secondary'}
-                  onClick={() => setActiveTab('teachers')}
-                >
-                  Teachers
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Mobile sidebar toggle */}
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+          <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
-          {/* Tab Content */}
-          {activeTab === 'students' && <StudentManagementPanel />}
-          {activeTab === 'assignments' && <AssignmentsPanel />}
-          {activeTab === 'performance' && <StudentPerformancePanel />}
-          {activeTab === 'essays' && isAdmin && <EssayManagementPanel />}
-          {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
-          
-          {activeTab === 'submissions' && (
-          <>
-          {/* Essay Filter */}
-          {getEssayList().length > 1 && (
-            <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-              <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filter by Essay</h4>
-              <div className="essay-filter">
-                <button 
-                  className={`essay-filter-btn ${filterEssayId === 'all' ? 'active' : ''}`}
-                  onClick={() => setFilterEssayId('all')}
-                >
-                  All Essays
-                </button>
-                {getEssayList().map(essay => (
-                  <button 
-                    key={essay.id}
-                    className={`essay-filter-btn ${filterEssayId === essay.id ? 'active' : ''}`}
-                    onClick={() => setFilterEssayId(essay.id)}
-                  >
-                    {essay.icon} {essay.title}
-                  </button>
-                ))}
+          <div className="dashboard-layout">
+            {/* Sidebar */}
+            <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
+              <div className="sidebar-card">
+                <div className="sidebar-header">
+                  <h3>Teacher Dashboard</h3>
+                </div>
+
+                {/* Main Navigation */}
+                <div className="sidebar-section">
+                  <div className="sidebar-section-title">Overview</div>
+                  <div className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}>
+                    <span className="sidebar-item-icon">📥</span>
+                    <span>Submissions</span>
+                    {submissions.length > 0 && <span className="sidebar-item-badge">{submissions.length}</span>}
+                  </div>
+                  <div className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('performance'); setSidebarOpen(false); }}>
+                    <span className="sidebar-item-icon">📊</span>
+                    <span>Performance</span>
+                  </div>
+                </div>
+
+                {/* Class Management */}
+                <div className="sidebar-section">
+                  <div className="sidebar-section-title">Class Management</div>
+                  <div className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('students'); setSidebarOpen(false); }}>
+                    <span className="sidebar-item-icon">👥</span>
+                    <span>Students</span>
+                  </div>
+                  <div className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('assignments'); setSidebarOpen(false); }}>
+                    <span className="sidebar-item-icon">📋</span>
+                    <span>Assignments</span>
+                  </div>
+                </div>
+
+                {/* Admin Section */}
+                {isAdmin && (
+                  <div className="sidebar-section">
+                    <div className="sidebar-section-title">Administration</div>
+                    <div className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('essays'); setSidebarOpen(false); }}>
+                      <span className="sidebar-item-icon">📝</span>
+                      <span>Essays</span>
+                    </div>
+                    <div className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('teachers'); setSidebarOpen(false); }}>
+                      <span className="sidebar-item-icon">👨‍🏫</span>
+                      <span>Teachers</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="sidebar-section">
+                  <div className="sidebar-section-title">Actions</div>
+                  <div className="sidebar-item" onClick={handleRefresh}>
+                    <span className="sidebar-item-icon">🔄</span>
+                    <span>Refresh Data</span>
+                  </div>
+                  <div className="sidebar-item" onClick={() => setShowChangePassword(true)}>
+                    <span className="sidebar-item-icon">🔑</span>
+                    <span>Change Password</span>
+                  </div>
+                  <div className="sidebar-item" onClick={async () => { await TeacherAuth.logout(); onLogout(); }}>
+                    <span className="sidebar-item-icon">🚪</span>
+                    <span>Logout</span>
+                  </div>
+                </div>
+
+                {/* User Info */}
+                <div className="sidebar-user">
+                  <div className="sidebar-user-name">{teacherData?.name || 'Teacher'}</div>
+                  <div className={`sidebar-user-role ${isAdmin ? 'admin' : ''}`}>
+                    {isAdmin ? 'Administrator' : 'Teacher'}
+                    {FIREBASE_ENABLED && (
+                      <span style={parseStyle("display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;")}>
+                        <span style={parseStyle("width: 6px; height: 6px; background: var(--color-success); border-radius: 50%;")}></span>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="dashboard-main">
+              {/* Page Title */}
+              <div className="card" style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-lg);")}>
+                <h2 style={parseStyle("margin: 0; color: var(--color-primary-light);")}>
+                  {activeTab === 'submissions' && '📥 Submissions'}
+                  {activeTab === 'students' && '👥 Student Management'}
+                  {activeTab === 'assignments' && '📋 Assignments'}
+                  {activeTab === 'performance' && '📊 Performance Analytics'}
+                  {activeTab === 'essays' && '📝 Essay Management'}
+                  {activeTab === 'teachers' && '👨‍🏫 Teacher Management'}
+                </h2>
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === 'students' && <StudentManagementPanel />}
+              {activeTab === 'assignments' && <AssignmentsPanel />}
+              {activeTab === 'performance' && <StudentPerformancePanel />}
+              {activeTab === 'essays' && isAdmin && <EssayManagementPanel />}
+              {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
+
+              {activeTab === 'submissions' && (
+          <>
+          {/* Filters Card */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filters</h4>
+            <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap; align-items: flex-end;")}>
+              {/* Student Search */}
+              <div style={parseStyle("flex: 1; min-width: 200px;")}>
+                <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Search Student</label>
+                <input
+                  type="text"
+                  value={studentSearch}
+                  onChange={e => setStudentSearch(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+              {/* Essay Filter */}
+              {getEssayList().length > 1 && (
+                <div style={parseStyle("min-width: 200px;")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Essay</label>
+                  <select
+                    value={filterEssayId}
+                    onChange={e => setFilterEssayId(e.target.value)}
+                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                  >
+                    <option value="all">All Essays</option>
+                    {getEssayList().map(essay => (
+                      <option key={essay.id} value={essay.id}>{essay.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Clear Filters */}
+              {(studentSearch || filterEssayId !== 'all') && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => { setStudentSearch(''); setFilterEssayId('all'); }}
+                  style={parseStyle("padding: var(--space-sm) var(--space-md);")}
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
-          )}
+          </div>
           
           {/* Preview Essays */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
@@ -11199,10 +11452,12 @@ ${examinerComment}
                 )}
               </div>
             </div>
-          )}
-          </>
-          )}
-          
+              )}
+              </>
+              )}
+            </main>
+          </div>
+
           {showChangePassword && (
             <TeacherChangePasswordModal
               onClose={() => setShowChangePassword(false)}
@@ -11615,8 +11870,45 @@ ${examinerComment}
       const [deleteConfirm, setDeleteConfirm] = useState(null);
       const [selectedFileName, setSelectedFileName] = useState('');
       const [activeView, setActiveView] = useState('manage'); // 'manage' or 'generate'
+      const [filterSubject, setFilterSubject] = useState('all');
+      const [filterYearGroup, setFilterYearGroup] = useState('all');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [expandedCategories, setExpandedCategories] = useState({});
 
       const sessionToken = TeacherAuth.getSessionToken();
+
+      // Get unique subjects and year groups for filtering
+      const allEssays = [...essays, ...customEssays];
+      const subjects = [...new Set(allEssays.map(e => e.subject).filter(Boolean))].sort();
+      const yearGroups = [...new Set(allEssays.map(e => e.yearGroup).filter(Boolean))].sort();
+
+      // Filter essays based on current filters
+      const filterEssays = (essayList) => {
+        return essayList.filter(essay => {
+          const matchesSubject = filterSubject === 'all' || essay.subject === filterSubject;
+          const matchesYear = filterYearGroup === 'all' || essay.yearGroup === filterYearGroup;
+          const matchesSearch = !searchTerm ||
+            (essay.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (essay.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (essay.subject || '').toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesSubject && matchesYear && matchesSearch;
+        });
+      };
+
+      // Group essays by subject
+      const groupBySubject = (essayList) => {
+        const groups = {};
+        essayList.forEach(essay => {
+          const subject = essay.subject || 'Uncategorized';
+          if (!groups[subject]) groups[subject] = [];
+          groups[subject].push(essay);
+        });
+        return groups;
+      };
+
+      const toggleCategory = (category) => {
+        setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+      };
 
       // Handle file selection for import
       const handleFileSelect = (file) => {
@@ -11828,18 +12120,76 @@ ${examinerComment}
             </div>
           )}
 
-          {/* Import Button */}
+          {/* Import Button & Stats */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center;")}>
-              <div>
-                <h4 style={parseStyle("margin: 0 0 var(--space-xs) 0;")}>Essay Management</h4>
-                <p style={parseStyle("margin: 0; color: var(--color-text-muted); font-size: 0.85rem;")}>
-                  Import and manage custom essays. Static essays ({essays.length}) cannot be edited.
-                </p>
+            <div style={parseStyle("display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-lg); flex-wrap: wrap;")}>
+              <div style={parseStyle("flex: 1;")}>
+                <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-md);")}>
+                  <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(184, 134, 11, 0.1); border-radius: var(--radius-md);")}>
+                    <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-primary);")}>{allEssays.length}</div>
+                    <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Total Essays</div>
+                  </div>
+                  <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md);")}>
+                    <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-success);")}>{customEssays.length}</div>
+                    <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Custom</div>
+                  </div>
+                  <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-md);")}>
+                    <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: #3b82f6;")}>{subjects.length}</div>
+                    <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Subjects</div>
+                  </div>
+                </div>
               </div>
               <button className="btn btn-primary" onClick={() => setShowImport(true)}>
-                Import Essay
+                + Import Essay
               </button>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap; align-items: flex-end;")}>
+              <div style={parseStyle("flex: 1; min-width: 200px;")}>
+                <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Search</label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Search by title, ID, or subject..."
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+              <div style={parseStyle("min-width: 150px;")}>
+                <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Subject</label>
+                <select
+                  value={filterSubject}
+                  onChange={e => setFilterSubject(e.target.value)}
+                  style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                >
+                  <option value="all">All Subjects</option>
+                  {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={parseStyle("min-width: 150px;")}>
+                <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Year Group</label>
+                <select
+                  value={filterYearGroup}
+                  onChange={e => setFilterYearGroup(e.target.value)}
+                  style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                >
+                  <option value="all">All Years</option>
+                  {yearGroups.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              {(searchTerm || filterSubject !== 'all' || filterYearGroup !== 'all') && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => { setSearchTerm(''); setFilterSubject('all'); setFilterYearGroup('all'); }}
+                  style={parseStyle("padding: var(--space-sm) var(--space-md);")}
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
 
@@ -11909,108 +12259,142 @@ ${examinerComment}
             </div>
           )}
 
-          {/* Custom Essays */}
+          {/* Custom Essays - Grouped by Subject */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Custom Essays ({customEssays.length})</h4>
+            <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}>
+              <span style={parseStyle("color: var(--color-success);")}></span>
+              Custom Essays
+              <span style={parseStyle("font-size: 0.85rem; font-weight: normal; color: var(--color-text-muted);")}>
+                ({filterEssays(customEssays).length}{filterEssays(customEssays).length !== customEssays.length ? ` of ${customEssays.length}` : ''})
+              </span>
+            </h4>
             {customEssays.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
                 No custom essays imported yet. Click "Import Essay" to add one.
               </p>
+            ) : filterEssays(customEssays).length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No essays match your current filters.
+              </p>
             ) : (
-              <div style={parseStyle("overflow-x: auto;")}>
-                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
-                  <thead>
-                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Created By</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customEssays.map((essay, idx) => (
-                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                        <td style={parseStyle("padding: var(--space-md);")}>
-                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
-                          {essay.title}
-                        </td>
-                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
-                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
-                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
-                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.createdByName || essay.createdBy || '-'}</td>
-                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                          {deleteConfirm === essay.id ? (
-                            <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: center;")}>
-                              <button
-                                className="btn btn-secondary"
-                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
-                                onClick={() => setDeleteConfirm(null)}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                className="btn"
-                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem; background: var(--color-error); color: white;")}
-                                onClick={() => handleDelete(essay.id)}
-                              >
-                                Confirm
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              className="btn btn-secondary"
-                              style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
-                              onClick={() => setDeleteConfirm(essay.id)}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div>
+                {Object.entries(groupBySubject(filterEssays(customEssays))).map(([subject, essayGroup]) => (
+                  <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
+                    <div
+                      onClick={() => toggleCategory('custom-' + subject)}
+                      style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
+                    >
+                      <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
+                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['custom-' + subject] !== false ? " transform: rotate(90deg);" : ""))}>▶</span>
+                        <span style={parseStyle("font-weight: 600;")}>{subject}</span>
+                        <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
+                      </div>
+                    </div>
+                    {expandedCategories['custom-' + subject] !== false && (
+                      <div style={parseStyle("overflow-x: auto;")}>
+                        <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                          <thead>
+                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Created By</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {essayGroup.map((essay, idx) => (
+                              <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md);")}>
+                                  <div style={parseStyle("font-weight: 500;")}>{essay.title}</div>
+                                  <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted); font-family: monospace;")}>{essay.id}</div>
+                                </td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.yearGroup || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.8rem;")}>{essay.createdByName || essay.createdBy || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  {deleteConfirm === essay.id ? (
+                                    <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: center;")}>
+                                      <button className="btn btn-secondary" style={parseStyle("padding: 2px 8px; font-size: 0.75rem;")} onClick={() => setDeleteConfirm(null)}>Cancel</button>
+                                      <button className="btn" style={parseStyle("padding: 2px 8px; font-size: 0.75rem; background: var(--color-error); color: white;")} onClick={() => handleDelete(essay.id)}>Delete</button>
+                                    </div>
+                                  ) : (
+                                    <button className="btn btn-secondary" style={parseStyle("padding: 2px 8px; font-size: 0.75rem;")} onClick={() => setDeleteConfirm(essay.id)}>Delete</button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Static Essays (Read Only) */}
+          {/* Static Essays - Grouped by Subject */}
           <div className="card">
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Static Essays ({essays.length})</h4>
-            <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-md);")}>
-              These essays are defined in static files and cannot be edited through this interface.
+            <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}>
+              <span style={parseStyle("color: #3b82f6;")}></span>
+              Static Essays
+              <span style={parseStyle("font-size: 0.85rem; font-weight: normal; color: var(--color-text-muted);")}>
+                ({filterEssays(essays.filter(e => !e.isCustom)).length}{filterEssays(essays.filter(e => !e.isCustom)).length !== essays.filter(e => !e.isCustom).length ? ` of ${essays.filter(e => !e.isCustom).length}` : ''})
+              </span>
+            </h4>
+            <p style={parseStyle("color: var(--color-text-muted); font-size: 0.8rem; margin-bottom: var(--space-md);")}>
+              These essays are defined in static files and cannot be edited here.
             </p>
             {essays.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
                 No static essays found.
               </p>
+            ) : filterEssays(essays.filter(e => !e.isCustom)).length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No essays match your current filters.
+              </p>
             ) : (
-              <div style={parseStyle("overflow-x: auto;")}>
-                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
-                  <thead>
-                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {essays.filter(e => !e.isCustom).map((essay, idx) => (
-                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                        <td style={parseStyle("padding: var(--space-md);")}>
-                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
-                          {essay.title}
-                        </td>
-                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
-                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
-                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div>
+                {Object.entries(groupBySubject(filterEssays(essays.filter(e => !e.isCustom)))).map(([subject, essayGroup]) => (
+                  <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
+                    <div
+                      onClick={() => toggleCategory('static-' + subject)}
+                      style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
+                    >
+                      <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
+                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['static-' + subject] !== false ? " transform: rotate(90deg);" : ""))}>▶</span>
+                        <span style={parseStyle("font-weight: 600;")}>{subject}</span>
+                        <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
+                      </div>
+                    </div>
+                    {expandedCategories['static-' + subject] !== false && (
+                      <div style={parseStyle("overflow-x: auto;")}>
+                        <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                          <thead>
+                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
+                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {essayGroup.map((essay, idx) => (
+                              <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md);")}>
+                                  <div style={parseStyle("font-weight: 500;")}>{essay.title}</div>
+                                  <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted); font-family: monospace;")}>{essay.id}</div>
+                                </td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.yearGroup || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
