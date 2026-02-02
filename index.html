@@ -12327,12 +12327,95 @@ ${examinerComment}
           try {
             essayData = JSON.parse(jsonText);
           } catch (e) {
-            // Try evaluating as JavaScript object
-            try {
-              // Create a safe evaluation context
-              const evalFunc = new Function('return (' + jsonText + ')');
-              essayData = evalFunc();
-            } catch (e2) {
+            // Try multiple parsing strategies for JavaScript object
+            const parseStrategies = [
+              // Strategy 1: Direct eval with Function
+              () => {
+                const evalFunc = new Function('return (' + jsonText + ')');
+                return evalFunc();
+              },
+              // Strategy 2: Fix template literals before eval
+              () => {
+                let fixedText = jsonText.replace(/`([^`]*)`/g, (match, content) => {
+                  const escaped = content
+                    .replace(/\\/g, '\\\\')
+                    .replace(/"/g, '\\"')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '\\r');
+                  return '"' + escaped + '"';
+                });
+                const evalFunc = new Function('return (' + fixedText + ')');
+                return evalFunc();
+              },
+              // Strategy 3: Manual extraction as last resort
+              () => {
+                const extractField = (fieldName, isNumber = false) => {
+                  const regex = new RegExp(fieldName + '\\s*:\\s*(' + (isNumber ? '\\d+' : '[\'"`]([^\'"`]*)[\'"`]') + ')');
+                  const m = jsonText.match(regex);
+                  return m ? (isNumber ? parseInt(m[1]) : m[2]) : null;
+                };
+
+                const idMatch = jsonText.match(/id\s*:\s*['"`]([^'"`]*)['"`]/);
+                const paragraphsMatch = jsonText.match(/paragraphs\s*:\s*\[([\s\S]*?)\]\s*,?\s*(?:gradingCriteria|gradeBoundaries|teacherPassword|\})/);
+
+                const manualData = {
+                  id: idMatch ? idMatch[1] : 'imported-essay-' + Date.now(),
+                  title: extractField('title') || 'Imported Essay',
+                  subject: extractField('subject') || 'Not specified',
+                  yearGroup: extractField('yearGroup') || 'Not specified',
+                  totalMarks: extractField('totalMarks', true) || 40,
+                  essayTitle: extractField('essayTitle') || 'Essay Question',
+                  instructions: extractField('instructions') || 'Complete the essay.',
+                  maxAttempts: extractField('maxAttempts', true) || 3,
+                  minWordsPerParagraph: extractField('minWordsPerParagraph', true) || 80,
+                  targetWordsPerParagraph: extractField('targetWordsPerParagraph', true) || 150,
+                  paragraphs: []
+                };
+
+                if (paragraphsMatch) {
+                  const paragraphBlocks = paragraphsMatch[1].match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) || [];
+                  paragraphBlocks.forEach((block, idx) => {
+                    const pTitle = block.match(/title\s*:\s*['"`]([^'"`]*)['"`]/);
+                    const pType = block.match(/type\s*:\s*['"`]([^'"`]*)['"`]/);
+                    manualData.paragraphs.push({
+                      id: idx + 1,
+                      title: pTitle ? pTitle[1] : `Paragraph ${idx + 1}`,
+                      type: pType ? pType[1] : 'body',
+                      learningMaterial: { foundation: '', intermediate: '', advanced: '' },
+                      writingPrompt: '',
+                      keyPoints: [],
+                      exampleQuotes: []
+                    });
+                  });
+                }
+
+                if (manualData.paragraphs.length === 0) {
+                  manualData.paragraphs = [
+                    { id: 1, title: 'Introduction', type: 'introduction', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
+                    { id: 2, title: 'Main Body', type: 'body', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
+                    { id: 3, title: 'Conclusion', type: 'conclusion', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] }
+                  ];
+                }
+
+                return manualData;
+              }
+            ];
+
+            let parsed = null;
+            for (const strategy of parseStrategies) {
+              try {
+                parsed = strategy();
+                if (parsed && (parsed.id || parsed.title)) {
+                  essayData = parsed;
+                  console.log('Successfully parsed with fallback strategy');
+                  break;
+                }
+              } catch (strategyError) {
+                console.warn('Parse strategy failed:', strategyError.message);
+              }
+            }
+
+            if (!essayData) {
               throw new Error('Could not parse essay data. Please ensure the file contains valid JSON or JavaScript object format.');
             }
           }
