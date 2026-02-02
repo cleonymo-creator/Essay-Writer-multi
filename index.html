@@ -13656,14 +13656,120 @@ ${examinerComment}
           const match = configText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
           if (match) {
             const essayId = match[1];
-            const objectText = match[2];
-            try {
-              const evalFunc = new Function('return (' + objectText + ')');
-              essayData = evalFunc();
-              essayData.id = essayId;
-            } catch (e) {
-              console.error('Failed to parse essay config:', e);
-              throw new Error('Failed to parse generated essay configuration');
+            let objectText = match[2];
+
+            // Try multiple parsing strategies
+            const parseStrategies = [
+              // Strategy 1: Direct eval with Function (original approach)
+              () => {
+                const evalFunc = new Function('return (' + objectText + ')');
+                return evalFunc();
+              },
+              // Strategy 2: Try to fix common template literal issues
+              () => {
+                // Replace template literals with regular strings for parsing
+                let fixedText = objectText;
+                // Convert template literals to regular strings (simplified)
+                fixedText = fixedText.replace(/`([^`]*)`/g, (match, content) => {
+                  // Escape quotes and newlines in the content
+                  const escaped = content
+                    .replace(/\\/g, '\\\\')
+                    .replace(/"/g, '\\"')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\r/g, '\\r');
+                  return '"' + escaped + '"';
+                });
+                const evalFunc = new Function('return (' + fixedText + ')');
+                return evalFunc();
+              },
+              // Strategy 3: Extract key fields manually using regex
+              () => {
+                const extractField = (fieldName, isNumber = false) => {
+                  const regex = new RegExp(fieldName + '\\s*:\\s*(' + (isNumber ? '\\d+' : '[\'"`]([^\'"`]*)[\'"`]') + ')');
+                  const m = objectText.match(regex);
+                  return m ? (isNumber ? parseInt(m[1]) : m[2]) : null;
+                };
+
+                const extractArrayField = (fieldName) => {
+                  const regex = new RegExp(fieldName + '\\s*:\\s*\\[([\\s\\S]*?)\\](?=,\\s*\\w+:|\\s*})', 'g');
+                  const m = objectText.match(regex);
+                  return m ? m[0] : null;
+                };
+
+                // Extract paragraphs array
+                const paragraphsMatch = objectText.match(/paragraphs\s*:\s*\[([\s\S]*?)\]\s*,?\s*(?:gradingCriteria|gradeBoundaries|teacherPassword|\})/);
+
+                const manualData = {
+                  id: essayId,
+                  title: extractField('title') || 'Untitled Essay',
+                  subject: extractField('subject') || subject || 'Not specified',
+                  yearGroup: extractField('yearGroup') || yearGroup || 'Not specified',
+                  totalMarks: extractField('totalMarks', true) || parseInt(totalMarks) || 40,
+                  essayTitle: extractField('essayTitle') || examQuestion || 'Essay Question',
+                  instructions: extractField('instructions') || 'Complete the essay following the guidance provided.',
+                  maxAttempts: extractField('maxAttempts', true) || parseInt(maxAttempts) || 3,
+                  minWordsPerParagraph: extractField('minWordsPerParagraph', true) || parseInt(minWords) || 80,
+                  targetWordsPerParagraph: extractField('targetWordsPerParagraph', true) || parseInt(targetWords) || 150,
+                  paragraphs: []
+                };
+
+                // Try to parse paragraphs individually
+                if (paragraphsMatch) {
+                  const paragraphBlocks = paragraphsMatch[1].match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) || [];
+                  paragraphBlocks.forEach((block, idx) => {
+                    try {
+                      const pTitle = block.match(/title\s*:\s*['"`]([^'"`]*)['"`]/);
+                      const pType = block.match(/type\s*:\s*['"`]([^'"`]*)['"`]/);
+                      manualData.paragraphs.push({
+                        id: idx + 1,
+                        title: pTitle ? pTitle[1] : `Paragraph ${idx + 1}`,
+                        type: pType ? pType[1] : 'body',
+                        learningMaterial: {
+                          foundation: 'Learning material not available - please regenerate.',
+                          intermediate: 'Learning material not available - please regenerate.',
+                          advanced: 'Learning material not available - please regenerate.'
+                        },
+                        writingPrompt: 'Write this paragraph based on the essay question.',
+                        keyPoints: [],
+                        exampleQuotes: []
+                      });
+                    } catch (e) {
+                      console.warn('Failed to parse paragraph block:', e);
+                    }
+                  });
+                }
+
+                // If we couldn't extract paragraphs, create default structure
+                if (manualData.paragraphs.length === 0) {
+                  manualData.paragraphs = [
+                    { id: 1, title: 'Introduction', type: 'introduction', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
+                    { id: 2, title: 'Main Body', type: 'body', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
+                    { id: 3, title: 'Conclusion', type: 'conclusion', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] }
+                  ];
+                }
+
+                return manualData;
+              }
+            ];
+
+            let lastError = null;
+            for (const strategy of parseStrategies) {
+              try {
+                essayData = strategy();
+                if (essayData && essayData.paragraphs) {
+                  essayData.id = essayId;
+                  console.log('Successfully parsed essay config');
+                  break;
+                }
+              } catch (e) {
+                lastError = e;
+                console.warn('Parse strategy failed:', e.message);
+              }
+            }
+
+            if (!essayData) {
+              console.error('All parsing strategies failed. Last error:', lastError);
+              throw new Error('Failed to parse generated essay configuration. The AI may have generated invalid syntax.');
             }
           }
 
