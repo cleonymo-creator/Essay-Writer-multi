@@ -1,9 +1,9 @@
 // Essay Management Function
 // Handles CRUD for essays - Admin only
-// Essays are stored in Firebase 'essays' collection
+// Essays are stored in Firebase 'essays' collection with Netlify Blobs fallback
 
 const { initializeFirebase } = require('./firebase-helper');
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 // Helper to verify teacher session and check admin status
 async function verifyAdminSession(sessionToken) {
@@ -113,6 +113,9 @@ function validateEssay(essay) {
 }
 
 exports.handler = async (event, context) => {
+  // Initialize Netlify Blobs connection
+  connectLambda(event);
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -141,26 +144,41 @@ exports.handler = async (event, context) => {
     }
 
     const db = initializeFirebase();
-
-    if (!db) {
-      return {
-        statusCode: 503,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'Database not available'
-        })
-      };
-    }
+    const essaysStore = getStore("custom-essays");
 
     // GET - List all custom essays
     if (event.httpMethod === 'GET') {
-      const essaysSnapshot = await db.collection('essays').orderBy('createdAt', 'desc').get();
-      const essays = essaysSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      }));
+      let essays = [];
+
+      // Try Firebase first
+      if (db) {
+        try {
+          const essaysSnapshot = await db.collection('essays').orderBy('createdAt', 'desc').get();
+          essays = essaysSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
+          }));
+        } catch (fbError) {
+          console.warn('Firebase read failed, trying Netlify Blobs:', fbError.message);
+        }
+      }
+
+      // Fallback to or merge with Netlify Blobs
+      try {
+        const blobList = await essaysStore.list();
+        for (const item of blobList.blobs) {
+          const blobEssay = await essaysStore.get(item.key, { type: 'json' });
+          if (blobEssay && !essays.find(e => e.id === blobEssay.id)) {
+            essays.push(blobEssay);
+          }
+        }
+      } catch (blobError) {
+        console.warn('Netlify Blobs read failed:', blobError.message);
+      }
+
+      // Sort by createdAt descending
+      essays.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
       return {
         statusCode: 200,
@@ -178,14 +196,29 @@ exports.handler = async (event, context) => {
       const { action, essay, essayId } = body;
 
       if (action === 'delete' && essayId) {
-        // Delete essay
-        await db.collection('essays').doc(essayId).delete();
+        // Delete essay from both stores
+        let deleted = false;
+        if (db) {
+          try {
+            await db.collection('essays').doc(essayId).delete();
+            deleted = true;
+          } catch (e) {
+            console.warn('Firebase delete failed:', e.message);
+          }
+        }
+        try {
+          await essaysStore.delete(essayId);
+          deleted = true;
+        } catch (e) {
+          console.warn('Blob delete failed:', e.message);
+        }
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            success: true,
-            message: 'Essay deleted'
+            success: deleted,
+            message: deleted ? 'Essay deleted' : 'Essay not found'
           })
         };
       }
@@ -221,9 +254,27 @@ exports.handler = async (event, context) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Check if essay with this ID already exists
-      const existingDoc = await db.collection('essays').doc(essayIdClean).get();
-      if (existingDoc.exists && action !== 'update') {
+      // Check if essay with this ID already exists (in either store)
+      let existingEssay = null;
+      if (db) {
+        try {
+          const existingDoc = await db.collection('essays').doc(essayIdClean).get();
+          if (existingDoc.exists) {
+            existingEssay = existingDoc.data();
+          }
+        } catch (e) {
+          console.warn('Firebase check failed:', e.message);
+        }
+      }
+      if (!existingEssay) {
+        try {
+          existingEssay = await essaysStore.get(essayIdClean, { type: 'json' });
+        } catch (e) {
+          // Not found in blobs either, that's fine
+        }
+      }
+
+      if (existingEssay && action !== 'update') {
         return {
           statusCode: 409,
           headers,
@@ -240,13 +291,41 @@ exports.handler = async (event, context) => {
         id: essayIdClean,
         createdBy: sessionCheck.email,
         createdByName: sessionCheck.name,
-        createdAt: existingDoc.exists ? existingDoc.data().createdAt : new Date(),
-        updatedAt: new Date(),
+        createdAt: existingEssay?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         isCustom: true // Flag to distinguish from static essays
       };
 
-      // Save to Firebase
-      await db.collection('essays').doc(essayIdClean).set(essayData);
+      // Save to both Firebase and Netlify Blobs for redundancy
+      let savedToFirebase = false;
+      let savedToBlobs = false;
+
+      if (db) {
+        try {
+          await db.collection('essays').doc(essayIdClean).set(essayData);
+          savedToFirebase = true;
+        } catch (fbError) {
+          console.warn('Firebase save failed:', fbError.message);
+        }
+      }
+
+      try {
+        await essaysStore.setJSON(essayIdClean, essayData);
+        savedToBlobs = true;
+      } catch (blobError) {
+        console.warn('Netlify Blobs save failed:', blobError.message);
+      }
+
+      if (!savedToFirebase && !savedToBlobs) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Failed to save essay to any storage backend'
+          })
+        };
+      }
 
       return {
         statusCode: 200,
@@ -254,7 +333,8 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           message: action === 'update' ? 'Essay updated' : 'Essay imported',
-          essayId: essayIdClean
+          essayId: essayIdClean,
+          storage: savedToFirebase && savedToBlobs ? 'both' : (savedToFirebase ? 'firebase' : 'blobs')
         })
       };
     }
