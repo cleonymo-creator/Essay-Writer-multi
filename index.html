@@ -6457,6 +6457,13 @@
                   >
                     By Student
                   </button>
+                  <button
+                    className={viewMode === 'grades-table' ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={() => setViewMode('grades-table')}
+                    style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.9rem;")}
+                  >
+                    Grades Table
+                  </button>
                 </div>
               </div>
 
@@ -6710,6 +6717,229 @@
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Grades Table View */}
+          {viewMode === 'grades-table' && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Comprehensive Grades Table</h4>
+              <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-lg);")}>
+                Showing 1st draft and final draft scores for all essays. {selectedClass !== 'all' && 'Students who have not attempted any essays are also shown.'}
+              </p>
+
+              {(() => {
+                // Get all essays that have been attempted (for column headers)
+                const allEssayIds = [...new Set([
+                  ...submissions.map(s => s.essayId).filter(Boolean),
+                  ...progress.map(p => p.essayId).filter(Boolean)
+                ])];
+
+                // Get students to display - when class filtered, show ALL class members
+                const studentsToShow = getFilteredStudents();
+
+                // Build a map of student email -> essay submissions for quick lookup
+                const studentSubmissionMap = {};
+                const studentProgressMap = {};
+
+                submissions.forEach(sub => {
+                  const email = sub.studentEmail?.toLowerCase();
+                  if (!email) return;
+                  if (!studentSubmissionMap[email]) studentSubmissionMap[email] = {};
+                  studentSubmissionMap[email][sub.essayId] = sub;
+                });
+
+                progress.forEach(prog => {
+                  const email = prog.studentEmail?.toLowerCase();
+                  if (!email) return;
+                  if (!studentProgressMap[email]) studentProgressMap[email] = {};
+                  studentProgressMap[email][prog.essayId] = prog;
+                });
+
+                // Check if student has any activity at all
+                const hasAnyActivity = (email) => {
+                  const emailLower = email?.toLowerCase();
+                  return (studentSubmissionMap[emailLower] && Object.keys(studentSubmissionMap[emailLower]).length > 0) ||
+                         (studentProgressMap[emailLower] && Object.keys(studentProgressMap[emailLower]).length > 0);
+                };
+
+                // Students with no activity (only shown when class filtered)
+                const studentsWithNoActivity = selectedClass !== 'all'
+                  ? studentsToShow.filter(s => !hasAnyActivity(s.email))
+                  : [];
+
+                return (
+                  <div style={parseStyle("overflow-x: auto;")}>
+                    <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.85rem;")}>
+                      <thead>
+                        <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                          <th style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
+                          {allEssayIds.map(essayId => {
+                            const essayInfo = getEssayInfo(essayId);
+                            return (
+                              <th key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
+                                <div style={parseStyle("font-size: 0.8rem;")}>{essayInfo.icon}</div>
+                                <div style={parseStyle("max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;")} title={essayInfo.title}>
+                                  {essayInfo.title || essayId}
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                        <tr style={parseStyle("border-bottom: 1px solid var(--color-border); background: var(--color-bg);")}>
+                          <th style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
+                          {allEssayIds.map(essayId => (
+                            <React.Fragment key={essayId}>
+                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
+                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studentsToShow.length === 0 ? (
+                          <tr>
+                            <td colSpan={1 + allEssayIds.length * 2} style={parseStyle("padding: var(--space-lg); text-align: center; color: var(--color-text-muted);")}>
+                              No students found{selectedClass !== 'all' ? ' in this class' : ''}.
+                            </td>
+                          </tr>
+                        ) : (
+                          studentsToShow.map((student, idx) => {
+                            const emailLower = student.email?.toLowerCase();
+                            const studentSubs = studentSubmissionMap[emailLower] || {};
+                            const studentProg = studentProgressMap[emailLower] || {};
+                            const noActivity = !hasAnyActivity(student.email);
+
+                            return (
+                              <tr
+                                key={idx}
+                                style={{
+                                  borderBottom: '1px solid var(--color-border-light)',
+                                  background: noActivity ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
+                                }}
+                              >
+                                <td style={parseStyle("padding: var(--space-sm); position: sticky; left: 0; background: inherit;")}>
+                                  <div style={parseStyle("font-weight: 500;")}>{student.name || '-'}</div>
+                                  <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{student.email || '-'}</div>
+                                  {noActivity && (
+                                    <div style={parseStyle("font-size: 0.7rem; color: var(--color-error); font-style: italic;")}>No attempts</div>
+                                  )}
+                                </td>
+                                {allEssayIds.map(essayId => {
+                                  const submission = studentSubs[essayId];
+                                  const inProgress = studentProg[essayId];
+
+                                  // Get 1st draft and final scores
+                                  let firstDraftScore = null;
+                                  let firstDraftGrade = null;
+                                  let finalScore = null;
+                                  let finalGrade = null;
+
+                                  if (submission) {
+                                    // Check for official grading first (more accurate)
+                                    if (submission.officialGrading) {
+                                      if (submission.officialGrading.initialVersion) {
+                                        firstDraftScore = submission.officialGrading.initialVersion.percentage || submission.officialGrading.initialVersion.totalMark;
+                                        firstDraftGrade = submission.officialGrading.initialVersion.grade;
+                                      }
+                                      if (submission.officialGrading.improvedVersion) {
+                                        finalScore = submission.officialGrading.improvedVersion.percentage || submission.officialGrading.improvedVersion.totalMark;
+                                        finalGrade = submission.officialGrading.improvedVersion.grade;
+                                      }
+                                    }
+                                    // Fallback to general score/grade if no official grading
+                                    if (finalScore === null && submission.score !== undefined) {
+                                      finalScore = submission.score;
+                                      finalGrade = submission.grade;
+                                    }
+                                  }
+
+                                  return (
+                                    <React.Fragment key={essayId}>
+                                      {/* 1st Draft */}
+                                      <td style={parseStyle("padding: var(--space-xs); text-align: center; border-left: 2px solid var(--color-border);")}>
+                                        {submission ? (
+                                          firstDraftScore !== null ? (
+                                            <div>
+                                              <div style={{ fontWeight: '600', color: getScoreColor(firstDraftScore) }}>
+                                                {typeof firstDraftScore === 'number' && firstDraftScore <= 100 ? `${firstDraftScore}%` : firstDraftScore}
+                                              </div>
+                                              {firstDraftGrade && (
+                                                <div style={{ fontSize: '0.7rem', color: getGradeColor(firstDraftGrade) }}>{firstDraftGrade}</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span style={parseStyle("color: var(--color-text-muted); font-size: 0.75rem;")}>N/A</span>
+                                          )
+                                        ) : inProgress ? (
+                                          <span style={parseStyle("color: var(--color-warning); font-size: 0.75rem;")}>In progress</span>
+                                        ) : (
+                                          <span style={parseStyle("color: var(--color-text-muted);")}>-</span>
+                                        )}
+                                      </td>
+                                      {/* Final */}
+                                      <td style={parseStyle("padding: var(--space-xs); text-align: center;")}>
+                                        {submission ? (
+                                          finalScore !== null ? (
+                                            <div>
+                                              <div style={{ fontWeight: '600', color: getScoreColor(finalScore) }}>
+                                                {typeof finalScore === 'number' && finalScore <= 100 ? `${finalScore}%` : finalScore}
+                                              </div>
+                                              {finalGrade && (
+                                                <div style={{ fontSize: '0.7rem', color: getGradeColor(finalGrade) }}>{finalGrade}</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span style={parseStyle("color: var(--color-text-muted); font-size: 0.75rem;")}>N/A</span>
+                                          )
+                                        ) : inProgress ? (
+                                          <div>
+                                            <div style={parseStyle("width: 40px; height: 4px; background: var(--color-border); border-radius: 2px; margin: 0 auto;")}>
+                                              <div style={{ width: `${inProgress.percentComplete || 0}%`, height: '100%', background: 'var(--color-warning)', borderRadius: '2px' }} />
+                                            </div>
+                                            <div style={parseStyle("font-size: 0.65rem; color: var(--color-warning);")}>
+                                              {inProgress.percentComplete || 0}%
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <span style={parseStyle("color: var(--color-text-muted);")}>-</span>
+                                        )}
+                                      </td>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+
+                    {/* Legend */}
+                    <div style={parseStyle("margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid var(--color-border);")}>
+                      <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; font-size: 0.8rem;")}>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-success);")}>■</span> 80%+ (Excellent)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={{ color: '#22d3ee' }}>■</span> 60-79% (Good)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-warning);")}>■</span> 40-59% (Developing)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-error);")}>■</span> Below 40% (Needs Support)
+                        </div>
+                        {selectedClass !== 'all' && studentsWithNoActivity.length > 0 && (
+                          <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                            <span style={parseStyle("display: inline-block; width: 12px; height: 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--color-error);")}></span> No attempts ({studentsWithNoActivity.length} students)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
