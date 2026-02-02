@@ -28,9 +28,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // Compile essays
-    const initialEssay = paragraphs.map(p => p.initialText || p.finalText).join("\n\n");
+    // Check if we have valid initial text for comparison
+    const hasInitialVersions = paragraphs.some(p => p.initialText && p.initialText.trim() !== '');
+
+    // Compile essays - only use initialText if it exists, don't fall back to finalText
+    // This ensures we're comparing actual different versions
+    const initialEssay = paragraphs.map(p => p.initialText || '').join("\n\n").trim();
     const improvedEssay = paragraphs.map(p => p.finalText).join("\n\n");
+
+    // Check if essays are actually different
+    const essaysAreDifferent = initialEssay !== improvedEssay && initialEssay !== '';
     
     // Build level descriptors text
     const levelDescriptorsText = officialMarkScheme.levelDescriptors
@@ -50,11 +57,13 @@ exports.handler = async (event) => {
     const systemPrompt = `You are an experienced ${examBoard || officialMarkScheme.examBoard} examiner marking GCSE English essays according to the official mark scheme.
 
 ## Your Task
-Grade TWO versions of the same essay:
-1. **Initial Version**: The student's first attempt at each paragraph
+${essaysAreDifferent ? `Grade TWO versions of the same essay:
+1. **Initial Version**: The student's first attempt at each paragraph (before revisions)
 2. **Improved Version**: After AI-guided revision
 
-For each version, you must:
+For each version, you must:` : `Grade the student's essay. Note: The student did not make revisions, so you are grading only the final version. You should still provide both initialVersion and improvedVersion in your response, but they will be identical.
+
+You must:`}
 - Assess against each Assessment Objective (AO)
 - Determine the appropriate Level (1-6)
 - Award a specific mark within that level's range
@@ -155,18 +164,17 @@ You must respond with valid JSON in this exact format:
   "examinerComment": "<final encouraging comment from the examiner's perspective>"
 }`;
 
-    const userPrompt = `## Question
+    const userPrompt = essaysAreDifferent ? `## Question
 "${essayTitle}"
 
 ## Student: ${studentName}
 
 ---
 
-## INITIAL VERSION (First Attempt)
+## INITIAL VERSION (First Attempt - Before Revisions)
 
 ${paragraphs.map((p, i) => `### ${p.config.title}
-${p.initialText || '[No initial version recorded - using final version]'}
-${p.initialText ? '' : p.finalText}`).join('\n\n')}
+${p.initialText || '[No text recorded for this paragraph]'}`).join('\n\n')}
 
 ---
 
@@ -177,7 +185,22 @@ ${p.finalText}`).join('\n\n')}
 
 ---
 
-Please grade both versions according to the official ${examBoard || officialMarkScheme.examBoard} mark scheme, providing detailed AO-by-AO assessment and comparison.`;
+Please grade both versions according to the official ${examBoard || officialMarkScheme.examBoard} mark scheme, providing detailed AO-by-AO assessment and comparison.`
+    : `## Question
+"${essayTitle}"
+
+## Student: ${studentName}
+
+---
+
+## ESSAY (Single Version - No Revisions Made)
+
+${paragraphs.map((p, i) => `### ${p.config.title}
+${p.finalText}`).join('\n\n')}
+
+---
+
+Note: The student did not make revisions, so there is only one version to grade. Please grade this single version according to the official ${examBoard || officialMarkScheme.examBoard} mark scheme. For the comparison section, indicate that no changes were made.`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -209,8 +232,12 @@ Please grade both versions according to the official ${examBoard || officialMark
 
     // Add percentage scores for display
     const totalMarks = officialMarkScheme.totalMarks;
-    grading.initialVersion.percentage = Math.round((grading.initialVersion.totalMark / totalMarks) * 100);
-    grading.improvedVersion.percentage = Math.round((grading.improvedVersion.totalMark / totalMarks) * 100);
+    if (grading.initialVersion && grading.initialVersion.totalMark !== undefined) {
+      grading.initialVersion.percentage = Math.round((grading.initialVersion.totalMark / totalMarks) * 100);
+    }
+    if (grading.improvedVersion && grading.improvedVersion.totalMark !== undefined) {
+      grading.improvedVersion.percentage = Math.round((grading.improvedVersion.totalMark / totalMarks) * 100);
+    }
 
     return {
       statusCode: 200,
@@ -220,6 +247,7 @@ Please grade both versions according to the official ${examBoard || officialMark
         grading: grading,
         initialEssay: initialEssay,
         improvedEssay: improvedEssay,
+        hasComparison: essaysAreDifferent,
         markSchemeUsed: {
           examBoard: officialMarkScheme.examBoard,
           qualification: officialMarkScheme.qualification,

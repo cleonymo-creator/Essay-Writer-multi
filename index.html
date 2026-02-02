@@ -21,7 +21,30 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  
+
+  <!-- PDF.js for PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Configure PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // Extract text from PDF file
+    async function extractPdfText(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n\n';
+      }
+      return fullText.trim();
+    }
+  </script>
+
   <!-- Firebase Configuration - Loaded from Netlify Function -->
   <script>
     // Firebase config will be loaded from serverless function
@@ -58,7 +81,7 @@
     window.ESSAYS = {};
     window.ESSAY_LIST = [];
     window.ESSAYS_LOADED = false;
-    
+
     // Dynamic essay loader - fetches manifest.json and loads essay configs
     async function loadEssays() {
       try {
@@ -69,7 +92,7 @@
         }
         const essayIds = await response.json();
         console.log('Found essays in manifest:', essayIds);
-        
+
         // Load each essay config file dynamically
         const loadPromises = essayIds.map(id => {
           return new Promise((resolve) => {
@@ -86,18 +109,42 @@
             document.head.appendChild(script);
           });
         });
-        
+
         // Wait for all essays to load
         await Promise.all(loadPromises);
-        
+
         // Build ESSAY_LIST from loaded ESSAYS object
         window.ESSAY_LIST = Object.values(window.ESSAYS);
         window.ESSAYS_LOADED = true;
-        console.log('All essays loaded:', (window.ESSAY_LIST || []).map(e => e.id));
-        
+        console.log('Static essays loaded:', (window.ESSAY_LIST || []).map(e => e.id));
+
       } catch (error) {
         console.error('Failed to load essays:', error);
         window.ESSAYS_LOADED = true; // Mark as loaded even on error so app can render
+      }
+    }
+
+    // Load custom essays from Firebase (called after Firebase is initialized)
+    async function loadCustomEssays() {
+      try {
+        // Try to fetch custom essays from the netlify function
+        const response = await fetch('/.netlify/functions/manage-essays');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.essays) {
+            console.log('Loading custom essays:', data.essays.length);
+            data.essays.forEach(essay => {
+              if (essay.id && !window.ESSAYS[essay.id]) {
+                window.ESSAYS[essay.id] = { ...essay, isCustom: true };
+              }
+            });
+            // Rebuild ESSAY_LIST
+            window.ESSAY_LIST = Object.values(window.ESSAYS);
+            console.log('Total essays after custom load:', window.ESSAY_LIST.length);
+          }
+        }
+      } catch (error) {
+        console.log('Custom essays not loaded (may require admin auth):', error.message);
       }
     }
   </script>
@@ -4816,7 +4863,61 @@
             console.error('Progress subscription error:', error);
           });
       },
-      
+
+      // =====================================================
+      // ESSAY MANAGEMENT METHODS (Admin only)
+      // =====================================================
+
+      // Get all custom essays from Firebase
+      async getCustomEssays() {
+        await firebaseReadyPromise;
+        if (!db) return [];
+        try {
+          const snapshot = await db.collection('essays').orderBy('createdAt', 'desc').get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+            isCustom: true
+          }));
+        } catch (error) {
+          console.error('Firebase getCustomEssays error:', error);
+          return [];
+        }
+      },
+
+      // Save/import a custom essay
+      async saveCustomEssay(essay) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const essayId = essay.id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          await db.collection('essays').doc(essayId).set({
+            ...essay,
+            id: essayId,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            isCustom: true
+          }, { merge: true });
+          return { success: true, essayId: essayId };
+        } catch (error) {
+          console.error('Firebase saveCustomEssay error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Delete a custom essay
+      async deleteCustomEssay(essayId) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          await db.collection('essays').doc(essayId).delete();
+          return { success: true };
+        } catch (error) {
+          console.error('Firebase deleteCustomEssay error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
       // =====================================================
       // STUDENT AUTHENTICATION METHODS
       // =====================================================
@@ -6457,6 +6558,13 @@
                   >
                     By Student
                   </button>
+                  <button
+                    className={viewMode === 'grades-table' ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={() => setViewMode('grades-table')}
+                    style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.9rem;")}
+                  >
+                    Grades Table
+                  </button>
                 </div>
               </div>
 
@@ -6710,6 +6818,256 @@
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Grades Table View */}
+          {viewMode === 'grades-table' && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Comprehensive Grades Table</h4>
+              <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-lg);")}>
+                Showing 1st draft and final draft scores for assigned essays. {selectedClass !== 'all' && 'Students who have not attempted any essays are also shown.'}
+              </p>
+
+              {(() => {
+                // Get students to display - when class filtered, show ALL class members
+                const studentsToShow = getFilteredStudents();
+
+                // Get assigned essays based on filter
+                let assignedEssayIds = [];
+
+                if (selectedClass !== 'all') {
+                  // Get essays assigned to the selected class
+                  const selectedClassData = classes.find(c => c.id === selectedClass);
+                  const classAssignedEssays = selectedClassData?.assignedEssays || [];
+
+                  // Also get individual assignments for students in this class
+                  const individualAssignments = studentsToShow.flatMap(s => s.individualAssignments || []);
+
+                  assignedEssayIds = [...new Set([...classAssignedEssays, ...individualAssignments])];
+                } else {
+                  // Get all essays assigned to any class
+                  const allClassAssignments = classes.flatMap(c => c.assignedEssays || []);
+
+                  // Get all individual assignments
+                  const allIndividualAssignments = students.flatMap(s => s.individualAssignments || []);
+
+                  assignedEssayIds = [...new Set([...allClassAssignments, ...allIndividualAssignments])];
+                }
+
+                // If no assignments yet, show message
+                if (assignedEssayIds.length === 0) {
+                  return (
+                    <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                      No essays have been assigned yet. Assign essays in the Assignments tab.
+                    </p>
+                  );
+                }
+
+                // Build a map of student email -> essay submissions for quick lookup
+                const studentSubmissionMap = {};
+                const studentProgressMap = {};
+
+                submissions.forEach(sub => {
+                  const email = sub.studentEmail?.toLowerCase();
+                  if (!email) return;
+                  if (!studentSubmissionMap[email]) studentSubmissionMap[email] = {};
+                  studentSubmissionMap[email][sub.essayId] = sub;
+                });
+
+                progress.forEach(prog => {
+                  const email = prog.studentEmail?.toLowerCase();
+                  if (!email) return;
+                  if (!studentProgressMap[email]) studentProgressMap[email] = {};
+                  studentProgressMap[email][prog.essayId] = prog;
+                });
+
+                // Check if student has any activity on assigned essays
+                const hasAnyActivity = (email) => {
+                  const emailLower = email?.toLowerCase();
+                  const subs = studentSubmissionMap[emailLower] || {};
+                  const prog = studentProgressMap[emailLower] || {};
+                  // Check if they have activity on any of the assigned essays
+                  return assignedEssayIds.some(essayId => subs[essayId] || prog[essayId]);
+                };
+
+                // Students with no activity on assigned essays (only shown when class filtered)
+                const studentsWithNoActivity = selectedClass !== 'all'
+                  ? studentsToShow.filter(s => !hasAnyActivity(s.email))
+                  : [];
+
+                return (
+                  <div style={parseStyle("overflow-x: auto;")}>
+                    <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.85rem;")}>
+                      <thead>
+                        <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                          <th style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
+                          {assignedEssayIds.map(essayId => {
+                            const essayInfo = getEssayInfo(essayId);
+                            return (
+                              <th key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
+                                <div style={parseStyle("font-size: 0.8rem;")}>{essayInfo.icon}</div>
+                                <div style={parseStyle("max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;")} title={essayInfo.title}>
+                                  {essayInfo.title || essayId}
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                        <tr style={parseStyle("border-bottom: 1px solid var(--color-border); background: var(--color-bg);")}>
+                          <th style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
+                          {assignedEssayIds.map(essayId => (
+                            <React.Fragment key={essayId}>
+                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
+                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studentsToShow.length === 0 ? (
+                          <tr>
+                            <td colSpan={1 + assignedEssayIds.length * 2} style={parseStyle("padding: var(--space-lg); text-align: center; color: var(--color-text-muted);")}>
+                              No students found{selectedClass !== 'all' ? ' in this class' : ''}.
+                            </td>
+                          </tr>
+                        ) : (
+                          studentsToShow.map((student, idx) => {
+                            const emailLower = student.email?.toLowerCase();
+                            const studentSubs = studentSubmissionMap[emailLower] || {};
+                            const studentProg = studentProgressMap[emailLower] || {};
+                            const noActivity = !hasAnyActivity(student.email);
+
+                            return (
+                              <tr
+                                key={idx}
+                                style={{
+                                  borderBottom: '1px solid var(--color-border-light)',
+                                  background: noActivity ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
+                                }}
+                              >
+                                <td style={parseStyle("padding: var(--space-sm); position: sticky; left: 0; background: inherit;")}>
+                                  <div style={parseStyle("font-weight: 500;")}>{student.name || '-'}</div>
+                                  <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{student.email || '-'}</div>
+                                  {noActivity && (
+                                    <div style={parseStyle("font-size: 0.7rem; color: var(--color-error); font-style: italic;")}>No attempts</div>
+                                  )}
+                                </td>
+                                {assignedEssayIds.map(essayId => {
+                                  const submission = studentSubs[essayId];
+                                  const inProgress = studentProg[essayId];
+
+                                  // Get 1st draft and final scores
+                                  let firstDraftScore = null;
+                                  let firstDraftGrade = null;
+                                  let finalScore = null;
+                                  let finalGrade = null;
+
+                                  if (submission) {
+                                    // Check for official grading first (more accurate)
+                                    if (submission.officialGrading) {
+                                      if (submission.officialGrading.initialVersion) {
+                                        firstDraftScore = submission.officialGrading.initialVersion.percentage || submission.officialGrading.initialVersion.totalMark;
+                                        firstDraftGrade = submission.officialGrading.initialVersion.grade;
+                                      }
+                                      if (submission.officialGrading.improvedVersion) {
+                                        finalScore = submission.officialGrading.improvedVersion.percentage || submission.officialGrading.improvedVersion.totalMark;
+                                        finalGrade = submission.officialGrading.improvedVersion.grade;
+                                      }
+                                    }
+                                    // Fallback to general score/grade if no official grading
+                                    if (finalScore === null && submission.score !== undefined) {
+                                      finalScore = submission.score;
+                                      finalGrade = submission.grade;
+                                    }
+                                  }
+
+                                  return (
+                                    <React.Fragment key={essayId}>
+                                      {/* 1st Draft */}
+                                      <td style={parseStyle("padding: var(--space-xs); text-align: center; border-left: 2px solid var(--color-border);")}>
+                                        {submission ? (
+                                          firstDraftScore !== null ? (
+                                            <div>
+                                              <div style={{ fontWeight: '600', color: getScoreColor(firstDraftScore) }}>
+                                                {typeof firstDraftScore === 'number' && firstDraftScore <= 100 ? `${firstDraftScore}%` : firstDraftScore}
+                                              </div>
+                                              {firstDraftGrade && (
+                                                <div style={{ fontSize: '0.7rem', color: getGradeColor(firstDraftGrade) }}>{firstDraftGrade}</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span style={parseStyle("color: var(--color-text-muted); font-size: 0.75rem;")}>N/A</span>
+                                          )
+                                        ) : inProgress ? (
+                                          <span style={parseStyle("color: var(--color-warning); font-size: 0.75rem;")}>In progress</span>
+                                        ) : (
+                                          <span style={parseStyle("color: var(--color-text-muted);")}>-</span>
+                                        )}
+                                      </td>
+                                      {/* Final */}
+                                      <td style={parseStyle("padding: var(--space-xs); text-align: center;")}>
+                                        {submission ? (
+                                          finalScore !== null ? (
+                                            <div>
+                                              <div style={{ fontWeight: '600', color: getScoreColor(finalScore) }}>
+                                                {typeof finalScore === 'number' && finalScore <= 100 ? `${finalScore}%` : finalScore}
+                                              </div>
+                                              {finalGrade && (
+                                                <div style={{ fontSize: '0.7rem', color: getGradeColor(finalGrade) }}>{finalGrade}</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span style={parseStyle("color: var(--color-text-muted); font-size: 0.75rem;")}>N/A</span>
+                                          )
+                                        ) : inProgress ? (
+                                          <div>
+                                            <div style={parseStyle("width: 40px; height: 4px; background: var(--color-border); border-radius: 2px; margin: 0 auto;")}>
+                                              <div style={{ width: `${inProgress.percentComplete || 0}%`, height: '100%', background: 'var(--color-warning)', borderRadius: '2px' }} />
+                                            </div>
+                                            <div style={parseStyle("font-size: 0.65rem; color: var(--color-warning);")}>
+                                              {inProgress.percentComplete || 0}%
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <span style={parseStyle("color: var(--color-text-muted);")}>-</span>
+                                        )}
+                                      </td>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+
+                    {/* Legend */}
+                    <div style={parseStyle("margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid var(--color-border);")}>
+                      <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; font-size: 0.8rem;")}>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-success);")}>■</span> 80%+ (Excellent)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={{ color: '#22d3ee' }}>■</span> 60-79% (Good)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-warning);")}>■</span> 40-59% (Developing)
+                        </div>
+                        <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                          <span style={parseStyle("color: var(--color-error);")}>■</span> Below 40% (Needs Support)
+                        </div>
+                        {selectedClass !== 'all' && studentsWithNoActivity.length > 0 && (
+                          <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
+                            <span style={parseStyle("display: inline-block; width: 12px; height: 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--color-error);")}></span> No attempts ({studentsWithNoActivity.length} students)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -9308,8 +9666,9 @@
               setIsCheckingTechnical(false);
             } else {
               // No errors - proceed directly to grading
+              // Pass null for originalText so it falls back to originalTextBeforeCorrections
               setIsCheckingTechnical(false);
-              await handleMainGrading(text, text); // original and corrected are the same
+              await handleMainGrading(text, null);
             }
           } else {
             throw new Error(data.error || 'Technical check failed');
@@ -9317,8 +9676,9 @@
         } catch (error) {
           console.error('Technical check error:', error);
           // On error, skip technical check and proceed to grading
+          // Pass null for originalText so it falls back to originalTextBeforeCorrections
           setIsCheckingTechnical(false);
-          await handleMainGrading(text, text);
+          await handleMainGrading(text, null);
         }
       };
       
@@ -10511,6 +10871,14 @@ ${examinerComment}
               </button>
               {isAdmin && (
                 <button
+                  className={activeTab === 'essays' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setActiveTab('essays')}
+                >
+                  Essays
+                </button>
+              )}
+              {isAdmin && (
+                <button
                   className={activeTab === 'teachers' ? 'btn btn-primary' : 'btn btn-secondary'}
                   onClick={() => setActiveTab('teachers')}
                 >
@@ -10519,11 +10887,12 @@ ${examinerComment}
               )}
             </div>
           </div>
-          
+
           {/* Tab Content */}
           {activeTab === 'students' && <StudentManagementPanel />}
           {activeTab === 'assignments' && <AssignmentsPanel />}
           {activeTab === 'performance' && <StudentPerformancePanel />}
+          {activeTab === 'essays' && isAdmin && <EssayManagementPanel />}
           {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
           
           {activeTab === 'submissions' && (
@@ -11229,11 +11598,921 @@ ${examinerComment}
         </div>
       );
     }
-    
+
+    // =====================================================
+    // ESSAY MANAGEMENT PANEL (Admin Only)
+    // =====================================================
+
+    function EssayManagementPanel() {
+      const [essays, setEssays] = useState([]);
+      const [customEssays, setCustomEssays] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState('');
+      const [showImport, setShowImport] = useState(false);
+      const [importText, setImportText] = useState('');
+      const [importError, setImportError] = useState('');
+      const [importLoading, setImportLoading] = useState(false);
+      const [deleteConfirm, setDeleteConfirm] = useState(null);
+      const [selectedFileName, setSelectedFileName] = useState('');
+      const [activeView, setActiveView] = useState('manage'); // 'manage' or 'generate'
+
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      // Handle file selection for import
+      const handleFileSelect = (file) => {
+        setImportError('');
+        setSelectedFileName(file.name);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImportText(e.target.result);
+        };
+        reader.onerror = () => {
+          setImportError('Failed to read file');
+          setSelectedFileName('');
+        };
+        reader.readAsText(file);
+      };
+
+      const loadEssays = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          // Get static essays
+          const staticEssays = window.ESSAY_LIST || [];
+
+          // Get custom essays from Firebase
+          const firebaseReady = await FirebaseDB.isReady();
+          let customList = [];
+          if (firebaseReady) {
+            customList = await FirebaseDB.getCustomEssays();
+          } else {
+            // Try netlify function
+            const response = await fetch('/.netlify/functions/manage-essays', {
+              headers: { 'Authorization': `Bearer ${sessionToken}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+              customList = data.essays || [];
+            }
+          }
+
+          setEssays(staticEssays);
+          setCustomEssays(customList);
+        } catch (err) {
+          console.error('Load essays error:', err);
+          setError('Failed to load essays');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadEssays();
+      }, []);
+
+      const handleImport = async () => {
+        setImportError('');
+        setImportLoading(true);
+
+        try {
+          // Try to parse the input as JSON
+          let essayData;
+          let jsonText = importText.trim();
+
+          // Remove common JavaScript preamble lines
+          jsonText = jsonText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
+
+          // Handle JavaScript format: window.ESSAYS['id'] = {...}
+          if (jsonText.includes('window.ESSAYS[')) {
+            const match = jsonText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+            if (match) {
+              jsonText = match[2];
+            }
+          }
+
+          // Handle window.ESSAY_CONFIG = {...}
+          if (jsonText.includes('window.ESSAY_CONFIG')) {
+            const match = jsonText.match(/window\.ESSAY_CONFIG\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+            if (match) {
+              jsonText = match[1];
+            }
+          }
+
+          // Try parsing as JSON first
+          try {
+            essayData = JSON.parse(jsonText);
+          } catch (e) {
+            // Try evaluating as JavaScript object
+            try {
+              // Create a safe evaluation context
+              const evalFunc = new Function('return (' + jsonText + ')');
+              essayData = evalFunc();
+            } catch (e2) {
+              throw new Error('Could not parse essay data. Please ensure the file contains valid JSON or JavaScript object format.');
+            }
+          }
+
+          // Validate required fields
+          if (!essayData.id) {
+            throw new Error('Essay must have an "id" field');
+          }
+          if (!essayData.title) {
+            throw new Error('Essay must have a "title" field');
+          }
+          if (!essayData.paragraphs || !Array.isArray(essayData.paragraphs)) {
+            throw new Error('Essay must have a "paragraphs" array');
+          }
+
+          // Save via netlify function
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({ essay: essayData })
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to import essay');
+          }
+
+          // Add to window.ESSAYS so it's immediately available
+          window.ESSAYS = window.ESSAYS || {};
+          window.ESSAYS[result.essayId] = { ...essayData, id: result.essayId, isCustom: true };
+          window.ESSAY_LIST = Object.values(window.ESSAYS);
+
+          alert(`Essay "${essayData.title}" imported successfully!`);
+          setShowImport(false);
+          setImportText('');
+          setSelectedFileName('');
+          loadEssays();
+        } catch (err) {
+          console.error('Import error:', err);
+          setImportError(err.message || 'Failed to import essay');
+        } finally {
+          setImportLoading(false);
+        }
+      };
+
+      const handleDelete = async (essayId) => {
+        try {
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({ action: 'delete', essayId: essayId })
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to delete essay');
+          }
+
+          // Remove from window.ESSAYS
+          if (window.ESSAYS && window.ESSAYS[essayId]) {
+            delete window.ESSAYS[essayId];
+            window.ESSAY_LIST = Object.values(window.ESSAYS);
+          }
+
+          setDeleteConfirm(null);
+          loadEssays();
+        } catch (err) {
+          console.error('Delete error:', err);
+          alert('Failed to delete essay: ' + err.message);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center;")}>
+            <LoadingSpinner text="Loading essays..." />
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          {/* View Tabs */}
+          <div style={parseStyle("display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg);")}>
+            <button
+              className={activeView === 'manage' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => setActiveView('manage')}
+            >
+              Manage Essays
+            </button>
+            <button
+              className={activeView === 'generate' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => setActiveView('generate')}
+            >
+              Generate New Essay
+            </button>
+          </div>
+
+          {/* Generate View */}
+          {activeView === 'generate' && (
+            <EssayGeneratorPanel onEssayGenerated={() => { setActiveView('manage'); loadEssays(); }} />
+          )}
+
+          {/* Manage View */}
+          {activeView === 'manage' && (
+          <>
+          {error && (
+            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: rgba(239, 68, 68, 0.1); border-color: var(--color-error);")}>
+              <p style={parseStyle("color: var(--color-error); margin: 0;")}>{error}</p>
+            </div>
+          )}
+
+          {/* Import Button */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center;")}>
+              <div>
+                <h4 style={parseStyle("margin: 0 0 var(--space-xs) 0;")}>Essay Management</h4>
+                <p style={parseStyle("margin: 0; color: var(--color-text-muted); font-size: 0.85rem;")}>
+                  Import and manage custom essays. Static essays ({essays.length}) cannot be edited.
+                </p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setShowImport(true)}>
+                Import Essay
+              </button>
+            </div>
+          </div>
+
+          {/* Import Modal */}
+          {showImport && (
+            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")} onClick={() => setShowImport(false)}>
+              <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
+                  <h3 style={parseStyle("margin: 0;")}>Import Essay</h3>
+                  <button className="btn btn-secondary" onClick={() => setShowImport(false)}>Close</button>
+                </div>
+
+                <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-lg);")}>
+                  Select a JSON or JavaScript essay configuration file to import.
+                </p>
+
+                {/* File Input */}
+                <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                  <label
+                    style={parseStyle("display: block; padding: var(--space-xl); border: 2px dashed var(--color-border); border-radius: var(--radius-lg); text-align: center; cursor: pointer; transition: all 0.2s ease;")}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+                    onDragLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = 'var(--color-border)';
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleFileSelect(file);
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept=".json,.js"
+                      style={parseStyle("display: none;")}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleFileSelect(file);
+                      }}
+                    />
+                    <div style={parseStyle("font-size: 2rem; margin-bottom: var(--space-sm);")}>{importText ? '✓' : '📄'}</div>
+                    {importText ? (
+                      <div>
+                        <div style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs);")}>{selectedFileName || 'File loaded'}</div>
+                        <div style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Click or drop another file to replace</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={parseStyle("font-weight: 600; margin-bottom: var(--space-xs);")}>Click to select file or drag & drop</div>
+                        <div style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Accepts .json or .js files</div>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                {importError && (
+                  <p style={parseStyle("color: var(--color-error); margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border-radius: var(--radius-sm);")}>{importError}</p>
+                )}
+
+                <div style={parseStyle("display: flex; justify-content: flex-end; gap: var(--space-md);")}>
+                  <button className="btn btn-secondary" onClick={() => setShowImport(false)} disabled={importLoading}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={handleImport} disabled={importLoading || !importText.trim()}>
+                    {importLoading ? 'Importing...' : 'Import Essay'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Essays */}
+          <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Custom Essays ({customEssays.length})</h4>
+            {customEssays.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No custom essays imported yet. Click "Import Essay" to add one.
+              </p>
+            ) : (
+              <div style={parseStyle("overflow-x: auto;")}>
+                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                  <thead>
+                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Created By</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customEssays.map((essay, idx) => (
+                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                        <td style={parseStyle("padding: var(--space-md);")}>
+                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
+                          {essay.title}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{essay.createdByName || essay.createdBy || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                          {deleteConfirm === essay.id ? (
+                            <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: center;")}>
+                              <button
+                                className="btn btn-secondary"
+                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                                onClick={() => setDeleteConfirm(null)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="btn"
+                                style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem; background: var(--color-error); color: white;")}
+                                onClick={() => handleDelete(essay.id)}
+                              >
+                                Confirm
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="btn btn-secondary"
+                              style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                              onClick={() => setDeleteConfirm(essay.id)}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Static Essays (Read Only) */}
+          <div className="card">
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Static Essays ({essays.length})</h4>
+            <p style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--space-md);")}>
+              These essays are defined in static files and cannot be edited through this interface.
+            </p>
+            {essays.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+                No static essays found.
+              </p>
+            ) : (
+              <div style={parseStyle("overflow-x: auto;")}>
+                <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                  <thead>
+                    <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Title</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>ID</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Subject</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Paragraphs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {essays.filter(e => !e.isCustom).map((essay, idx) => (
+                      <tr key={idx} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                        <td style={parseStyle("padding: var(--space-md);")}>
+                          {essay.icon && <span style={parseStyle("margin-right: var(--space-xs);")}>{essay.icon}</span>}
+                          {essay.title}
+                        </td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-family: monospace; font-size: 0.85rem;")}>{essay.id}</td>
+                        <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{essay.subject || '-'}</td>
+                        <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{essay.paragraphs?.length || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </>
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
+    // ESSAY GENERATOR PANEL (Admin Only)
+    // =====================================================
+
+    function EssayGeneratorPanel({ onEssayGenerated }) {
+      const [step, setStep] = useState(1);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [generationStatus, setGenerationStatus] = useState('');
+      const [generatedConfig, setGeneratedConfig] = useState(null);
+      const [error, setError] = useState('');
+
+      // Form state
+      const [subject, setSubject] = useState('');
+      const [yearGroup, setYearGroup] = useState('');
+      const [examBoard, setExamBoard] = useState('');
+      const [totalMarks, setTotalMarks] = useState('');
+      const [timeAllowed, setTimeAllowed] = useState('');
+      const [paperName, setPaperName] = useState('');
+      const [examQuestion, setExamQuestion] = useState('');
+      const [sourceMaterial, setSourceMaterial] = useState('');
+      const [sourceFiles, setSourceFiles] = useState([]);
+      const [markScheme, setMarkScheme] = useState('');
+      const [markSchemeFile, setMarkSchemeFile] = useState(null);
+      const [additionalNotes, setAdditionalNotes] = useState('');
+      const [minWords, setMinWords] = useState('80');
+      const [targetWords, setTargetWords] = useState('150');
+      const [maxAttempts, setMaxAttempts] = useState('3');
+
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      // File handling
+      const handleSourceFileUpload = async (files) => {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) {
+            alert('File too large. Maximum 10MB.');
+            continue;
+          }
+
+          try {
+            let fileData;
+            if (file.type === 'application/pdf') {
+              const extractedText = await extractPdfText(file);
+              fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+            } else if (file.type.startsWith('image/')) {
+              const base64 = await readFileAsBase64(file);
+              fileData = { name: file.name, type: file.type, content: base64 };
+            } else {
+              alert('Unsupported file type. Use PDF or images.');
+              continue;
+            }
+            setSourceFiles(prev => [...prev, fileData]);
+          } catch (err) {
+            console.error('File processing error:', err);
+            alert('Error processing file: ' + err.message);
+          }
+        }
+      };
+
+      const handleMarkSchemeUpload = async (file) => {
+        if (file.size > 10 * 1024 * 1024) {
+          alert('File too large. Maximum 10MB.');
+          return;
+        }
+
+        try {
+          let fileData;
+          if (file.type === 'application/pdf') {
+            const extractedText = await extractPdfText(file);
+            fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+          } else if (file.type.startsWith('image/')) {
+            const base64 = await readFileAsBase64(file);
+            fileData = { name: file.name, type: file.type, content: base64 };
+          } else {
+            alert('Unsupported file type. Use PDF or images.');
+            return;
+          }
+          setMarkSchemeFile(fileData);
+        } catch (err) {
+          console.error('File processing error:', err);
+          alert('Error processing file: ' + err.message);
+        }
+      };
+
+      const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      };
+
+      // Validation
+      const validateStep = (stepNum) => {
+        if (stepNum === 1) {
+          if (!subject.trim()) { alert('Subject is required'); return false; }
+          if (!yearGroup.trim()) { alert('Year Group is required'); return false; }
+          if (!totalMarks) { alert('Total Marks is required'); return false; }
+        }
+        if (stepNum === 2) {
+          if (!examQuestion.trim()) { alert('Exam question is required'); return false; }
+        }
+        if (stepNum === 3) {
+          if (!markScheme.trim() && !markSchemeFile) {
+            alert('Please provide a mark scheme (text or file)');
+            return false;
+          }
+        }
+        return true;
+      };
+
+      const nextStep = () => {
+        if (validateStep(step) && step < 4) {
+          setStep(step + 1);
+        }
+      };
+
+      const prevStep = () => {
+        if (step > 1) setStep(step - 1);
+      };
+
+      // Generate essay
+      const handleGenerate = async () => {
+        setIsGenerating(true);
+        setError('');
+        setGenerationStatus('Starting generation...');
+
+        try {
+          const payload = {
+            subject, yearGroup, examBoard, totalMarks: parseInt(totalMarks),
+            timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
+            paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
+            additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
+            maxAttempts: parseInt(maxAttempts)
+          };
+
+          // Start job
+          const startRes = await fetch('/.netlify/functions/generate-essay-start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify(payload)
+          });
+
+          const startData = await startRes.json();
+          if (!startData.success) throw new Error(startData.error || 'Failed to start generation');
+
+          const jobId = startData.jobId;
+          setGenerationStatus('Processing with AI (this may take a few minutes)...');
+
+          // Trigger background processing
+          fetch('/.netlify/functions/generate-essay-background', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId })
+          }).catch(() => {});
+
+          // Poll for result
+          let result = null;
+          for (let i = 0; i < 120; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+
+            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
+              headers: { 'Authorization': 'Bearer ' + sessionToken }
+            });
+            const checkData = await checkRes.json();
+
+            if (checkData.status === 'completed') {
+              result = checkData;
+              break;
+            } else if (checkData.status === 'error') {
+              throw new Error(checkData.error || 'Generation failed');
+            }
+
+            setGenerationStatus('Processing with AI... (' + Math.round((i+1)*3/60) + ' min)');
+          }
+
+          if (!result) throw new Error('Generation timed out');
+
+          setGeneratedConfig(result.config);
+          setGenerationStatus('');
+          setStep(5);
+
+        } catch (err) {
+          console.error('Generation error:', err);
+          setError(err.message || 'Generation failed');
+          setGenerationStatus('');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      // Save to Firebase
+      const handleSaveEssay = async () => {
+        if (!generatedConfig) return;
+
+        try {
+          // Parse the generated JavaScript config to extract essay data
+          let essayData = null;
+          let configText = generatedConfig.trim();
+
+          // Remove the preamble
+          configText = configText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
+
+          // Extract the essay object from window.ESSAYS['id'] = {...}
+          const match = configText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+          if (match) {
+            const essayId = match[1];
+            const objectText = match[2];
+            try {
+              const evalFunc = new Function('return (' + objectText + ')');
+              essayData = evalFunc();
+              essayData.id = essayId;
+            } catch (e) {
+              console.error('Failed to parse essay config:', e);
+              throw new Error('Failed to parse generated essay configuration');
+            }
+          }
+
+          if (!essayData) {
+            throw new Error('Could not extract essay data from generated config');
+          }
+
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({ essay: essayData })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            alert('Essay saved successfully!');
+            if (onEssayGenerated) onEssayGenerated();
+            // Reset form
+            setStep(1);
+            setGeneratedConfig(null);
+            setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
+            setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
+            setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
+          } else {
+            throw new Error(result.error || 'Failed to save');
+          }
+        } catch (err) {
+          alert('Error saving essay: ' + err.message);
+        }
+      };
+
+      // Render steps indicator
+      const renderSteps = () => (
+        <div style={parseStyle("display: flex; justify-content: center; gap: var(--space-md); margin-bottom: var(--space-xl);")}>
+          {[1,2,3,4,5].map(s => (
+            <div key={s} style={parseStyle("display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);")}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: '600', fontSize: '0.9rem',
+                background: s === step ? 'var(--color-primary)' : s < step ? 'var(--color-success)' : 'var(--color-border)',
+                color: s <= step ? 'white' : 'var(--color-text-muted)'
+              }}>{s < step ? '✓' : s}</div>
+              <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{
+                s === 1 ? 'Details' : s === 2 ? 'Question' : s === 3 ? 'Mark Scheme' : s === 4 ? 'Generate' : 'Result'
+              }</span>
+            </div>
+          ))}
+        </div>
+      );
+
+      return (
+        <div>
+          {renderSteps()}
+
+          {/* Step 1: Exam Details */}
+          {step === 1 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Information</h4>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
+                  <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
+                    placeholder="e.g., GCSE English Literature" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Year Group *</label>
+                  <input type="text" value={yearGroup} onChange={e => setYearGroup(e.target.value)}
+                    placeholder="e.g., Year 11" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
+                  <input type="text" value={examBoard} onChange={e => setExamBoard(e.target.value)}
+                    placeholder="e.g., AQA" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
+                  <input type="number" value={totalMarks} onChange={e => setTotalMarks(e.target.value)}
+                    placeholder="e.g., 40" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Time (minutes)</label>
+                  <input type="number" value={timeAllowed} onChange={e => setTimeAllowed(e.target.value)}
+                    placeholder="e.g., 45" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Paper/Component Name</label>
+                <input type="text" value={paperName} onChange={e => setPaperName(e.target.value)}
+                  placeholder="e.g., Paper 2 Section B" className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: flex-end;")}>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Exam Question */}
+          {step === 2 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Question</h4>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>The Question *</label>
+                <textarea value={examQuestion} onChange={e => setExamQuestion(e.target.value)}
+                  placeholder="Enter the exact exam question as students would see it..."
+                  className="paragraph-editor" style={parseStyle("min-height: 120px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Material (if any)</label>
+                <textarea value={sourceMaterial} onChange={e => setSourceMaterial(e.target.value)}
+                  placeholder="Paste any text extracts, passages, or data that students need to reference..."
+                  className="paragraph-editor" style={parseStyle("min-height: 100px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Images/PDFs</label>
+                <div style={parseStyle("border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); text-align: center;")}>
+                  <input type="file" accept=".pdf,image/*" multiple style={parseStyle("display: none;")} id="sourceFileInput"
+                    onChange={e => handleSourceFileUpload(Array.from(e.target.files))} />
+                  <label htmlFor="sourceFileInput" style={parseStyle("cursor: pointer;")}>
+                    <div style={parseStyle("color: var(--color-text-muted);")}>{sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'Click to upload PDFs or images'}</div>
+                  </label>
+                </div>
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Mark Scheme */}
+          {step === 3 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Mark Scheme</h4>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Mark Scheme Text</label>
+                <textarea value={markScheme} onChange={e => setMarkScheme(e.target.value)}
+                  placeholder="Paste the mark scheme criteria here..."
+                  className="paragraph-editor" style={parseStyle("min-height: 150px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Or Upload Mark Scheme File</label>
+                <div style={parseStyle("border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); text-align: center;")}>
+                  <input type="file" accept=".pdf,image/*" style={parseStyle("display: none;")} id="markSchemeInput"
+                    onChange={e => e.target.files[0] && handleMarkSchemeUpload(e.target.files[0])} />
+                  <label htmlFor="markSchemeInput" style={parseStyle("cursor: pointer;")}>
+                    <div style={parseStyle("color: var(--color-text-muted);")}>{markSchemeFile ? markSchemeFile.name : 'Click to upload PDF or image'}</div>
+                  </label>
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Additional Notes for AI</label>
+                <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)}
+                  placeholder="Any specific instructions or focus areas..."
+                  className="paragraph-editor" style={parseStyle("min-height: 80px;")} />
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review & Generate */}
+          {step === 4 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Review & Generate</h4>
+
+              <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                <p><strong>Subject:</strong> {subject}</p>
+                <p><strong>Year Group:</strong> {yearGroup}</p>
+                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}</p>
+                <p><strong>Total Marks:</strong> {totalMarks}</p>
+                <p><strong>Time:</strong> {timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}</p>
+                <p><strong>Question:</strong> {examQuestion.substring(0, 100)}{examQuestion.length > 100 ? '...' : ''}</p>
+                <p><strong>Source Files:</strong> {sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'None'}</p>
+                <p><strong>Mark Scheme:</strong> {markSchemeFile ? markSchemeFile.name : (markScheme ? 'Provided (text)' : 'Not provided')}</p>
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Min Words/Para</label>
+                  <input type="number" value={minWords} onChange={e => setMinWords(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Target Words/Para</label>
+                  <input type="number" value={targetWords} onChange={e => setTargetWords(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Max Attempts</label>
+                  <input type="number" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              {error && (
+                <div style={parseStyle("background: var(--color-error-bg); border: 1px solid var(--color-error); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              {generationStatus && (
+                <div style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
+                  <div style={parseStyle("margin-bottom: var(--space-sm);")}>{generationStatus}</div>
+                  <div className="loading-spinner" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep} disabled={isGenerating}>Back</button>
+                <button className="btn btn-primary" onClick={handleGenerate} disabled={isGenerating}>
+                  {isGenerating ? 'Generating...' : 'Generate Essay Config'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Result */}
+          {step === 5 && generatedConfig && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Generated Essay Configuration</h4>
+
+              <div style={parseStyle("background: var(--color-success-bg); border: 1px solid var(--color-success); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); color: var(--color-success);")}>
+                Essay configuration generated successfully!
+              </div>
+
+              <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); max-height: 400px; overflow: auto;")}>
+                <pre style={parseStyle("font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin: 0;")}>
+                  {generatedConfig.substring(0, 2000)}{generatedConfig.length > 2000 ? '...' : ''}
+                </pre>
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={() => setStep(1)}>Start New</button>
+                <div style={parseStyle("display: flex; gap: var(--space-md);")}>
+                  <button className="btn btn-secondary" onClick={() => {
+                    const blob = new Blob([generatedConfig], { type: 'application/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'essay-config.js';
+                    a.click();
+                  }}>Download File</button>
+                  <button className="btn btn-primary" onClick={handleSaveEssay}>Save to System</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // =====================================================
     // TEACHER MANAGEMENT PANEL (Admin Only)
     // =====================================================
-    
+
     function TeacherManagementPanel() {
       const [teachers, setTeachers] = React.useState([]);
       const [loading, setLoading] = React.useState(true);
@@ -12023,6 +13302,15 @@ ${examinerComment}
       // Check for existing session on load (both student and teacher)
       useEffect(() => {
         const checkSession = async () => {
+          // Load custom essays from Firebase if available
+          if (typeof loadCustomEssays === 'function') {
+            try {
+              await loadCustomEssays();
+            } catch (e) {
+              console.log('Custom essays load skipped:', e.message);
+            }
+          }
+
           // Check for teacher session first
           if (TeacherAuth.isLoggedIn()) {
             const teacherResult = await TeacherAuth.verifySession();
@@ -12033,7 +13321,7 @@ ${examinerComment}
               return;
             }
           }
-          
+
           // Check for student session
           const savedToken = localStorage.getItem('studentSession');
           const savedStudent = localStorage.getItem('studentData');
@@ -12647,12 +13935,18 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         setIsLoadingOfficialGrading(true);
         
         try {
-          const paragraphData = PARAGRAPHS.map(p => ({
-            config: p,
-            finalText: paragraphStates[p.id]?.finalText || '',
-            initialText: paragraphStates[p.id]?.initialText || paragraphStates[p.id]?.finalText || '',
-            attempts: paragraphStates[p.id]?.attempts || 0
-          }));
+          const paragraphData = PARAGRAPHS.map(p => {
+            const state = paragraphStates[p.id] || {};
+            // Use initialText first, then originalBeforeCorrections, but NOT finalText
+            // This ensures we get the true first draft, not the improved version
+            const firstDraftText = state.initialText || state.originalBeforeCorrections || '';
+            return {
+              config: p,
+              finalText: state.finalText || '',
+              initialText: firstDraftText,
+              attempts: state.attempts || 0
+            };
+          });
           
           const response = await fetch('/.netlify/functions/grade-official', {
             method: 'POST',
