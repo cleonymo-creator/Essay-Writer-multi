@@ -15,6 +15,11 @@
   # Use Node.js 18 for all functions
   node_bundler = "esbuild"
 
+# Extended timeout for essay generation (15 minutes for AI processing)
+[functions."generate-essay-background"]
+  external_node_modules = ["@netlify/blobs"]
+  # Background functions get 15 minute timeout automatically
+
 # Headers for all pages
 [[headers]]
   for = "/*"
