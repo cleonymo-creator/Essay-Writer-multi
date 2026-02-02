@@ -128,25 +128,10 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Verify admin session for all operations
-    const sessionToken = getSessionToken(event);
-    const sessionCheck = await verifyAdminSession(sessionToken);
-
-    if (!sessionCheck.valid) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: sessionCheck.error || 'Admin access required'
-        })
-      };
-    }
-
     const db = initializeFirebase();
     const essaysStore = getStore("custom-essays");
 
-    // GET - List all custom essays
+    // GET - List all custom essays (PUBLIC - no auth required for reading)
     if (event.httpMethod === 'GET') {
       let essays = [];
 
@@ -190,8 +175,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // POST - Create/Import a new essay
+    // POST - Create/Import/Delete essays (ADMIN ONLY)
     if (event.httpMethod === 'POST') {
+      // Verify admin session for write operations
+      const sessionToken = getSessionToken(event);
+      const sessionCheck = await verifyAdminSession(sessionToken);
+
+      if (!sessionCheck.valid) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: sessionCheck.error || 'Admin access required'
+          })
+        };
+      }
+
       const body = JSON.parse(event.body);
       const { action, essay, essayId } = body;
 
