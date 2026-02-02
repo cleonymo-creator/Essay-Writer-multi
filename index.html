@@ -17,6 +17,9 @@
   
   <!-- Marked for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Lucide Icons - Clean SVG icon library -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -223,13 +226,14 @@
       --radius-2xl: 28px;
       --radius-full: 9999px;
       
-      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-      --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-      --shadow-gold: 0 0 30px rgba(184, 134, 11, 0.3);
-      --shadow-gold-strong: 0 5px 20px rgba(184, 134, 11, 0.4);
-      --shadow-inset-gold: inset 0 0 20px rgba(184, 134, 11, 0.1);
+      /* Refined shadows - softer and more elegant */
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.12);
+      --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
+      --shadow-xl: 0 12px 28px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.15);
+      --shadow-gold: 0 0 20px rgba(184, 134, 11, 0.15);
+      --shadow-gold-strong: 0 4px 16px rgba(184, 134, 11, 0.25);
+      --shadow-inset-gold: inset 0 0 12px rgba(184, 134, 11, 0.08);
       
       /* Transitions */
       --transition-fast: 150ms ease;
@@ -453,6 +457,23 @@
       width: 20px;
       text-align: center;
       font-size: 1rem;
+      color: var(--color-primary-light);
+      opacity: 0.8;
+      transition: opacity 0.15s ease;
+    }
+
+    .sidebar-item:hover .sidebar-item-icon,
+    .sidebar-item.active .sidebar-item-icon {
+      opacity: 1;
+    }
+
+    /* Lucide icon styling */
+    .lucide-icon {
+      line-height: 1;
+    }
+
+    .lucide-icon svg {
+      display: block;
     }
 
     .sidebar-item-badge {
@@ -617,28 +638,28 @@
        ===================================================== */
     
     .card {
-      background: linear-gradient(145deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+      background: linear-gradient(145deg, rgba(30, 30, 50, 0.92), rgba(22, 22, 42, 0.95));
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
       margin-bottom: var(--space-lg);
-      border: 2px solid var(--color-border);
-      box-shadow: var(--shadow-inset-gold), var(--shadow-md);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-md);
       transition: all var(--transition-base);
       position: relative;
     }
-    
+
     .card::before {
       content: '';
       position: absolute;
-      inset: 3px;
-      border: 1px solid rgba(184, 134, 11, 0.15);
-      border-radius: calc(var(--radius-lg) - 3px);
+      inset: 0;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(184, 134, 11, 0.08);
       pointer-events: none;
     }
-    
+
     .card:hover {
-      border-color: var(--color-primary);
-      box-shadow: var(--shadow-inset-gold), var(--shadow-gold);
+      border-color: rgba(184, 134, 11, 0.5);
+      box-shadow: var(--shadow-lg), var(--shadow-gold);
     }
     
     .card-elevated {
@@ -2071,28 +2092,31 @@
     }
     
     .btn-primary {
-      background: linear-gradient(135deg, #b8860b 0%, #daa520 50%, #b8860b 100%);
+      background: linear-gradient(135deg, #b8860b 0%, #c99a14 50%, #b8860b 100%);
       color: var(--color-text-inverse);
+      box-shadow: var(--shadow-sm);
     }
-    
+
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-gold-strong);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md), var(--shadow-gold);
     }
-    
+
     .btn-primary:active:not(:disabled) {
       transform: translateY(0);
+      box-shadow: var(--shadow-sm);
     }
-    
+
     .btn-secondary {
-      background: rgba(30, 30, 50, 0.8);
+      background: rgba(30, 30, 50, 0.9);
       color: var(--color-text);
-      border: 2px solid var(--color-border);
+      border: 1px solid var(--color-border);
     }
-    
+
     .btn-secondary:hover:not(:disabled) {
       border-color: var(--color-primary);
       background: var(--color-surface-hover);
+      box-shadow: var(--shadow-sm);
     }
     
     .btn-success {
@@ -4558,41 +4582,42 @@
     }
     
     .essay-card {
-      background: linear-gradient(145deg, var(--color-surface) 0%, rgba(30, 40, 60, 0.95) 100%);
-      border: 2px solid var(--color-border);
+      background: linear-gradient(145deg, rgba(28, 32, 48, 0.95) 0%, rgba(24, 28, 44, 0.98) 100%);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
       cursor: pointer;
       transition: all var(--transition-base);
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
-    
+
     .essay-card::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 4px;
+      height: 3px;
       background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
       opacity: 0;
       transition: opacity var(--transition-base);
     }
-    
+
     .essay-card:hover {
-      border-color: var(--color-primary);
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg), var(--shadow-gold);
+      border-color: rgba(184, 134, 11, 0.5);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md), var(--shadow-gold);
     }
-    
+
     .essay-card:hover::before {
       opacity: 1;
     }
-    
+
     .essay-card-icon {
-      font-size: 2.5rem;
       margin-bottom: var(--space-md);
+      opacity: 0.9;
     }
     
     .essay-card-title {
@@ -4818,8 +4843,101 @@
       });
       return out;
     };
-    
-    
+
+    // =====================================================
+    // LUCIDE ICON COMPONENT
+    // Clean, single-color SVG icons for a refined UI
+    // =====================================================
+
+    const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 2, className = '', style = {} }) => {
+      const iconRef = useRef(null);
+
+      useEffect(() => {
+        if (iconRef.current && window.lucide) {
+          // Clear any existing content
+          iconRef.current.innerHTML = '';
+          // Create the icon
+          const iconElement = window.lucide.createElement(window.lucide.icons[name]);
+          if (iconElement) {
+            iconElement.setAttribute('width', size);
+            iconElement.setAttribute('height', size);
+            iconElement.setAttribute('stroke', color);
+            iconElement.setAttribute('stroke-width', strokeWidth);
+            iconRef.current.appendChild(iconElement);
+          }
+        }
+      }, [name, size, color, strokeWidth]);
+
+      return React.createElement('span', {
+        ref: iconRef,
+        className: `lucide-icon ${className}`,
+        style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }
+      });
+    };
+
+    // Icon name mapping for semantic usage
+    const ICONS = {
+      // Navigation
+      inbox: 'inbox',
+      chart: 'bar-chart-3',
+      users: 'users',
+      clipboard: 'clipboard-list',
+      fileText: 'file-text',
+      graduationCap: 'graduation-cap',
+      refresh: 'refresh-cw',
+      key: 'key-round',
+      logout: 'log-out',
+
+      // Content
+      book: 'book-open',
+      bookMarked: 'bookmark',
+      target: 'target',
+      lightbulb: 'lightbulb',
+      check: 'check',
+      checkCircle: 'check-circle',
+      x: 'x',
+      xCircle: 'x-circle',
+      alertTriangle: 'alert-triangle',
+      info: 'info',
+
+      // Actions
+      play: 'play',
+      pause: 'pause',
+      stop: 'square',
+      edit: 'pencil',
+      download: 'download',
+      upload: 'upload',
+      file: 'file',
+      plus: 'plus',
+      minus: 'minus',
+      trash: 'trash-2',
+
+      // UI
+      chevronDown: 'chevron-down',
+      chevronRight: 'chevron-right',
+      chevronUp: 'chevron-up',
+      menu: 'menu',
+      settings: 'settings',
+      star: 'star',
+      award: 'award',
+      trophy: 'trophy',
+      sparkles: 'sparkles',
+      send: 'send',
+
+      // Essay categories
+      history: 'scroll',
+      science: 'flask-conical',
+      literature: 'book-open-text',
+      geography: 'globe',
+      art: 'palette',
+      music: 'music',
+      math: 'calculator',
+      language: 'languages',
+      philosophy: 'brain',
+      default: 'file-text'
+    };
+
+
     // =====================================================
     // MULTI-ESSAY CONFIGURATION
     // =====================================================
@@ -5930,24 +6048,24 @@
         <div className="tts-controls">
           {!isPlaying && !isPaused ? (
             <button className="tts-button" onClick={handlePlay} title={label}>
-              <span className="tts-icon">▶</span>
+              <span className="tts-icon"><Icon name={ICONS.play} size={14} /></span>
               <span>{label}</span>
             </button>
           ) : (
             <>
               {isPlaying ? (
                 <button className="tts-button playing" onClick={handlePause} title="Pause">
-                  <span className="tts-icon">❚❚</span>
+                  <span className="tts-icon"><Icon name={ICONS.pause} size={14} /></span>
                   <span>Pause</span>
                 </button>
               ) : (
                 <button className="tts-button" onClick={handlePlay} title="Resume">
-                  <span className="tts-icon">▶</span>
+                  <span className="tts-icon"><Icon name={ICONS.play} size={14} /></span>
                   <span>Resume</span>
                 </button>
               )}
               <button className="tts-button" onClick={handleStop} title="Stop">
-                <span className="tts-icon">■</span>
+                <span className="tts-icon"><Icon name={ICONS.stop} size={14} /></span>
                 <span>Stop</span>
               </button>
             </>
@@ -6831,8 +6949,8 @@
                               <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Avg Score</div>
                             </div>
                           )}
-                          <div style={parseStyle("font-size: 1.2rem; color: var(--color-text-muted);")}>
-                            {isExpanded ? '▼' : '▶'}
+                          <div style={parseStyle("color: var(--color-text-muted);")}>
+                            <Icon name={isExpanded ? ICONS.chevronDown : ICONS.chevronRight} size={20} />
                           </div>
                         </div>
                       </div>
@@ -8415,15 +8533,15 @@
                       style={savedProgress ? { borderColor: 'var(--color-primary)' } : {}}
                     >
                       {savedProgress && (
-                        <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {savedProgress.isComplete ? '✓ Complete' : `${savedProgress.percentComplete}% done`}
+                        <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', background: savedProgress.isComplete ? 'var(--color-success)' : 'var(--color-primary)', color: 'white', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {savedProgress.isComplete ? <><Icon name={ICONS.check} size={12} /> Complete</> : `${savedProgress.percentComplete}% done`}
                         </div>
                       )}
-                      <div className="essay-card-icon">{essay.icon || '📚'}</div>
+                      <div className="essay-card-icon"><Icon name={ICONS.book} size={40} color="var(--color-primary-light)" /></div>
                       <h3 className="essay-card-title">{essay.title}</h3>
                       <div className="essay-card-meta">
-                        <span>📑 {essay.subject}</span>
-                        <span>🎓 {essay.yearGroup}</span>
+                        <span><Icon name={ICONS.bookMarked} size={14} style={{marginRight: '4px'}} /> {essay.subject}</span>
+                        <span><Icon name={ICONS.graduationCap} size={14} style={{marginRight: '4px'}} /> {essay.yearGroup}</span>
                       </div>
                       <p className="essay-card-description">{essay.description}</p>
                       <div className="essay-card-stats">
@@ -8657,7 +8775,7 @@
                 fontWeight: 700,
                 fontSize: '1rem'
               }}>
-                <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                <Icon name={ICONS.alertTriangle} size={20} />
                 Authenticity Check: Please Review
               </div>
               <p style={{
@@ -8728,7 +8846,7 @@
                 color: 'var(--color-text-muted)',
                 fontStyle: 'italic'
               }}>
-                💡 Tip: If you used AI tools, please revise this paragraph using your own words and understanding. Your teacher wants to see YOUR thinking!
+                <span style={{display: 'inline-flex', alignItems: 'center', gap: '4px'}}><Icon name={ICONS.lightbulb} size={14} /> Tip:</span> If you used AI tools, please revise this paragraph using your own words and understanding. Your teacher wants to see YOUR thinking!
               </p>
             </div>
           )}
@@ -8860,8 +8978,8 @@
                 </button>
               </>
             ) : (
-              <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%;")}>
-                  ✓ Complete & Continue to Next Section
+              <button className="btn btn-success btn-large" onClick={onAccept} style={parseStyle("width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;")}>
+                  <Icon name={ICONS.check} size={18} /> Complete & Continue to Next Section
               </button>
             )}
           </div>
@@ -9074,8 +9192,8 @@
                 {/* Show logged-in student info or ask for name/email */}
                 {isLoggedIn ? (
                   <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-success-bg); border-radius: var(--radius-md); border: 1px solid var(--color-success);")}>
-                    <p style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs);")}>
-                      ✓ Logged in as:
+                    <p style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs); display: flex; align-items: center; gap: 6px;")}>
+                      <Icon name={ICONS.checkCircle} size={16} /> Logged in as:
                     </p>
                     <p style={parseStyle("font-size: 1.1rem; font-weight: 600; margin: 0;")}>
                       {loggedInStudent.name}
@@ -9161,8 +9279,8 @@
 
                 {/* TARGET GRADE SELECTOR */}
                 <div className="grade-selector">
-                  <label className="grade-selector-label">
-                     🎯 What grade are you aiming for?
+                  <label className="grade-selector-label" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                     <Icon name={ICONS.target} size={20} /> What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
                     This helps us personalise the feedback to support your learning journey
@@ -9457,12 +9575,12 @@
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <h3 className="source-material-title">
-              <span className="source-material-title-icon">📖</span>
+              <span className="source-material-title-icon"><Icon name={ICONS.book} size={20} /></span>
               Source Text
             </h3>
             <div className="source-material-toggle">
               <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
-              <span className="source-material-toggle-icon">▼</span>
+              <span className="source-material-toggle-icon"><Icon name={isExpanded ? ICONS.chevronUp : ICONS.chevronDown} size={16} /></span>
             </div>
           </div>
           
@@ -9621,7 +9739,7 @@
         return (
           <div className="technical-check-panel">
             <div className="errors-complete-celebration">
-              <div className="celebration-icon">🎉</div>
+              <div className="celebration-icon"><Icon name={ICONS.sparkles} size={48} color="var(--color-primary-light)" /></div>
               <h3 className="celebration-title">Technical Check Complete!</h3>
               <p className="celebration-text">
                 {correctedCount > 0 ? (
@@ -9648,7 +9766,7 @@
         <div className="technical-check-panel ghost-appear">
           <div className="technical-check-header">
             <h3 className="technical-check-title">
-              <span>✏️</span>
+              <Icon name={ICONS.edit} size={20} />
               Technical Check
             </h3>
             <div className="technical-check-progress">
@@ -9691,15 +9809,15 @@
             {/* Rule explanation */}
             <div className="error-rule">
               <div className="error-rule-label">
-                <span>📚</span> The Rule
+                <Icon name={ICONS.book} size={16} /> The Rule
               </div>
               <div className="error-rule-text">{currentError.rule}</div>
             </div>
-            
+
             {/* Hint */}
             <div className="error-hint">
               <div className="error-hint-label">
-                <span>💡</span> Hint
+                <Icon name={ICONS.lightbulb} size={16} /> Hint
               </div>
               <div className="error-hint-text">{currentError.hint}</div>
             </div>
@@ -9731,7 +9849,7 @@
               />
               {correctionMessage && (
                 <div className={`correction-feedback ${correctionStatus}`}>
-                  {correctionStatus === 'success' ? '✓' : correctionStatus === 'skipped' ? '⏭️' : '✗'} {correctionMessage}
+                  <Icon name={correctionStatus === 'success' ? ICONS.check : correctionStatus === 'skipped' ? ICONS.chevronRight : ICONS.x} size={14} /> {correctionMessage}
                 </div>
               )}
             </div>
@@ -9755,12 +9873,13 @@
             >
               Skip This Error →
             </button>
-            <button 
+            <button
               className="btn btn-primary"
               onClick={handleSubmitCorrection}
               disabled={!correctionInput.trim() || correctionStatus === 'success' || correctionStatus === 'skipped'}
+              style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}
             >
-              {correctionStatus === 'success' ? 'Correct! ✓' : 'Submit Correction'}
+              {correctionStatus === 'success' ? <><Icon name={ICONS.check} size={16} /> Correct!</> : 'Submit Correction'}
             </button>
           </div>
         </div>
@@ -10129,8 +10248,8 @@
                 </div>
               ) : (
                 <div style={parseStyle("margin-top: var(--space-lg);")}>
-                  <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit}>
-                    ✏️ Check & Submit for Feedback
+                  <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit} style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+                    <Icon name={ICONS.send} size={18} /> Check & Submit for Feedback
                   </button>
                   <p style={{ 
                     fontSize: '0.85rem', 
@@ -10592,14 +10711,14 @@ ${examinerComment}
               
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
-                <VersionCard version={initialVersion} title=" Initial Version (First Attempt)" isImproved={false} />
-                <VersionCard version={improvedVersion} title="✅ Improved Version (Final)" isImproved={true} />
+                <VersionCard version={initialVersion} title="Initial Version (First Attempt)" isImproved={false} />
+                <VersionCard version={improvedVersion} title="Improved Version (Final)" isImproved={true} />
               </div>
-              
+
               {/* Remaining targets */}
               {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-                  <h4 style={parseStyle("margin-bottom: var(--space-md);")}> 📈 Next Steps to Improve Further</h4>
+                  <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; alignItems: center; gap: 8px;")}><Icon name={ICONS.chart} size={18} /> Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
                     {comparison.remainingTargets.map((target, i) => (
                       <li key={i} style={parseStyle("margin-bottom: var(--space-sm);")}>{target}</li>
@@ -10678,16 +10797,16 @@ ${examinerComment}
                   <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-top: var(--space-xl);")}>
                     {essayFeedback.holisticStrengths && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>✓ Improved Version</span></div>
+                        <div className="feedback-section-title"><span style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}><Icon name={ICONS.checkCircle} size={16} /> Strengths</span></div>
                         <ul className="feedback-list strengths">
                           {essayFeedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
                       </div>
                     )}
-                    
+
                     {essayFeedback.holisticImprovements && (
                       <div className="feedback-section">
-                        <div className="feedback-section-title"><span>▲ Areas for Development</span></div>
+                        <div className="feedback-section-title"><span style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}><Icon name={ICONS.target} size={16} /> Areas for Development</span></div>
                         <ul className="feedback-list improvements">
                           {essayFeedback.holisticImprovements.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
@@ -10793,8 +10912,8 @@ ${examinerComment}
                       borderRadius: 'var(--radius-md)',
                       textAlign: 'center'
                     }}>
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
-                        💡 Without your improvements, your original would have received: 
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Icon name={ICONS.lightbulb} size={14} /> Without your improvements, your original would have received:
                       </span>
                       <span style={{ color: 'var(--color-warning)', fontWeight: 600, marginLeft: 'var(--space-xs)' }}>
                         Grade {essayComparison.wouldHaveBeenGrade}
@@ -10842,16 +10961,16 @@ ${examinerComment}
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
             <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
-              <h3 style={parseStyle("margin-bottom: var(--space-md);")}>📄 Download Your Full Report</h3>
+              <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; justify-content: center; gap: 8px;")}><Icon name={ICONS.download} size={22} /> Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
               </p>
               <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;")}>
-                <button className="btn btn-primary btn-large" onClick={handlePrintReport}>
-                  🖨️ Print Full Report
+                <button className="btn btn-primary btn-large" onClick={handlePrintReport} style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+                  <Icon name="printer" size={18} /> Print Full Report
                 </button>
-                <button className="btn btn-secondary btn-large" onClick={handleCopyReport}>
-                  📋 Copy to Clipboard
+                <button className="btn btn-secondary btn-large" onClick={handleCopyReport} style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+                  <Icon name={ICONS.clipboard} size={18} /> Copy to Clipboard
                 </button>
               </div>
             </div>
@@ -11024,7 +11143,7 @@ ${examinerComment}
         <div className="app-container dashboard-container">
           {/* Mobile sidebar toggle */}
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? '✕' : '☰'}
+            {sidebarOpen ? <Icon name="x" size={20} /> : <Icon name={ICONS.menu} size={20} />}
           </button>
           <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
@@ -11041,13 +11160,13 @@ ${examinerComment}
                   <div className="sidebar-section-title">Overview</div>
                   <div className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
                     onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}>
-                    <span className="sidebar-item-icon">📥</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.inbox} size={18} /></span>
                     <span>Submissions</span>
                     {submissions.length > 0 && <span className="sidebar-item-badge">{submissions.length}</span>}
                   </div>
                   <div className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
                     onClick={() => { setActiveTab('performance'); setSidebarOpen(false); }}>
-                    <span className="sidebar-item-icon">📊</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.chart} size={18} /></span>
                     <span>Performance</span>
                   </div>
                 </div>
@@ -11057,12 +11176,12 @@ ${examinerComment}
                   <div className="sidebar-section-title">Class Management</div>
                   <div className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
                     onClick={() => { setActiveTab('students'); setSidebarOpen(false); }}>
-                    <span className="sidebar-item-icon">👥</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
                     <span>Students</span>
                   </div>
                   <div className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
                     onClick={() => { setActiveTab('assignments'); setSidebarOpen(false); }}>
-                    <span className="sidebar-item-icon">📋</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.clipboard} size={18} /></span>
                     <span>Assignments</span>
                   </div>
                 </div>
@@ -11073,12 +11192,12 @@ ${examinerComment}
                     <div className="sidebar-section-title">Administration</div>
                     <div className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
                       onClick={() => { setActiveTab('essays'); setSidebarOpen(false); }}>
-                      <span className="sidebar-item-icon">📝</span>
+                      <span className="sidebar-item-icon"><Icon name={ICONS.fileText} size={18} /></span>
                       <span>Essays</span>
                     </div>
                     <div className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
                       onClick={() => { setActiveTab('teachers'); setSidebarOpen(false); }}>
-                      <span className="sidebar-item-icon">👨‍🏫</span>
+                      <span className="sidebar-item-icon"><Icon name={ICONS.graduationCap} size={18} /></span>
                       <span>Teachers</span>
                     </div>
                   </div>
@@ -11088,15 +11207,15 @@ ${examinerComment}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Actions</div>
                   <div className="sidebar-item" onClick={handleRefresh}>
-                    <span className="sidebar-item-icon">🔄</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.refresh} size={18} /></span>
                     <span>Refresh Data</span>
                   </div>
                   <div className="sidebar-item" onClick={() => setShowChangePassword(true)}>
-                    <span className="sidebar-item-icon">🔑</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.key} size={18} /></span>
                     <span>Change Password</span>
                   </div>
                   <div className="sidebar-item" onClick={async () => { await TeacherAuth.logout(); onLogout(); }}>
-                    <span className="sidebar-item-icon">🚪</span>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.logout} size={18} /></span>
                     <span>Logout</span>
                   </div>
                 </div>
@@ -11121,13 +11240,13 @@ ${examinerComment}
             <main className="dashboard-main">
               {/* Page Title */}
               <div className="card" style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-lg);")}>
-                <h2 style={parseStyle("margin: 0; color: var(--color-primary-light);")}>
-                  {activeTab === 'submissions' && '📥 Submissions'}
-                  {activeTab === 'students' && '👥 Student Management'}
-                  {activeTab === 'assignments' && '📋 Assignments'}
-                  {activeTab === 'performance' && '📊 Performance Analytics'}
-                  {activeTab === 'essays' && '📝 Essay Management'}
-                  {activeTab === 'teachers' && '👨‍🏫 Teacher Management'}
+                <h2 style={parseStyle("margin: 0; color: var(--color-primary-light); display: flex; align-items: center; gap: var(--space-sm);")}>
+                  {activeTab === 'submissions' && <><Icon name={ICONS.inbox} size={24} /> Submissions</>}
+                  {activeTab === 'students' && <><Icon name={ICONS.users} size={24} /> Student Management</>}
+                  {activeTab === 'assignments' && <><Icon name={ICONS.clipboard} size={24} /> Assignments</>}
+                  {activeTab === 'performance' && <><Icon name={ICONS.chart} size={24} /> Performance Analytics</>}
+                  {activeTab === 'essays' && <><Icon name={ICONS.fileText} size={24} /> Essay Management</>}
+                  {activeTab === 'teachers' && <><Icon name={ICONS.graduationCap} size={24} /> Teacher Management</>}
                 </h2>
               </div>
 
@@ -11361,8 +11480,8 @@ ${examinerComment}
                           </div>
                           {/* Improved Essay */}
                           <div>
-                            <div style={parseStyle("font-size: 0.85rem; font-weight: 600; color: var(--color-success); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 1px;")}>
-                              ✅ Improved (Final Version)
+                            <div style={parseStyle("font-size: 0.85rem; font-weight: 600; color: var(--color-success); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px;")}>
+                              <Icon name={ICONS.checkCircle} size={16} /> Improved (Final Version)
                             </div>
                             <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); border: 2px solid var(--color-success); max-height: 400px; overflow-y: auto; font-size: 0.9rem;")}>
                               {selectedSubmission.essay.split('\n\n').map((para, i) => (
@@ -11388,7 +11507,7 @@ ${examinerComment}
                 {/* Feedback Section */}
                 {selectedSubmission.feedback && (
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-                    <h4 style={parseStyle("margin-bottom: var(--space-md);")}> 📝 Feedback</h4>
+                    <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: 8px;")}><Icon name={ICONS.fileText} size={18} /> Feedback</h4>
                     <div style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                       {selectedSubmission.feedback.essaySummary && (
                         <p style={parseStyle("margin-bottom: var(--space-md);")}>{selectedSubmission.feedback.essaySummary}</p>
@@ -11403,7 +11522,7 @@ ${examinerComment}
                       <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                         {selectedSubmission.feedback.holisticStrengths && (
                           <div>
-                            <strong style={parseStyle("color: var(--color-success);")}> ✅ Strengths</strong>
+                            <strong style={parseStyle("color: var(--color-success); display: flex; align-items: center; gap: 6px;")}><Icon name={ICONS.checkCircle} size={16} /> Strengths</strong>
                             <ul style={parseStyle("margin: var(--space-sm) 0 0 var(--space-md); padding: 0; font-size: 0.9rem;")}>
                               {selectedSubmission.feedback.holisticStrengths.map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
@@ -12239,7 +12358,7 @@ ${examinerComment}
                         if (file) handleFileSelect(file);
                       }}
                     />
-                    <div style={parseStyle("font-size: 2rem; margin-bottom: var(--space-sm);")}>{importText ? '✓' : '📄'}</div>
+                    <div style={parseStyle("font-size: 2rem; margin-bottom: var(--space-sm);")}>{importText ? <Icon name={ICONS.checkCircle} size={32} color="var(--color-success)" /> : <Icon name={ICONS.file} size={32} />}</div>
                     {importText ? (
                       <div>
                         <div style={parseStyle("color: var(--color-success); font-weight: 600; margin-bottom: var(--space-xs);")}>{selectedFileName || 'File loaded'}</div>
@@ -12296,7 +12415,7 @@ ${examinerComment}
                       style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
-                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['custom-' + subject] !== false ? " transform: rotate(90deg);" : ""))}>▶</span>
+                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['custom-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
                         <span style={parseStyle("font-weight: 600;")}>{subject}</span>
                         <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
                       </div>
@@ -12374,7 +12493,7 @@ ${examinerComment}
                       style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
-                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['static-' + subject] !== false ? " transform: rotate(90deg);" : ""))}>▶</span>
+                        <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['static-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
                         <span style={parseStyle("font-weight: 600;")}>{subject}</span>
                         <span style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); background: var(--color-border-light); padding: 2px 8px; border-radius: 10px;")}>{essayGroup.length}</span>
                       </div>
@@ -12672,7 +12791,7 @@ ${examinerComment}
                 fontWeight: '600', fontSize: '0.9rem',
                 background: s === step ? 'var(--color-primary)' : s < step ? 'var(--color-success)' : 'var(--color-border)',
                 color: s <= step ? 'white' : 'var(--color-text-muted)'
-              }}>{s < step ? '✓' : s}</div>
+              }}>{s < step ? <Icon name={ICONS.check} size={16} color="white" /> : s}</div>
               <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{
                 s === 1 ? 'Details' : s === 2 ? 'Question' : s === 3 ? 'Mark Scheme' : s === 4 ? 'Generate' : 'Result'
               }</span>
