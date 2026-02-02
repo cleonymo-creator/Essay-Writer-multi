@@ -142,6 +142,17 @@ exports.handler = async (event, context) => {
 
     const db = initializeFirebase();
 
+    if (!db) {
+      return {
+        statusCode: 503,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Database not available'
+        })
+      };
+    }
+
     // GET - List all custom essays
     if (event.httpMethod === 'GET') {
       const essaysSnapshot = await db.collection('essays').orderBy('createdAt', 'desc').get();
