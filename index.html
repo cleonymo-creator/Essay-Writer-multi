@@ -5758,7 +5758,18 @@
     };
     
     const formatDateTime = (date) => {
-      return new Date(date).toLocaleString('en-GB', {
+      if (!date) return '-';
+      // Handle Firestore Timestamp objects
+      let d;
+      if (date && typeof date.toDate === 'function') {
+        d = date.toDate();
+      } else if (date && date.seconds) {
+        d = new Date(date.seconds * 1000);
+      } else {
+        d = new Date(date);
+      }
+      if (isNaN(d.getTime())) return '-';
+      return d.toLocaleString('en-GB', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -7434,7 +7445,7 @@
                         : '-'}
                     </td>
                     <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>
-                      {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Never'}
+                      {student.lastLogin ? formatDateTime(student.lastLogin) : 'Never'}
                     </td>
                     <td style={parseStyle("padding: var(--space-md); text-align: right;")}>
                       <button 
@@ -13082,7 +13093,7 @@ ${examinerComment}
                           </span>
                         </td>
                         <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                          {teacher.lastLogin ? new Date(teacher.lastLogin).toLocaleDateString() : 'Never'}
+                          {teacher.lastLogin ? formatDateTime(teacher.lastLogin) : 'Never'}
                         </td>
                         <td style={parseStyle("padding: var(--space-sm); text-align: right;")}>
                           <div style={parseStyle("display: flex; gap: var(--space-xs); justify-content: flex-end; flex-wrap: wrap;")}>
