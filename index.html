@@ -21,7 +21,30 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  
+
+  <!-- PDF.js for PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Configure PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // Extract text from PDF file
+    async function extractPdfText(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n\n';
+      }
+      return fullText.trim();
+    }
+  </script>
+
   <!-- Firebase Configuration - Loaded from Netlify Function -->
   <script>
     // Firebase config will be loaded from serverless function
@@ -11591,6 +11614,7 @@ ${examinerComment}
       const [importLoading, setImportLoading] = useState(false);
       const [deleteConfirm, setDeleteConfirm] = useState(null);
       const [selectedFileName, setSelectedFileName] = useState('');
+      const [activeView, setActiveView] = useState('manage'); // 'manage' or 'generate'
 
       const sessionToken = TeacherAuth.getSessionToken();
 
@@ -11774,6 +11798,30 @@ ${examinerComment}
 
       return (
         <div>
+          {/* View Tabs */}
+          <div style={parseStyle("display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg);")}>
+            <button
+              className={activeView === 'manage' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => setActiveView('manage')}
+            >
+              Manage Essays
+            </button>
+            <button
+              className={activeView === 'generate' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => setActiveView('generate')}
+            >
+              Generate New Essay
+            </button>
+          </div>
+
+          {/* Generate View */}
+          {activeView === 'generate' && (
+            <EssayGeneratorPanel onEssayGenerated={() => { setActiveView('manage'); loadEssays(); }} />
+          )}
+
+          {/* Manage View */}
+          {activeView === 'manage' && (
+          <>
           {error && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: rgba(239, 68, 68, 0.1); border-color: var(--color-error);")}>
               <p style={parseStyle("color: var(--color-error); margin: 0;")}>{error}</p>
@@ -11966,6 +12014,497 @@ ${examinerComment}
               </div>
             )}
           </div>
+          </>
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
+    // ESSAY GENERATOR PANEL (Admin Only)
+    // =====================================================
+
+    function EssayGeneratorPanel({ onEssayGenerated }) {
+      const [step, setStep] = useState(1);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [generationStatus, setGenerationStatus] = useState('');
+      const [generatedConfig, setGeneratedConfig] = useState(null);
+      const [error, setError] = useState('');
+
+      // Form state
+      const [subject, setSubject] = useState('');
+      const [yearGroup, setYearGroup] = useState('');
+      const [examBoard, setExamBoard] = useState('');
+      const [totalMarks, setTotalMarks] = useState('');
+      const [timeAllowed, setTimeAllowed] = useState('');
+      const [paperName, setPaperName] = useState('');
+      const [examQuestion, setExamQuestion] = useState('');
+      const [sourceMaterial, setSourceMaterial] = useState('');
+      const [sourceFiles, setSourceFiles] = useState([]);
+      const [markScheme, setMarkScheme] = useState('');
+      const [markSchemeFile, setMarkSchemeFile] = useState(null);
+      const [additionalNotes, setAdditionalNotes] = useState('');
+      const [minWords, setMinWords] = useState('80');
+      const [targetWords, setTargetWords] = useState('150');
+      const [maxAttempts, setMaxAttempts] = useState('3');
+
+      const sessionToken = TeacherAuth.getSessionToken();
+
+      // File handling
+      const handleSourceFileUpload = async (files) => {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) {
+            alert('File too large. Maximum 10MB.');
+            continue;
+          }
+
+          try {
+            let fileData;
+            if (file.type === 'application/pdf') {
+              const extractedText = await extractPdfText(file);
+              fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+            } else if (file.type.startsWith('image/')) {
+              const base64 = await readFileAsBase64(file);
+              fileData = { name: file.name, type: file.type, content: base64 };
+            } else {
+              alert('Unsupported file type. Use PDF or images.');
+              continue;
+            }
+            setSourceFiles(prev => [...prev, fileData]);
+          } catch (err) {
+            console.error('File processing error:', err);
+            alert('Error processing file: ' + err.message);
+          }
+        }
+      };
+
+      const handleMarkSchemeUpload = async (file) => {
+        if (file.size > 10 * 1024 * 1024) {
+          alert('File too large. Maximum 10MB.');
+          return;
+        }
+
+        try {
+          let fileData;
+          if (file.type === 'application/pdf') {
+            const extractedText = await extractPdfText(file);
+            fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+          } else if (file.type.startsWith('image/')) {
+            const base64 = await readFileAsBase64(file);
+            fileData = { name: file.name, type: file.type, content: base64 };
+          } else {
+            alert('Unsupported file type. Use PDF or images.');
+            return;
+          }
+          setMarkSchemeFile(fileData);
+        } catch (err) {
+          console.error('File processing error:', err);
+          alert('Error processing file: ' + err.message);
+        }
+      };
+
+      const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      };
+
+      // Validation
+      const validateStep = (stepNum) => {
+        if (stepNum === 1) {
+          if (!subject.trim()) { alert('Subject is required'); return false; }
+          if (!yearGroup.trim()) { alert('Year Group is required'); return false; }
+          if (!totalMarks) { alert('Total Marks is required'); return false; }
+        }
+        if (stepNum === 2) {
+          if (!examQuestion.trim()) { alert('Exam question is required'); return false; }
+        }
+        if (stepNum === 3) {
+          if (!markScheme.trim() && !markSchemeFile) {
+            alert('Please provide a mark scheme (text or file)');
+            return false;
+          }
+        }
+        return true;
+      };
+
+      const nextStep = () => {
+        if (validateStep(step) && step < 4) {
+          setStep(step + 1);
+        }
+      };
+
+      const prevStep = () => {
+        if (step > 1) setStep(step - 1);
+      };
+
+      // Generate essay
+      const handleGenerate = async () => {
+        setIsGenerating(true);
+        setError('');
+        setGenerationStatus('Starting generation...');
+
+        try {
+          const payload = {
+            subject, yearGroup, examBoard, totalMarks: parseInt(totalMarks),
+            timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
+            paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
+            additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
+            maxAttempts: parseInt(maxAttempts)
+          };
+
+          // Start job
+          const startRes = await fetch('/.netlify/functions/generate-essay-start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify(payload)
+          });
+
+          const startData = await startRes.json();
+          if (!startData.success) throw new Error(startData.error || 'Failed to start generation');
+
+          const jobId = startData.jobId;
+          setGenerationStatus('Processing with AI (this may take a few minutes)...');
+
+          // Trigger background processing
+          fetch('/.netlify/functions/generate-essay-background', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId })
+          }).catch(() => {});
+
+          // Poll for result
+          let result = null;
+          for (let i = 0; i < 120; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+
+            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
+              headers: { 'Authorization': 'Bearer ' + sessionToken }
+            });
+            const checkData = await checkRes.json();
+
+            if (checkData.status === 'completed') {
+              result = checkData;
+              break;
+            } else if (checkData.status === 'error') {
+              throw new Error(checkData.error || 'Generation failed');
+            }
+
+            setGenerationStatus('Processing with AI... (' + Math.round((i+1)*3/60) + ' min)');
+          }
+
+          if (!result) throw new Error('Generation timed out');
+
+          setGeneratedConfig(result.config);
+          setGenerationStatus('');
+          setStep(5);
+
+        } catch (err) {
+          console.error('Generation error:', err);
+          setError(err.message || 'Generation failed');
+          setGenerationStatus('');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      // Save to Firebase
+      const handleSaveEssay = async () => {
+        if (!generatedConfig) return;
+
+        try {
+          // Parse the generated JavaScript config to extract essay data
+          let essayData = null;
+          let configText = generatedConfig.trim();
+
+          // Remove the preamble
+          configText = configText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
+
+          // Extract the essay object from window.ESSAYS['id'] = {...}
+          const match = configText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+          if (match) {
+            const essayId = match[1];
+            const objectText = match[2];
+            try {
+              const evalFunc = new Function('return (' + objectText + ')');
+              essayData = evalFunc();
+              essayData.id = essayId;
+            } catch (e) {
+              console.error('Failed to parse essay config:', e);
+              throw new Error('Failed to parse generated essay configuration');
+            }
+          }
+
+          if (!essayData) {
+            throw new Error('Could not extract essay data from generated config');
+          }
+
+          const response = await fetch('/.netlify/functions/manage-essays', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({ essay: essayData })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            alert('Essay saved successfully!');
+            if (onEssayGenerated) onEssayGenerated();
+            // Reset form
+            setStep(1);
+            setGeneratedConfig(null);
+            setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
+            setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
+            setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
+          } else {
+            throw new Error(result.error || 'Failed to save');
+          }
+        } catch (err) {
+          alert('Error saving essay: ' + err.message);
+        }
+      };
+
+      // Render steps indicator
+      const renderSteps = () => (
+        <div style={parseStyle("display: flex; justify-content: center; gap: var(--space-md); margin-bottom: var(--space-xl);")}>
+          {[1,2,3,4,5].map(s => (
+            <div key={s} style={parseStyle("display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);")}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: '600', fontSize: '0.9rem',
+                background: s === step ? 'var(--color-primary)' : s < step ? 'var(--color-success)' : 'var(--color-border)',
+                color: s <= step ? 'white' : 'var(--color-text-muted)'
+              }}>{s < step ? '✓' : s}</div>
+              <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{
+                s === 1 ? 'Details' : s === 2 ? 'Question' : s === 3 ? 'Mark Scheme' : s === 4 ? 'Generate' : 'Result'
+              }</span>
+            </div>
+          ))}
+        </div>
+      );
+
+      return (
+        <div>
+          {renderSteps()}
+
+          {/* Step 1: Exam Details */}
+          {step === 1 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Information</h4>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
+                  <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
+                    placeholder="e.g., GCSE English Literature" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Year Group *</label>
+                  <input type="text" value={yearGroup} onChange={e => setYearGroup(e.target.value)}
+                    placeholder="e.g., Year 11" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
+                  <input type="text" value={examBoard} onChange={e => setExamBoard(e.target.value)}
+                    placeholder="e.g., AQA" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
+                  <input type="number" value={totalMarks} onChange={e => setTotalMarks(e.target.value)}
+                    placeholder="e.g., 40" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Time (minutes)</label>
+                  <input type="number" value={timeAllowed} onChange={e => setTimeAllowed(e.target.value)}
+                    placeholder="e.g., 45" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Paper/Component Name</label>
+                <input type="text" value={paperName} onChange={e => setPaperName(e.target.value)}
+                  placeholder="e.g., Paper 2 Section B" className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: flex-end;")}>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Exam Question */}
+          {step === 2 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Question</h4>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>The Question *</label>
+                <textarea value={examQuestion} onChange={e => setExamQuestion(e.target.value)}
+                  placeholder="Enter the exact exam question as students would see it..."
+                  className="paragraph-editor" style={parseStyle("min-height: 120px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Material (if any)</label>
+                <textarea value={sourceMaterial} onChange={e => setSourceMaterial(e.target.value)}
+                  placeholder="Paste any text extracts, passages, or data that students need to reference..."
+                  className="paragraph-editor" style={parseStyle("min-height: 100px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Images/PDFs</label>
+                <div style={parseStyle("border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); text-align: center;")}>
+                  <input type="file" accept=".pdf,image/*" multiple style={parseStyle("display: none;")} id="sourceFileInput"
+                    onChange={e => handleSourceFileUpload(Array.from(e.target.files))} />
+                  <label htmlFor="sourceFileInput" style={parseStyle("cursor: pointer;")}>
+                    <div style={parseStyle("color: var(--color-text-muted);")}>{sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'Click to upload PDFs or images'}</div>
+                  </label>
+                </div>
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Mark Scheme */}
+          {step === 3 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Mark Scheme</h4>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Mark Scheme Text</label>
+                <textarea value={markScheme} onChange={e => setMarkScheme(e.target.value)}
+                  placeholder="Paste the mark scheme criteria here..."
+                  className="paragraph-editor" style={parseStyle("min-height: 150px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Or Upload Mark Scheme File</label>
+                <div style={parseStyle("border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); text-align: center;")}>
+                  <input type="file" accept=".pdf,image/*" style={parseStyle("display: none;")} id="markSchemeInput"
+                    onChange={e => e.target.files[0] && handleMarkSchemeUpload(e.target.files[0])} />
+                  <label htmlFor="markSchemeInput" style={parseStyle("cursor: pointer;")}>
+                    <div style={parseStyle("color: var(--color-text-muted);")}>{markSchemeFile ? markSchemeFile.name : 'Click to upload PDF or image'}</div>
+                  </label>
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Additional Notes for AI</label>
+                <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)}
+                  placeholder="Any specific instructions or focus areas..."
+                  className="paragraph-editor" style={parseStyle("min-height: 80px;")} />
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep}>Back</button>
+                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review & Generate */}
+          {step === 4 && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Review & Generate</h4>
+
+              <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                <p><strong>Subject:</strong> {subject}</p>
+                <p><strong>Year Group:</strong> {yearGroup}</p>
+                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}</p>
+                <p><strong>Total Marks:</strong> {totalMarks}</p>
+                <p><strong>Time:</strong> {timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}</p>
+                <p><strong>Question:</strong> {examQuestion.substring(0, 100)}{examQuestion.length > 100 ? '...' : ''}</p>
+                <p><strong>Source Files:</strong> {sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'None'}</p>
+                <p><strong>Mark Scheme:</strong> {markSchemeFile ? markSchemeFile.name : (markScheme ? 'Provided (text)' : 'Not provided')}</p>
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);")}>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Min Words/Para</label>
+                  <input type="number" value={minWords} onChange={e => setMinWords(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Target Words/Para</label>
+                  <input type="number" value={targetWords} onChange={e => setTargetWords(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Max Attempts</label>
+                  <input type="number" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                </div>
+              </div>
+
+              {error && (
+                <div style={parseStyle("background: var(--color-error-bg); border: 1px solid var(--color-error); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              {generationStatus && (
+                <div style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
+                  <div style={parseStyle("margin-bottom: var(--space-sm);")}>{generationStatus}</div>
+                  <div className="loading-spinner" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={prevStep} disabled={isGenerating}>Back</button>
+                <button className="btn btn-primary" onClick={handleGenerate} disabled={isGenerating}>
+                  {isGenerating ? 'Generating...' : 'Generate Essay Config'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Result */}
+          {step === 5 && generatedConfig && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Generated Essay Configuration</h4>
+
+              <div style={parseStyle("background: var(--color-success-bg); border: 1px solid var(--color-success); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); color: var(--color-success);")}>
+                Essay configuration generated successfully!
+              </div>
+
+              <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); max-height: 400px; overflow: auto;")}>
+                <pre style={parseStyle("font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin: 0;")}>
+                  {generatedConfig.substring(0, 2000)}{generatedConfig.length > 2000 ? '...' : ''}
+                </pre>
+              </div>
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={() => setStep(1)}>Start New</button>
+                <div style={parseStyle("display: flex; gap: var(--space-md);")}>
+                  <button className="btn btn-secondary" onClick={() => {
+                    const blob = new Blob([generatedConfig], { type: 'application/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'essay-config.js';
+                    a.click();
+                  }}>Download File</button>
+                  <button className="btn btn-primary" onClick={handleSaveEssay}>Save to System</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
