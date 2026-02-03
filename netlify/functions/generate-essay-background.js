@@ -50,11 +50,23 @@ exports.handler = async (event, context) => {
     config = injectSourceContent(config, body);
     console.log('Source content injected, final length:', config.length);
 
-    // Save the result
+    // Parse the JavaScript config server-side where template literals work natively
+    let parsedEssay = null;
+    try {
+      parsedEssay = parseEssayConfig(config);
+      if (parsedEssay) {
+        console.log('Essay config parsed successfully server-side, paragraphs:', parsedEssay.paragraphs?.length);
+      }
+    } catch (parseErr) {
+      console.warn('Server-side parsing failed (client will retry):', parseErr.message);
+    }
+
+    // Save the result - include both raw config and parsed essay
     await store.setJSON(jobId, {
       ...job,
       status: 'completed',
       config: config,
+      parsedEssay: parsedEssay,
       completedAt: Date.now()
     });
 
@@ -263,6 +275,38 @@ REMEMBER: Every paragraph's learningMaterial MUST be an object with foundation, 
 
   content.push({ type: 'text', text: prompt });
   return [{ role: 'user', content }];
+}
+
+// Parse the generated JavaScript config into a plain object
+// Runs in Node.js where template literals work natively
+function parseEssayConfig(configText) {
+  // Create a mock window.ESSAYS environment and execute the config
+  const window = { ESSAYS: {} };
+  const fn = new Function('window', configText);
+  fn(window);
+  const essays = Object.values(window.ESSAYS);
+  if (essays.length === 0) {
+    throw new Error('No essay found in parsed config');
+  }
+  const essay = essays[0];
+
+  // Validate it has the expected structure
+  if (!essay.paragraphs || !Array.isArray(essay.paragraphs)) {
+    throw new Error('Parsed essay missing paragraphs array');
+  }
+
+  // Verify learning material was actually parsed (not just empty)
+  const hasLearningMaterial = essay.paragraphs.some(p =>
+    p.learningMaterial &&
+    typeof p.learningMaterial === 'object' &&
+    (p.learningMaterial.foundation || p.learningMaterial.intermediate || p.learningMaterial.advanced)
+  );
+
+  if (!hasLearningMaterial) {
+    console.warn('Warning: parsed essay has no learning material content');
+  }
+
+  return essay;
 }
 
 function extractJavaScript(text) {
