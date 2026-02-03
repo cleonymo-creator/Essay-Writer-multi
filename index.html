@@ -12756,6 +12756,7 @@ ${examinerComment}
       const [isGenerating, setIsGenerating] = useState(false);
       const [generationStatus, setGenerationStatus] = useState('');
       const [generatedConfig, setGeneratedConfig] = useState(null);
+      const [serverParsedEssay, setServerParsedEssay] = useState(null);
       const [error, setError] = useState('');
 
       // Form state
@@ -13639,6 +13640,7 @@ ${examinerComment}
           if (!result) throw new Error('Generation timed out');
 
           setGeneratedConfig(result.config);
+          setServerParsedEssay(result.parsedEssay || null);
           setGenerationStatus('');
           setStep(5);
 
@@ -13653,11 +13655,19 @@ ${examinerComment}
 
       // Save to Firebase
       const handleSaveEssay = async () => {
-        if (!generatedConfig) return;
+        if (!generatedConfig && !serverParsedEssay) return;
 
         try {
-          // Parse the generated JavaScript config to extract essay data
+          // Use server-parsed essay data if available (most reliable)
           let essayData = null;
+
+          if (serverParsedEssay && serverParsedEssay.paragraphs) {
+            essayData = serverParsedEssay;
+            console.log('Using server-parsed essay data');
+          }
+
+          // Fall back to client-side parsing if server didn't parse
+          if (!essayData && generatedConfig) {
           let configText = generatedConfig.trim();
 
           // Remove the preamble
@@ -13925,6 +13935,7 @@ ${examinerComment}
               alert(warningMsg);
             }
           }
+          } // end client-side parsing fallback
 
           if (!essayData) {
             throw new Error('Could not extract essay data from generated config');
@@ -13943,6 +13954,7 @@ ${examinerComment}
             // Reset form
             setStep(1);
             setGeneratedConfig(null);
+            setServerParsedEssay(null);
             setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
             setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
