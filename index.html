@@ -12554,7 +12554,7 @@ ${examinerComment}
           }
 
           // Save via netlify function
-          const response = await fetch('/.netlify/functions/manage-essays', {
+          let response = await fetch('/.netlify/functions/manage-essays', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -12563,7 +12563,24 @@ ${examinerComment}
             body: JSON.stringify({ essay: essayData })
           });
 
-          const result = await response.json();
+          let result = await response.json();
+
+          // If essay already exists, ask user whether to overwrite
+          if (!result.success && response.status === 409) {
+            if (confirm('An essay with this ID already exists. Do you want to overwrite it?')) {
+              response = await fetch('/.netlify/functions/manage-essays', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${sessionToken}`
+                },
+                body: JSON.stringify({ essay: essayData, action: 'update' })
+              });
+              result = await response.json();
+            } else {
+              return;
+            }
+          }
 
           if (!result.success) {
             throw new Error(result.error || 'Failed to import essay');
