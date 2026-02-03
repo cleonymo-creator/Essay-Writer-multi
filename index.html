@@ -13676,24 +13676,65 @@ ${examinerComment}
                 const evalFunc = new Function('return (' + objectText + ')');
                 return evalFunc();
               },
-              // Strategy 2: Try to fix common template literal issues
+              // Strategy 2: Character-by-character template literal conversion
               () => {
-                // Replace template literals with regular strings for parsing
-                let fixedText = objectText;
-                // Convert template literals to regular strings (simplified)
-                fixedText = fixedText.replace(/`([^`]*)`/g, (match, content) => {
-                  // Escape quotes and newlines in the content
-                  const escaped = content
-                    .replace(/\\/g, '\\\\')
-                    .replace(/"/g, '\\"')
-                    .replace(/\n/g, '\\n')
-                    .replace(/\r/g, '\\r');
-                  return '"' + escaped + '"';
-                });
-                const evalFunc = new Function('return (' + fixedText + ')');
+                // Walk through the text and convert backtick strings to double-quoted strings
+                // This handles multi-line content, escaped backticks, and ${} expressions
+                let result = '';
+                let i = 0;
+                while (i < objectText.length) {
+                  if (objectText[i] === '`') {
+                    // Start of template literal - collect until closing backtick
+                    i++;
+                    let content = '';
+                    while (i < objectText.length) {
+                      if (objectText[i] === '\\' && i + 1 < objectText.length) {
+                        // Escaped character
+                        const next = objectText[i + 1];
+                        if (next === '`') {
+                          content += '`';
+                          i += 2;
+                        } else if (next === '\\') {
+                          content += '\\\\';
+                          i += 2;
+                        } else if (next === 'n' || next === 'r' || next === 't') {
+                          content += '\\' + next;
+                          i += 2;
+                        } else {
+                          content += '\\\\' + next;
+                          i += 2;
+                        }
+                      } else if (objectText[i] === '`') {
+                        break; // End of template literal
+                      } else if (objectText[i] === '$' && objectText[i + 1] === '{') {
+                        // Template expression ${...} - include as literal text
+                        content += '${';
+                        i += 2;
+                      } else if (objectText[i] === '"') {
+                        content += '\\"';
+                        i++;
+                      } else if (objectText[i] === '\n') {
+                        content += '\\n';
+                        i++;
+                      } else if (objectText[i] === '\r') {
+                        content += '\\r';
+                        i++;
+                      } else {
+                        content += objectText[i];
+                        i++;
+                      }
+                    }
+                    i++; // skip closing backtick
+                    result += '"' + content + '"';
+                  } else {
+                    result += objectText[i];
+                    i++;
+                  }
+                }
+                const evalFunc = new Function('return (' + result + ')');
                 return evalFunc();
               },
-              // Strategy 3: Extract key fields manually using regex
+              // Strategy 3: Extract key fields manually using string-aware parsing
               () => {
                 const extractField = (fieldName, isNumber = false) => {
                   const regex = new RegExp(fieldName + '\\s*:\\s*(' + (isNumber ? '\\d+' : '[\'"`]([^\'"`]*)[\'"`]') + ')');
@@ -13701,14 +13742,106 @@ ${examinerComment}
                   return m ? (isNumber ? parseInt(m[1]) : m[2]) : null;
                 };
 
-                const extractArrayField = (fieldName) => {
-                  const regex = new RegExp(fieldName + '\\s*:\\s*\\[([\\s\\S]*?)\\](?=,\\s*\\w+:|\\s*})', 'g');
-                  const m = objectText.match(regex);
-                  return m ? m[0] : null;
+                // Helper: skip over a string literal (`, ', ") starting at the opening quote
+                const skipString = (text, startPos) => {
+                  const quote = text[startPos];
+                  let pos = startPos + 1;
+                  while (pos < text.length) {
+                    if (text[pos] === '\\') { pos += 2; continue; }
+                    if (text[pos] === quote) return pos;
+                    pos++;
+                  }
+                  return pos;
                 };
 
-                // Extract paragraphs array
-                const paragraphsMatch = objectText.match(/paragraphs\s*:\s*\[([\s\S]*?)\]\s*,?\s*(?:gradingCriteria|gradeBoundaries|teacherPassword|\})/);
+                // Helper: find matching closing bracket, skipping string content
+                const findMatchingBracket = (text, openPos) => {
+                  const open = text[openPos];
+                  const close = open === '{' ? '}' : ']';
+                  let depth = 1;
+                  let pos = openPos + 1;
+                  while (pos < text.length && depth > 0) {
+                    const ch = text[pos];
+                    if (ch === '`' || ch === '"' || ch === "'") {
+                      pos = skipString(text, pos) + 1;
+                      continue;
+                    }
+                    if (ch === open) depth++;
+                    else if (ch === close) depth--;
+                    pos++;
+                  }
+                  return depth === 0 ? pos - 1 : -1;
+                };
+
+                // Helper: extract a string value after a field name at a given position
+                const extractStringAfterField = (text, fieldName) => {
+                  const regex = new RegExp(fieldName + '\\s*:\\s*([`\'"])');
+                  const m = text.match(regex);
+                  if (!m) return '';
+                  const quotePos = text.indexOf(m[0]) + m[0].length - 1;
+                  const endPos = skipString(text, quotePos);
+                  const raw = text.substring(quotePos + 1, endPos);
+                  return raw.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\`/g, '`').replace(/\\\\/g, '\\').replace(/\\"/g, '"').replace(/\\'/g, "'");
+                };
+
+                // Helper: extract learningMaterial object from a paragraph block
+                const extractLearningMaterial = (blockText) => {
+                  const lmIdx = blockText.indexOf('learningMaterial');
+                  if (lmIdx === -1) return null;
+                  const braceIdx = blockText.indexOf('{', lmIdx);
+                  if (braceIdx === -1) return null;
+                  const closeIdx = findMatchingBracket(blockText, braceIdx);
+                  if (closeIdx === -1) return null;
+                  const lmText = blockText.substring(braceIdx, closeIdx + 1);
+                  return {
+                    foundation: extractStringAfterField(lmText, 'foundation'),
+                    intermediate: extractStringAfterField(lmText, 'intermediate'),
+                    advanced: extractStringAfterField(lmText, 'advanced')
+                  };
+                };
+
+                // Helper: extract keyPoints or exampleQuotes array of strings
+                const extractStringArray = (blockText, fieldName) => {
+                  const regex = new RegExp(fieldName + '\\s*:\\s*\\[');
+                  const m = blockText.match(regex);
+                  if (!m) return [];
+                  const arrStart = blockText.indexOf(m[0]) + m[0].length - 1;
+                  const arrEnd = findMatchingBracket(blockText, arrStart);
+                  if (arrEnd === -1) return [];
+                  const arrText = blockText.substring(arrStart + 1, arrEnd);
+                  const items = [];
+                  const strRegex = /[`'"]/g;
+                  let sm;
+                  while ((sm = strRegex.exec(arrText)) !== null) {
+                    const endPos = skipString(arrText, sm.index);
+                    items.push(arrText.substring(sm.index + 1, endPos));
+                    strRegex.lastIndex = endPos + 1;
+                  }
+                  return items;
+                };
+
+                // Find the paragraphs array using bracket matching
+                const paraIdx = objectText.indexOf('paragraphs');
+                let paragraphBlocks = [];
+                if (paraIdx !== -1) {
+                  const bracketIdx = objectText.indexOf('[', paraIdx);
+                  if (bracketIdx !== -1) {
+                    const closeBracket = findMatchingBracket(objectText, bracketIdx);
+                    if (closeBracket !== -1) {
+                      const paraArrayText = objectText.substring(bracketIdx + 1, closeBracket);
+                      // Find each paragraph object using bracket matching
+                      let searchPos = 0;
+                      while (searchPos < paraArrayText.length) {
+                        const nextBrace = paraArrayText.indexOf('{', searchPos);
+                        if (nextBrace === -1) break;
+                        const closeBrace = findMatchingBracket(paraArrayText, nextBrace);
+                        if (closeBrace === -1) break;
+                        paragraphBlocks.push(paraArrayText.substring(nextBrace, closeBrace + 1));
+                        searchPos = closeBrace + 1;
+                      }
+                    }
+                  }
+                }
 
                 const manualData = {
                   id: essayId,
@@ -13724,31 +13857,28 @@ ${examinerComment}
                   paragraphs: []
                 };
 
-                // Try to parse paragraphs individually
-                if (paragraphsMatch) {
-                  const paragraphBlocks = paragraphsMatch[1].match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) || [];
-                  paragraphBlocks.forEach((block, idx) => {
-                    try {
-                      const pTitle = block.match(/title\s*:\s*['"`]([^'"`]*)['"`]/);
-                      const pType = block.match(/type\s*:\s*['"`]([^'"`]*)['"`]/);
-                      manualData.paragraphs.push({
-                        id: idx + 1,
-                        title: pTitle ? pTitle[1] : `Paragraph ${idx + 1}`,
-                        type: pType ? pType[1] : 'body',
-                        learningMaterial: {
-                          foundation: 'Learning material not available - please regenerate.',
-                          intermediate: 'Learning material not available - please regenerate.',
-                          advanced: 'Learning material not available - please regenerate.'
-                        },
-                        writingPrompt: 'Write this paragraph based on the essay question.',
-                        keyPoints: [],
-                        exampleQuotes: []
-                      });
-                    } catch (e) {
-                      console.warn('Failed to parse paragraph block:', e);
-                    }
-                  });
-                }
+                // Parse each paragraph block with full field extraction
+                paragraphBlocks.forEach((block, idx) => {
+                  try {
+                    const pTitle = block.match(/title\s*:\s*['"`]([^'"`]*)['"`]/);
+                    const pType = block.match(/type\s*:\s*['"`]([^'"`]*)['"`]/);
+                    const lm = extractLearningMaterial(block);
+                    const wp = extractStringAfterField(block, 'writingPrompt');
+                    const kp = extractStringArray(block, 'keyPoints');
+                    const eq = extractStringArray(block, 'exampleQuotes');
+                    manualData.paragraphs.push({
+                      id: idx + 1,
+                      title: pTitle ? pTitle[1] : 'Paragraph ' + (idx + 1),
+                      type: pType ? pType[1] : 'body',
+                      learningMaterial: lm || { foundation: '', intermediate: '', advanced: '' },
+                      writingPrompt: wp || 'Write this paragraph based on the essay question.',
+                      keyPoints: kp.length > 0 ? kp : [],
+                      exampleQuotes: eq
+                    });
+                  } catch (e) {
+                    console.warn('Failed to parse paragraph block:', e);
+                  }
+                });
 
                 // If we couldn't extract paragraphs, create default structure
                 if (manualData.paragraphs.length === 0) {
@@ -13790,7 +13920,7 @@ ${examinerComment}
             // Show warning if fallback strategy was used
             if (strategyUsed > 0) {
               const warningMsg = strategyUsed === 2
-                ? 'Warning: The generated config had syntax issues. Basic structure was extracted but some learning materials may be missing. Consider regenerating for better results.'
+                ? 'Warning: The generated config had syntax issues and was parsed using fallback extraction. Please verify the content is complete.'
                 : 'Warning: The generated config required additional processing to parse. The essay was saved but please verify the content.';
               alert(warningMsg);
             }
