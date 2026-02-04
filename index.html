@@ -13691,11 +13691,32 @@ ${examinerComment}
 
       const sessionToken = TeacherAuth.getSessionToken();
 
+      // Build a description of the selected questions from the paper structure
+      const getSelectedQuestionDescriptions = () => {
+        if (!selectedPaper || selectedQuestions.length === 0) return [];
+        const paperData = getAvailablePapers();
+        if (!paperData) return [];
+        const paper = paperData.papers.find(p => p.id === selectedPaper);
+        if (!paper) return [];
+
+        const descriptions = [];
+        paper.sections.forEach(section => {
+          section.questions.forEach(q => {
+            if (selectedQuestions.includes(q.id)) {
+              descriptions.push(`${q.name}: ${q.description} (${q.marks} marks)`);
+            }
+          });
+        });
+        return descriptions;
+      };
+
       // Auto-extract question and source material from PDF text
       const autoExtractFromPdf = async (pdfText) => {
         setIsExtracting(true);
         setExtractionStatus('Analysing PDF to extract question and source material...');
         setExtractionSummary('');
+
+        const selectedDescriptions = getSelectedQuestionDescriptions();
 
         try {
           const response = await fetch('/.netlify/functions/extract-pdf-content', {
@@ -13705,7 +13726,8 @@ ${examinerComment}
               pdfText,
               subject: subject || '',
               examBoard: examBoard || '',
-              paperName: paperName || ''
+              paperName: paperName || '',
+              selectedQuestions: selectedDescriptions
             })
           });
 

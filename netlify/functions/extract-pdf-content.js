@@ -131,7 +131,7 @@ exports.handler = async (event, context) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { pdfText, subject, examBoard, paperName } = body;
+    const { pdfText, subject, examBoard, paperName, selectedQuestions } = body;
 
     if (!pdfText || !pdfText.trim()) {
       return {
@@ -150,6 +150,12 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Build the question selection context
+    const hasSelectedQuestions = selectedQuestions && Array.isArray(selectedQuestions) && selectedQuestions.length > 0;
+    const selectionContext = hasSelectedQuestions
+      ? `\n\nIMPORTANT - SPECIFIC QUESTIONS SELECTED:\nThe teacher has selected ONLY the following question(s) from this paper. Extract ONLY these specific questions and their associated source material/extracts. Ignore all other questions on the paper.\n\nSelected questions:\n${selectedQuestions.map(q => `- ${q}`).join('\n')}\n`
+      : '';
+
     const prompt = `You are an expert at reading UK exam question papers. I have extracted text from a PDF question paper. Please identify and extract the following:
 
 1. **Exam Question(s)**: The actual question(s) that students need to answer. Include the full question text, any sub-parts, bullet points, and mark allocations.
@@ -158,7 +164,7 @@ exports.handler = async (event, context) => {
 
 ${subject ? `Subject: ${subject}` : ''}
 ${examBoard ? `Exam Board: ${examBoard}` : ''}
-${paperName ? `Paper: ${paperName}` : ''}
+${paperName ? `Paper: ${paperName}` : ''}${selectionContext}
 
 Here is the extracted PDF text:
 
@@ -176,8 +182,8 @@ Please respond in EXACTLY this JSON format (no markdown code fences, just raw JS
 
 IMPORTANT:
 - Extract the COMPLETE text of both the question and source material - do not summarise or truncate
-- Preserve the original formatting as much as possible (line breaks, indentation)
-- If there are multiple questions on the paper, extract ALL of them
+- Preserve the original formatting as much as possible (line breaks, indentation)${hasSelectedQuestions ? '\n- ONLY extract the specific selected question(s) listed above - do NOT include other questions from the paper' : '\n- If there are multiple questions on the paper, extract ALL of them'}
+- Only include source material/extracts that are relevant to the selected question(s)
 - If you can identify the total marks for the question(s), include it as a number in totalMarks
 - Use plain ASCII characters only`;
 
