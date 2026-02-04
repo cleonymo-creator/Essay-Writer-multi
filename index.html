@@ -7384,6 +7384,11 @@
                                       finalScore = submission.score;
                                       finalGrade = submission.grade;
                                     }
+                                    // Fallback for first draft score from paragraph-level data
+                                    if (firstDraftScore === null && submission.firstDraftScore != null) {
+                                      firstDraftScore = submission.firstDraftScore;
+                                      firstDraftGrade = submission.firstDraftGrade;
+                                    }
                                   }
 
                                   return (
@@ -15765,6 +15770,37 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
     // Build original essay from original texts
     const originalEssay = paragraphData.map(p => p.originalText).join('\n\n');
 
+    // Compute first draft score from paragraph first-attempt scores
+    let firstDraftScore = null;
+    let firstDraftGrade = null;
+    const firstAttemptScores = [];
+    const firstAttemptGrades = [];
+    PARAGRAPHS.forEach(p => {
+      const state = currentParagraphStates[p.id];
+      if (state?.feedbackHistory && state.feedbackHistory.length > 0) {
+        const firstAttempt = state.feedbackHistory[0];
+        if (firstAttempt.score != null) firstAttemptScores.push(firstAttempt.score);
+        if (firstAttempt.estimatedGrade) firstAttemptGrades.push(firstAttempt.estimatedGrade);
+      }
+    });
+    if (firstAttemptScores.length > 0) {
+      firstDraftScore = Math.round(firstAttemptScores.reduce((a, b) => a + b, 0) / firstAttemptScores.length);
+    }
+    // Derive first draft grade: use grade boundaries if available, otherwise use most common paragraph grade
+    if (firstDraftScore !== null && CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0 && CONFIG.totalMarks) {
+      const estimatedMarks = Math.round((firstDraftScore / 100) * CONFIG.totalMarks);
+      const sorted = [...CONFIG.gradeBoundaries].sort((a, b) => (b.minMarks || b.minMark || 0) - (a.minMarks || a.minMark || 0));
+      for (const boundary of sorted) {
+        if (estimatedMarks >= (boundary.minMarks || boundary.minMark || 0)) {
+          firstDraftGrade = boundary.grade ? `Grade ${boundary.grade}` : null;
+          break;
+        }
+      }
+    }
+    if (!firstDraftGrade && firstAttemptGrades.length > 0) {
+      firstDraftGrade = firstAttemptGrades[0]; // Use the first paragraph's estimated grade as fallback
+    }
+
     // Check if we have authentic grade boundaries
     const hasAuthenticDescriptors = CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0;
 
@@ -15806,6 +15842,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         studentEmail,
         score: data.finalScore,
         grade: data.finalGrade || data.feedback.overallGrade,
+        firstDraftScore: firstDraftScore,
+        firstDraftGrade: firstDraftGrade,
         awardedMarks: data.awardedMarks,
         totalMarks: data.totalMarks,
         essay: data.fullEssay,
@@ -15816,7 +15854,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         usedAuthenticDescriptors: data.usedAuthenticDescriptors,
         submittedAt: new Date().toISOString()
       };
-      
+
       try {
         // Save to Firebase if available, otherwise Netlify Blobs
         const firebaseReady = await FirebaseDB.isReady();
@@ -15861,13 +15899,43 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
             paragraphScore: paragraphStates[p.id]?.score || 0,
             estimatedGrade: paragraphStates[p.id]?.estimatedGrade || null
           }));
-          
+
           // Build original essay from original texts
           const originalEssay = paragraphData.map(p => p.originalText).join('\n\n');
-          
+
+          // Compute first draft score from paragraph first-attempt scores
+          let firstDraftScore = null;
+          let firstDraftGrade = null;
+          const firstAttemptScores = [];
+          const firstAttemptGrades = [];
+          PARAGRAPHS.forEach(p => {
+            const state = paragraphStates[p.id];
+            if (state?.feedbackHistory && state.feedbackHistory.length > 0) {
+              const firstAttempt = state.feedbackHistory[0];
+              if (firstAttempt.score != null) firstAttemptScores.push(firstAttempt.score);
+              if (firstAttempt.estimatedGrade) firstAttemptGrades.push(firstAttempt.estimatedGrade);
+            }
+          });
+          if (firstAttemptScores.length > 0) {
+            firstDraftScore = Math.round(firstAttemptScores.reduce((a, b) => a + b, 0) / firstAttemptScores.length);
+          }
+          if (firstDraftScore !== null && CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0 && CONFIG.totalMarks) {
+            const estimatedMarks = Math.round((firstDraftScore / 100) * CONFIG.totalMarks);
+            const sorted = [...CONFIG.gradeBoundaries].sort((a, b) => (b.minMarks || b.minMark || 0) - (a.minMarks || a.minMark || 0));
+            for (const boundary of sorted) {
+              if (estimatedMarks >= (boundary.minMarks || boundary.minMark || 0)) {
+                firstDraftGrade = boundary.grade ? `Grade ${boundary.grade}` : null;
+                break;
+              }
+            }
+          }
+          if (!firstDraftGrade && firstAttemptGrades.length > 0) {
+            firstDraftGrade = firstAttemptGrades[0];
+          }
+
           // Check if we have authentic grade boundaries
           const hasAuthenticDescriptors = CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0;
-          
+
           const response = await fetch('/.netlify/functions/grade-essay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -15906,11 +15974,13 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               studentEmail,
               score: data.finalScore,
               grade: data.finalGrade || data.feedback.overallGrade,
+              firstDraftScore: firstDraftScore,
+              firstDraftGrade: firstDraftGrade,
               awardedMarks: data.awardedMarks,
               totalMarks: data.totalMarks,
               essay: data.fullEssay,
-              originalEssay: originalEssay, // Original essay before corrections
-              essaysAreDifferent: essaysAreDifferent, // Flag if improvements were made
+              originalEssay: originalEssay,
+              essaysAreDifferent: essaysAreDifferent,
               paragraphSummary: data.paragraphSummary,
               feedback: data.feedback,
               usedAuthenticDescriptors: data.usedAuthenticDescriptors,
