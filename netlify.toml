@@ -20,6 +20,10 @@
   external_node_modules = ["@netlify/blobs"]
   # Background functions get 15 minute timeout automatically
 
+# Extended timeout for PDF content extraction (Claude API call)
+[functions."extract-pdf-content"]
+  external_node_modules = ["@netlify/blobs"]
+
 # Headers for all pages
 [[headers]]
   for = "/*"
