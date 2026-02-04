@@ -12974,6 +12974,12 @@ ${examinerComment}
       const [selectedPaper, setSelectedPaper] = useState('');
       const [selectedQuestions, setSelectedQuestions] = useState([]);
 
+      // PDF extraction state
+      const [isExtracting, setIsExtracting] = useState(false);
+      const [extractionStatus, setExtractionStatus] = useState('');
+      const [extractionSummary, setExtractionSummary] = useState('');
+      const [originalPdfFiles, setOriginalPdfFiles] = useState([]); // Store original File objects for view/download
+
       // Exam paper structure data for each subject/exam board combination
       const examPaperData = {
         'GCSE English Language': {
@@ -13685,8 +13691,57 @@ ${examinerComment}
 
       const sessionToken = TeacherAuth.getSessionToken();
 
+      // Auto-extract question and source material from PDF text
+      const autoExtractFromPdf = async (pdfText) => {
+        setIsExtracting(true);
+        setExtractionStatus('Analysing PDF to extract question and source material...');
+        setExtractionSummary('');
+
+        try {
+          const response = await fetch('/.netlify/functions/extract-pdf-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({
+              pdfText,
+              subject: subject || '',
+              examBoard: examBoard || '',
+              paperName: paperName || ''
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Auto-populate fields if they are currently empty
+            if (result.examQuestion && !examQuestion.trim()) {
+              setExamQuestion(result.examQuestion);
+            }
+            if (result.sourceMaterial && !sourceMaterial.trim()) {
+              setSourceMaterial(result.sourceMaterial);
+            }
+            if (result.totalMarks && !totalMarks) {
+              setTotalMarks(result.totalMarks.toString());
+            }
+            setExtractionSummary(result.summary || 'Content extracted successfully.');
+            setExtractionStatus('');
+          } else {
+            setExtractionStatus('');
+            console.warn('PDF extraction failed:', result.error);
+            setExtractionSummary('Auto-extraction was not successful. Please enter the question and source material manually.');
+          }
+        } catch (err) {
+          console.error('PDF extraction error:', err);
+          setExtractionStatus('');
+          setExtractionSummary('Auto-extraction encountered an error. Please enter the question and source material manually.');
+        } finally {
+          setIsExtracting(false);
+        }
+      };
+
       // File handling
       const handleSourceFileUpload = async (files) => {
+        let allExtractedText = '';
+
         for (const file of files) {
           if (file.size > 10 * 1024 * 1024) {
             alert('File too large. Maximum 10MB.');
@@ -13698,6 +13753,9 @@ ${examinerComment}
             if (file.type === 'application/pdf') {
               const extractedText = await extractPdfText(file);
               fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+              allExtractedText += extractedText + '\n\n';
+              // Store original File object for view/download
+              setOriginalPdfFiles(prev => [...prev, file]);
             } else if (file.type.startsWith('image/')) {
               const base64 = await readFileAsBase64(file);
               fileData = { name: file.name, type: file.type, content: base64 };
@@ -13710,6 +13768,11 @@ ${examinerComment}
             console.error('File processing error:', err);
             alert('Error processing file: ' + err.message);
           }
+        }
+
+        // Auto-extract question and source material from PDF text
+        if (allExtractedText.trim()) {
+          autoExtractFromPdf(allExtractedText.trim());
         }
       };
 
@@ -14167,6 +14230,7 @@ ${examinerComment}
             setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
             setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
+            setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
           } else {
             throw new Error(result.error || 'Failed to save');
           }
@@ -14364,22 +14428,12 @@ ${examinerComment}
             <div className="card">
               <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Question</h4>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>The Question *</label>
-                <textarea value={examQuestion} onChange={e => setExamQuestion(e.target.value)}
-                  placeholder="Enter the exact exam question as students would see it..."
-                  className="paragraph-editor" style={parseStyle("min-height: 120px;")} />
-              </div>
-
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Material (if any)</label>
-                <textarea value={sourceMaterial} onChange={e => setSourceMaterial(e.target.value)}
-                  placeholder="Paste any text extracts, passages, or data that students need to reference..."
-                  className="paragraph-editor" style={parseStyle("min-height: 100px;")} />
-              </div>
-
+              {/* PDF Upload area - moved to top so extraction populates fields below */}
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Images/PDFs</label>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Upload Question Paper (PDF/Image)</label>
+                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 var(--space-sm) 0;")}>
+                  Upload your exam question paper and the question and source material will be automatically extracted.
+                </p>
                 <div style={parseStyle("border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-lg); text-align: center;")}>
                   <input type="file" accept=".pdf,image/*" multiple style={parseStyle("display: none;")} id="sourceFileInput"
                     onChange={e => handleSourceFileUpload(Array.from(e.target.files))} />
@@ -14387,11 +14441,95 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>{sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'Click to upload PDFs or images'}</div>
                   </label>
                 </div>
+
+                {/* PDF view/download buttons */}
+                {originalPdfFiles.length > 0 && (
+                  <div style={parseStyle("margin-top: var(--space-sm); display: flex; flex-wrap: wrap; gap: var(--space-sm);")}>
+                    {originalPdfFiles.map((file, idx) => (
+                      <div key={idx} style={parseStyle("display: flex; gap: var(--space-xs); align-items: center;")}>
+                        <button
+                          className="btn btn-secondary"
+                          style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm);")}
+                          onClick={() => {
+                            const url = URL.createObjectURL(file);
+                            window.open(url, '_blank');
+                          }}>
+                          View {file.name}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm);")}
+                          onClick={() => {
+                            const url = URL.createObjectURL(file);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = file.name;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}>
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Extraction status */}
+                {isExtracting && (
+                  <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
+                    <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); color: var(--color-primary);")}>
+                      <div className="loading-spinner" style={parseStyle("width: 18px; height: 18px;")}></div>
+                      <span style={parseStyle("font-size: 0.85rem;")}>{extractionStatus}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Extraction result summary */}
+                {!isExtracting && extractionSummary && (
+                  <div style={parseStyle(`margin-top: var(--space-md); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid ${extractionSummary.includes('not successful') || extractionSummary.includes('error') ? 'var(--color-warning, #e6a817)' : 'var(--color-success)'}; background: ${extractionSummary.includes('not successful') || extractionSummary.includes('error') ? 'var(--color-warning-bg, #fef9e7)' : 'var(--color-success-bg)'};`)}>
+                    <div style={parseStyle("display: flex; align-items: flex-start; gap: var(--space-sm);")}>
+                      <span style={parseStyle("font-size: 0.85rem;")}>{extractionSummary}</span>
+                    </div>
+                    {examQuestion.trim() && (
+                      <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: var(--space-xs) 0 0 0;")}>
+                        The extracted content has been placed in the fields below. Please review and edit if needed.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Remove individual files */}
+                {sourceFiles.length > 0 && (
+                  <div style={parseStyle("margin-top: var(--space-sm);")}>
+                    <button
+                      className="btn btn-secondary"
+                      style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); color: var(--color-error, #dc3545);")}
+                      onClick={() => { setSourceFiles([]); setOriginalPdfFiles([]); setExtractionSummary(''); }}>
+                      Clear All Uploaded Files
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>The Question *</label>
+                <textarea value={examQuestion} onChange={e => setExamQuestion(e.target.value)}
+                  placeholder="Enter the exact exam question as students would see it, or upload a PDF above to auto-extract..."
+                  className="paragraph-editor" style={parseStyle("min-height: 120px;")} />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Source Material (if any)</label>
+                <textarea value={sourceMaterial} onChange={e => setSourceMaterial(e.target.value)}
+                  placeholder="Paste any text extracts, passages, or data that students need to reference, or upload a PDF above to auto-extract..."
+                  className="paragraph-editor" style={parseStyle("min-height: 100px;")} />
               </div>
 
               <div style={parseStyle("display: flex; justify-content: space-between;")}>
                 <button className="btn btn-secondary" onClick={prevStep}>Back</button>
-                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+                <button className="btn btn-primary" onClick={nextStep} disabled={isExtracting}>
+                  {isExtracting ? 'Extracting...' : 'Continue'}
+                </button>
               </div>
             </div>
           )}
@@ -14446,6 +14584,17 @@ ${examinerComment}
                 <p><strong>Time:</strong> {timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}</p>
                 <p><strong>Question:</strong> {examQuestion.substring(0, 100)}{examQuestion.length > 100 ? '...' : ''}</p>
                 <p><strong>Source Files:</strong> {sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'None'}</p>
+                {originalPdfFiles.length > 0 && (
+                  <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-top: var(--space-xs);")}>
+                    {originalPdfFiles.map((file, idx) => (
+                      <button key={idx} className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.7rem; padding: 2px var(--space-xs);")}
+                        onClick={() => { const url = URL.createObjectURL(file); window.open(url, '_blank'); }}>
+                        View {file.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p><strong>Mark Scheme:</strong> {markSchemeFile ? markSchemeFile.name : (markScheme ? 'Provided (text)' : 'Not provided')}</p>
               </div>
 
