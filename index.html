@@ -8982,7 +8982,7 @@
           
           {/* Grade/Marks Justification - shown when using authentic descriptors */}
           {(feedback.marksJustification || feedback.gradeJustification) && (
-            <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(184; border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
+            <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
               <div style={parseStyle("font-size: 0.8rem; font-weight: 600; color: var(--color-primary-light); margin-bottom: var(--space-xs);")}>
                 Indicative Mark Assessment
               </div>
@@ -9464,7 +9464,7 @@
               </p>
             </div>
 
-            <div style={parseStyle("margin-top: var(--space-lg); padding: var(--space-md); background: linear-gradient(135deg; border: 2px solid var(--color-primary); border-radius: var(--radius-md);")}>
+            <div style={parseStyle("margin-top: var(--space-lg); padding: var(--space-md); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); border-radius: var(--radius-md);")}>
               <p style={parseStyle("margin: 0; color: var(--color-text);")}>
                 <strong style={parseStyle("color: var(--color-primary-light);")}>Preview Mode:</strong> Test the essay as a student would experience it. Pasting is enabled and progress is not saved.
               </p>
@@ -10558,7 +10558,9 @@ ${essayFeedback.closingEncouragement}
               OFFICIAL MARK SCHEME GRADING
           ${config.officialMarkScheme.examBoard} ${config.officialMarkScheme.qualification}
 ========================================================
-========================================================
+`;
+          if (initialVersion && improvedVersion && comparison) {
+            report += `========================================================
 IMPROVEMENT SUMMARY
 ========================================================
 
@@ -10568,40 +10570,66 @@ Improvement:      +${comparison.marksImproved} marks (${comparison.gradeChange})
 
 Most Improved Area: ${comparison.mostImprovedArea}
 ${comparison.improvementSummary}
-========================================================
+`;
+          }
+          if (initialVersion) {
+            report += `========================================================
 INITIAL VERSION ASSESSMENT
 ========================================================
 Mark: ${initialVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${initialVersion.grade} | Level: ${initialVersion.level}
-
+`;
+            if (initialVersion.aoBreakdown) {
+              report += `
 Assessment Objectives:
-${Object.entries(initialVersion.aoBreakdown).map(([ao, data]) => 
+${Object.entries(initialVersion.aoBreakdown).map(([ao, data]) =>
   `  ${ao}: ${data.mark} marks (Level ${data.level})\n    ${data.justification}`
 ).join('\n\n')}
-
+`;
+            }
+            if (initialVersion.keyStrengths && initialVersion.keyStrengths.length > 0) {
+              report += `
 Strengths:
 ${initialVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
-
+`;
+            }
+            if (initialVersion.keyWeaknesses && initialVersion.keyWeaknesses.length > 0) {
+              report += `
 Areas to Improve:
 ${initialVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-========================================================
+`;
+            }
+          }
+          if (improvedVersion) {
+            report += `========================================================
 FINAL VERSION ASSESSMENT
 ========================================================
 Mark: ${improvedVersion.totalMark}/${config.officialMarkScheme.totalMarks} | Grade: ${improvedVersion.grade} | Level: ${improvedVersion.level}
-
+`;
+            if (improvedVersion.aoBreakdown) {
+              report += `
 Assessment Objectives:
-${Object.entries(improvedVersion.aoBreakdown).map(([ao, data]) => 
+${Object.entries(improvedVersion.aoBreakdown).map(([ao, data]) =>
   `  ${ao}: ${data.mark} marks (Level ${data.level})\n    ${data.justification}`
 ).join('\n\n')}
-
+`;
+            }
+            if (improvedVersion.keyStrengths && improvedVersion.keyStrengths.length > 0) {
+              report += `
 Strengths:
 ${improvedVersion.keyStrengths.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
-
+`;
+            }
+            if (improvedVersion.keyWeaknesses && improvedVersion.keyWeaknesses.length > 0) {
+              report += `
 Areas to Improve:
 ${improvedVersion.keyWeaknesses.map((w, i) => `  ${i + 1}. ${w}`).join('\n')}
-
 `;
-          
-          if (comparison.remainingTargets && comparison.remainingTargets.length > 0) {
+            }
+          }
+          report += `
+`;
+
+          if (comparison && comparison.remainingTargets && comparison.remainingTargets.length > 0) {
             report += `
 ========================================================
 NEXT STEPS TO IMPROVE FURTHER
@@ -10685,7 +10713,9 @@ ${examinerComment}
       const OfficialGradingDisplay = ({ grading }) => {
         const { initialVersion, improvedVersion, comparison, examinerComment } = grading;
         
-        const VersionCard = ({ version, title, isImproved }) => (
+        const VersionCard = ({ version, title, isImproved }) => {
+          if (!version) return null;
+          return (
           <div className="card" style={{
                     flex: 1,
                     background: isImproved
@@ -10698,61 +10728,72 @@ ${examinerComment}
             <h4 style={{ marginBottom: 'var(--space-md)', color: isImproved ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
               {title}
             </h4>
-            
+
             <div style={parseStyle("display: flex; align-items: center; gap: var(--space-lg); margin-bottom: var(--space-lg);")}>
               <div style={parseStyle("font-size: 3rem; font-weight: 700; font-family: var(--font-display); color: var(--color-primary-light);")}>
                 {version.totalMark}<span style={parseStyle("font-size: 1.5rem; color: var(--color-text-muted);")}>/{config.officialMarkScheme.totalMarks}</span>
               </div>
               <div>
-                <div style={parseStyle("font-size: 2rem; font-weight: 700; background: linear-gradient(135deg; webkit-background-clip: text; webkit-text-fill-color: transparent;")}>
+                <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-primary-light);")}>
                   Grade {version.grade}
                 </div>
                 <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
-                  Level {version.level}  {version.percentage}%
+                  Level {version.level}  {version.percentage != null ? `${version.percentage}%` : ''}
                 </div>
               </div>
             </div>
-            
-            <div style={parseStyle("margin-bottom: var(--space-md);")}>
-              <strong>Assessment Objective Breakdown:</strong>
-            </div>
-            
-            {Object.entries(version.aoBreakdown).map(([ao, data]) => (
-              <div key={ao} style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
-                <div style={parseStyle("display: flex; justify-content: space-between; margin-bottom: var(--space-xs);")}>
-                  <strong>{ao}</strong>
-                  <span style={parseStyle("color: var(--color-primary-light);")}>
-                    {data.mark} marks (Level {data.level})
-                  </span>
-                </div>
-                <p style={parseStyle("font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;")}>
-                  {data.justification}
-                </p>
+
+            {version.aoBreakdown && Object.keys(version.aoBreakdown).length > 0 && (
+              <>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <strong>Assessment Objective Breakdown:</strong>
               </div>
-            ))}
-            
+
+              {Object.entries(version.aoBreakdown).map(([ao, data]) => (
+                <div key={ao} style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
+                  <div style={parseStyle("display: flex; justify-content: space-between; margin-bottom: var(--space-xs);")}>
+                    <strong>{ao}</strong>
+                    <span style={parseStyle("color: var(--color-primary-light);")}>
+                      {data.mark} marks (Level {data.level})
+                    </span>
+                  </div>
+                  <p style={parseStyle("font-size: 0.9rem; color: var(--color-text-secondary); margin: 0;")}>
+                    {data.justification}
+                  </p>
+                </div>
+              ))}
+              </>
+            )}
+
+            {version.overallComment && (
             <div style={parseStyle("margin-top: var(--space-lg);")}>
               <p style={parseStyle("font-style: italic; color: var(--color-text-secondary);")}>
                 {version.overallComment}
               </p>
             </div>
-            
+            )}
+
             <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-top: var(--space-md);")}>
+              {version.keyStrengths && version.keyStrengths.length > 0 && (
               <div>
                 <strong style={parseStyle("color: var(--color-success); font-size: 0.85rem;")}> Strengths</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyStrengths.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
+              )}
+              {version.keyWeaknesses && version.keyWeaknesses.length > 0 && (
               <div>
                 <strong style={parseStyle("color: var(--color-warning); font-size: 0.85rem;")}> To Improve</strong>
                 <ul style={parseStyle("margin: var(--space-xs) 0 0 var(--space-md); padding: 0; font-size: 0.85rem;")}>
                   {version.keyWeaknesses.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
               </div>
+              )}
             </div>
           </div>
-        );
+          );
+        };
         
         return (
           <div className="ghost-appear">
@@ -10767,22 +10808,23 @@ ${examinerComment}
               </div>
               
               {/* Improvement Summary */}
-              <div className="card" style={parseStyle("background: linear-gradient(135deg; border: 2px solid var(--color-primary); margin-bottom: var(--space-xl);")}>
+              {initialVersion && improvedVersion && comparison && (
+              <div className="card" style={parseStyle("background: linear-gradient(135deg, rgba(184, 134, 11, 0.08), rgba(184, 134, 11, 0.03)); border: 2px solid var(--color-primary); margin-bottom: var(--space-xl);")}>
                 <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: var(--space-lg);")}>
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Initial</div>
                     <div style={parseStyle("font-size: 2rem; font-weight: 700;")}>{initialVersion.totalMark}</div>
                     <div style={parseStyle("color: var(--color-text-muted);")}>Grade {initialVersion.grade}</div>
                   </div>
-                  
+
                   <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}></div>
-                  
+
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Improved</div>
                     <div style={parseStyle("font-size: 2rem; font-weight: 700; color: var(--color-success);")}>{improvedVersion.totalMark}</div>
                     <div style={parseStyle("color: var(--color-success);")}>Grade {improvedVersion.grade}</div>
                   </div>
-                  
+
                   <div style={parseStyle("padding: var(--space-md) var(--space-lg); background: var(--color-success-bg); border-radius: var(--radius-md); border: 1px solid var(--color-success);")}>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-success); margin-bottom: var(--space-xs);")}>Improvement</div>
                     <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-success);")}>
@@ -10791,12 +10833,13 @@ ${examinerComment}
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-success);")}>{comparison.gradeChange}</div>
                   </div>
                 </div>
-                
+
                 <div style={parseStyle("margin-top: var(--space-lg); padding-top: var(--space-lg); border-top: 1px solid var(--color-border);")}>
                   <p style={parseStyle("margin: 0;")}><strong>Most improved:</strong> {comparison.mostImprovedArea}</p>
                   <p style={parseStyle("margin: var(--space-sm) 0 0 0; color: var(--color-text-secondary);")}>{comparison.improvementSummary}</p>
                 </div>
               </div>
+              )}
               
               {/* Side by side comparison */}
               <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-xl); flex-wrap: wrap;")}>
@@ -10805,7 +10848,7 @@ ${examinerComment}
               </div>
 
               {/* Remaining targets */}
-              {comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
+              {comparison && comparison.remainingTargets && comparison.remainingTargets.length > 0 && (
                 <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
                   <h4 style={parseStyle("margin-bottom: var(--space-md); display: flex; alignItems: center; gap: 8px;")}><Icon name={ICONS.chart} size={18} /> Next Steps to Improve Further</h4>
                   <ul style={parseStyle("margin: 0; padding-left: var(--space-lg);")}>
@@ -11049,7 +11092,7 @@ ${examinerComment}
           
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
-            <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg; border: 2px solid var(--color-primary); text-align: center;")}>
+            <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); text-align: center;")}>
               <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; justify-content: center; gap: 8px;")}><Icon name={ICONS.download} size={22} /> Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
@@ -11611,7 +11654,7 @@ ${examinerComment}
           </div>
           
           {selectedSubmission && (
-            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow: auto;")} onClick={() => setSelectedSubmission(null)}>
+            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow: auto;")} onClick={() => setSelectedSubmission(null)}>
               <div className="card" style={parseStyle("max-width: 900px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={(e) => e.stopPropagation()}>
                 <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
                   <div>
@@ -11690,7 +11733,7 @@ ${examinerComment}
                       )}
                       
                       {selectedSubmission.feedback.bestQuotation && (
-                        <div style={parseStyle("font-style: italic; padding: var(--space-md); background: rgba(184; border-left: 3px solid var(--color-primary); margin-bottom: var(--space-md);")}>
+                        <div style={parseStyle("font-style: italic; padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-left: 3px solid var(--color-primary); margin-bottom: var(--space-md);")}>
                           "Best Writing: {selectedSubmission.feedback.bestQuotation}"
                         </div>
                       )}
@@ -11749,7 +11792,7 @@ ${examinerComment}
                       )}
                       
                       {selectedSubmission.officialGrading.examinerComment && (
-                        <div style={parseStyle("margin-top: var(--space-md); font-style: italic; padding: var(--space-md); background: rgba(184; border-radius: var(--radius-md);")}>
+                        <div style={parseStyle("margin-top: var(--space-md); font-style: italic; padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md);")}>
                           <strong>Examiner:</strong> {selectedSubmission.officialGrading.examinerComment}
                         </div>
                       )}
@@ -15713,14 +15756,18 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
     const paragraphData = PARAGRAPHS.map(p => ({
       config: p,
       finalText: currentParagraphStates[p.id]?.finalText || '',
+      originalText: currentParagraphStates[p.id]?.originalBeforeCorrections || currentParagraphStates[p.id]?.initialText || currentParagraphStates[p.id]?.finalText || '',
       attempts: currentParagraphStates[p.id]?.attempts || 0,
       paragraphScore: currentParagraphStates[p.id]?.score || 0,
       estimatedGrade: currentParagraphStates[p.id]?.estimatedGrade || null
     }));
-    
+
+    // Build original essay from original texts
+    const originalEssay = paragraphData.map(p => p.originalText).join('\n\n');
+
     // Check if we have authentic grade boundaries
     const hasAuthenticDescriptors = CONFIG.gradeBoundaries && Array.isArray(CONFIG.gradeBoundaries) && CONFIG.gradeBoundaries.length > 0;
-    
+
     const response = await fetch('/.netlify/functions/grade-essay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -15735,19 +15782,22 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         gradeSystem: gradeSystem
       })
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
-      setEssayFeedback({ 
-        ...data.feedback, 
+      setEssayFeedback({
+        ...data.feedback,
         finalScore: data.finalScore,
         finalGrade: data.finalGrade,
         awardedMarks: data.awardedMarks,
         totalMarks: data.totalMarks,
         usedAuthenticDescriptors: data.usedAuthenticDescriptors
       });
-      
+
+      // Check if original and final essays are different
+      const essaysAreDifferent = originalEssay.trim() !== (data.fullEssay || '').trim();
+
       const submissionData = {
         type: 'essay',
         essayId: selectedEssayId,
@@ -15759,6 +15809,8 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         awardedMarks: data.awardedMarks,
         totalMarks: data.totalMarks,
         essay: data.fullEssay,
+        originalEssay: originalEssay,
+        essaysAreDifferent: essaysAreDifferent,
         paragraphSummary: data.paragraphSummary,
         feedback: data.feedback,
         usedAuthenticDescriptors: data.usedAuthenticDescriptors,
@@ -16120,7 +16172,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           </div>
           
           {isPreviewMode && (
-            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg; border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
+            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
               <div>
                 <strong style={parseStyle("color: var(--color-primary-light);")}> Teacher Preview Mode</strong>
                 <span style={parseStyle("margin-left: var(--space-md); color: var(--color-text-muted);")}>
