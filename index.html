@@ -22,6 +22,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
   <!-- PDF.js for PDF text extraction -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -4962,24 +4963,25 @@
     // =====================================================
     
     let db = null;
+    let firebaseAuth = null;
     let FIREBASE_ENABLED = false;
-    
+
     // Initialize Firebase (called after config is loaded)
     async function initializeFirebase() {
       // First, load the config from Netlify Function
       if (typeof loadFirebaseConfig === 'function') {
         await loadFirebaseConfig();
       }
-      
+
       // Debug Firebase configuration
       console.log('Firebase Config Check:');
       console.log('  window.FIREBASE_ENABLED:', window.FIREBASE_ENABLED);
       console.log('  window.FIREBASE_CONFIG:', window.FIREBASE_CONFIG);
       console.log('  apiKey present:', !!window.FIREBASE_CONFIG?.apiKey);
-      
+
       FIREBASE_ENABLED = window.FIREBASE_ENABLED && window.FIREBASE_CONFIG?.apiKey;
       console.log('  FIREBASE_ENABLED result:', FIREBASE_ENABLED);
-      
+
       if (FIREBASE_ENABLED) {
         try {
           // Check if already initialized
@@ -4987,6 +4989,11 @@
             firebase.initializeApp(window.FIREBASE_CONFIG);
           }
           db = firebase.firestore();
+          // Initialize Firebase Auth
+          if (typeof firebase.auth === 'function') {
+            firebaseAuth = firebase.auth();
+            console.log('Firebase Auth initialized successfully');
+          }
           console.log('Firebase initialized successfully');
           return true;
         } catch (error) {
@@ -6106,18 +6113,22 @@
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
       const [error, setError] = useState('');
+      const [successMsg, setSuccessMsg] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [showPassword, setShowPassword] = useState(false);
       const [showTeacherLogin, setShowTeacherLogin] = useState(false);
+      const [showForgotPassword, setShowForgotPassword] = useState(false);
+      const [resetEmail, setResetEmail] = useState('');
 
       const REQUIRED_EMAIL_DOMAIN = '@bb-hs.co.uk';
 
       const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccessMsg('');
 
         const emailLower = email.trim().toLowerCase();
-        
+
         if (!emailLower) {
           setError('Please enter your school email');
           return;
@@ -6136,7 +6147,35 @@
         setIsLoading(true);
 
         try {
-          let result;
+          let result = null;
+
+          // Try Firebase Auth first
+          if (firebaseAuth) {
+            try {
+              const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailLower, password);
+              const idToken = await userCredential.user.getIdToken();
+
+              // Exchange Firebase ID token for custom session
+              const response = await fetch('/.netlify/functions/student-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'firebaseLogin', idToken })
+              });
+              result = await response.json();
+
+              if (result.success) {
+                localStorage.setItem('studentSession', result.sessionToken);
+                localStorage.setItem('studentData', JSON.stringify(result.student));
+                onLoginSuccess(result.student, result.sessionToken);
+                return;
+              }
+            } catch (firebaseErr) {
+              console.log('Firebase Auth login failed, trying custom auth:', firebaseErr.code);
+              // Fall through to custom auth
+            }
+          }
+
+          // Fall back to custom auth (FirebaseDB or Netlify function)
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             result = await FirebaseDB.studentLogin(emailLower, password);
@@ -6159,6 +6198,42 @@
         } catch (err) {
           console.error('Login error:', err);
           setError('Unable to connect. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMsg('');
+
+        const emailLower = resetEmail.trim().toLowerCase();
+        if (!emailLower) {
+          setError('Please enter your school email');
+          return;
+        }
+        if (!emailLower.endsWith(REQUIRED_EMAIL_DOMAIN)) {
+          setError('Please use your school email (must end with ' + REQUIRED_EMAIL_DOMAIN + ')');
+          return;
+        }
+
+        setIsLoading(true);
+        try {
+          if (firebaseAuth) {
+            await firebaseAuth.sendPasswordResetEmail(emailLower);
+            setSuccessMsg('Password reset email sent! Check your inbox (and spam folder).');
+            setShowForgotPassword(false);
+          } else {
+            setError('Password reset is not available. Please ask your teacher to reset your password.');
+          }
+        } catch (err) {
+          console.error('Password reset error:', err);
+          if (err.code === 'auth/user-not-found') {
+            setError('No account found with this email. Please contact your teacher.');
+          } else {
+            setError('Failed to send reset email. Please try again or contact your teacher.');
+          }
         } finally {
           setIsLoading(false);
         }
@@ -6234,21 +6309,74 @@
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                className="btn btn-primary" 
-                style={parseStyle("width: 100%; justify-content: center;")}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </button>
+              {successMsg && (
+                <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(46, 160, 67, 0.1); border: 1px solid #2ea043; border-radius: var(--radius-md); color: #2ea043;")}>
+                  {successMsg}
+                </div>
+              )}
+
+              {!showForgotPassword ? (
+                <React.Fragment>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={parseStyle("width: 100%; justify-content: center;")}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  </button>
+                </React.Fragment>
+              ) : null}
             </form>
 
+            {showForgotPassword ? (
+              <div style={parseStyle("margin-top: var(--space-lg);")}>
+                <h3 style={parseStyle("margin-bottom: var(--space-md); font-size: 1.1rem;")}>Reset Password</h3>
+                <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-md);")}>
+                  Enter your school email and we'll send you a link to reset your password.
+                </p>
+                <form onSubmit={handleForgotPassword}>
+                  <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => { setResetEmail(e.target.value); setError(''); }}
+                      placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
+                      className="paragraph-editor"
+                      style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div style={parseStyle("display: flex; gap: var(--space-sm);")}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      style={parseStyle("flex: 1; justify-content: center;")}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Sending...' : 'Send Reset Email'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => { setShowForgotPassword(false); setError(''); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : null}
+
             <div style={parseStyle("margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--color-border); text-align: center;")}>
-              <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
-                Forgot your password? Ask your teacher to reset it.
-              </p>
-              <button 
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(true); setResetEmail(email); setError(''); setSuccessMsg(''); }}
+                style={parseStyle("background: none; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 0.9rem; text-decoration: underline; margin-bottom: var(--space-sm); display: block; width: 100%;")}
+              >
+                Forgot your password?
+              </button>
+              <button
                 type="button"
                 onClick={() => setShowTeacherLogin(true)}
                 style={parseStyle("background: none; border: none; color: var(--color-primary-light); cursor: pointer; font-size: 0.9rem; text-decoration: underline;")}
@@ -7541,7 +7669,7 @@
 
       const handleResetPassword = async (email) => {
         if (!confirm('Reset password for ' + email + '?')) return;
-        
+
         try {
           let result;
           const firebaseReady = await FirebaseDB.isReady();
@@ -7555,7 +7683,7 @@
             });
             result = await response.json();
           }
-          
+
           if (result.success) {
             alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
           } else {
@@ -7563,6 +7691,70 @@
           }
         } catch (err) {
           alert('Error resetting password');
+        }
+      };
+
+      // Send password reset email to individual student
+      const handleSendResetEmail = async (email, name) => {
+        if (!confirm('Send password reset email to ' + (name || email) + '?\n\nThey will receive an email with a link to set a new password.')) return;
+
+        try {
+          const token = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ action: 'sendResetEmail', email, displayName: name })
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            alert('Password reset email sent to ' + email);
+          } else {
+            alert('Failed to send email: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error sending password reset email');
+        }
+      };
+
+      // Send password reset emails to all students in selected class
+      const handleBulkSendResetEmails = async () => {
+        if (!selectedClass) {
+          alert('Please select a class first');
+          return;
+        }
+        const classStudents = filteredStudents;
+        if (classStudents.length === 0) {
+          alert('No students in the selected class');
+          return;
+        }
+        if (!confirm('Send password reset emails to all ' + classStudents.length + ' students in this class?\n\nEach student will receive an email with a link to set their own password.')) return;
+
+        try {
+          const token = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+              action: 'sendResetEmailsBatch',
+              emails: classStudents.map(s => ({ email: s.email, name: s.name }))
+            })
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            alert('Password reset emails sent!\n\nSent: ' + result.summary.sent + '\nFailed: ' + result.summary.failed);
+          } else {
+            alert('Failed: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error sending bulk password reset emails');
         }
       };
 
@@ -7602,6 +7794,11 @@
               Students ({filteredStudents.length})
             </h2>
             <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+              {selectedClass && filteredStudents.length > 0 && (
+                <button className="btn btn-secondary" onClick={handleBulkSendResetEmails} title="Send password reset emails to all students in the selected class">
+                  Email Reset to Class
+                </button>
+              )}
               <button className="btn btn-secondary" onClick={() => setShowAddClass(true)}>
                 + Add Class
               </button>
@@ -7660,15 +7857,23 @@
                       {student.lastLogin ? formatDateTime(student.lastLogin) : 'Never'}
                     </td>
                     <td style={parseStyle("padding: var(--space-md); text-align: right;")}>
-                      <button 
+                      <button
+                        onClick={() => handleSendResetEmail(student.email, student.name)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
+                        title="Send password reset email to student"
+                      >
+                        Email Reset
+                      </button>
+                      <button
                         onClick={() => handleResetPassword(student.email)}
                         className="btn btn-secondary"
                         style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
-                        title="Reset Password"
+                        title="Reset password manually (shows new password)"
                       >
                         Reset PW
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteStudent(student.email, student.name)}
                         className="btn btn-secondary"
                         style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); color: var(--color-error);")}
@@ -11893,8 +12098,31 @@ ${examinerComment}
         }
       },
       
-      // Login
+      // Login - tries Firebase Auth first, falls back to custom
       async login(email, password) {
+        // Try Firebase Auth first
+        if (firebaseAuth) {
+          try {
+            const userCredential = await firebaseAuth.signInWithEmailAndPassword(email.trim().toLowerCase(), password);
+            const idToken = await userCredential.user.getIdToken();
+
+            const response = await fetch('/.netlify/functions/teacher-auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'firebaseLogin', idToken })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+              this.setSession(result.sessionToken, result.teacher);
+              return { success: true, teacher: result.teacher };
+            }
+          } catch (firebaseErr) {
+            console.log('Firebase Auth login failed for teacher, trying custom:', firebaseErr.code);
+          }
+        }
+
+        // Fall back to custom auth
         try {
           const response = await fetch('/.netlify/functions/teacher-auth', {
             method: 'POST',
@@ -11902,7 +12130,7 @@ ${examinerComment}
             body: JSON.stringify({ action: 'login', email, password })
           });
           const result = await response.json();
-          
+
           if (result.success) {
             this.setSession(result.sessionToken, result.teacher);
             return { success: true, teacher: result.teacher };
@@ -11913,7 +12141,24 @@ ${examinerComment}
           return { success: false, error: 'Connection failed. Please try again.' };
         }
       },
-      
+
+      // Send password reset email via Firebase Auth
+      async sendPasswordResetEmail(email) {
+        if (!firebaseAuth) {
+          return { success: false, error: 'Firebase Auth not available' };
+        }
+        try {
+          await firebaseAuth.sendPasswordResetEmail(email.trim().toLowerCase());
+          return { success: true };
+        } catch (err) {
+          console.error('Password reset error:', err);
+          if (err.code === 'auth/user-not-found') {
+            return { success: false, error: 'No account found with this email.' };
+          }
+          return { success: false, error: 'Failed to send reset email.' };
+        }
+      },
+
       // Logout
       async logout() {
         const token = this.getSessionToken();
@@ -11927,6 +12172,10 @@ ${examinerComment}
           } catch (e) {
             // Ignore logout errors
           }
+        }
+        // Also sign out from Firebase Auth
+        if (firebaseAuth) {
+          try { await firebaseAuth.signOut(); } catch (e) { /* ignore */ }
         }
         this.clearSession();
       },
@@ -15170,6 +15419,41 @@ ${examinerComment}
         setActionLoading(null);
       };
 
+      // Migrate all existing users to Firebase Auth
+      const handleMigrateToFirebaseAuth = async () => {
+        if (!confirm('Migrate all existing students and teachers to Firebase Authentication?\n\nThis will create Firebase Auth accounts for all users. After migration, you can use "Send Password Reset Email" to let users set their own passwords.\n\nThis is safe to run multiple times - existing accounts will be skipped.')) return;
+
+        setActionLoading('migrate');
+
+        try {
+          const response = await fetch('/.netlify/functions/migrate-to-firebase-auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            }
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            const s = result.summary;
+            alert('Migration Complete!\n\n' +
+              'Students: ' + s.studentsCreated + ' created, ' + s.studentsSkipped + ' already existed' +
+              (s.studentErrors > 0 ? ', ' + s.studentErrors + ' errors' : '') +
+              '\nTeachers: ' + s.teachersCreated + ' created, ' + s.teachersSkipped + ' already existed' +
+              (s.teacherErrors > 0 ? ', ' + s.teacherErrors + ' errors' : '') +
+              '\n\nNote: All new accounts have temporary passwords. Use "Email Reset" or "Email Reset to Class" to let users set their own passwords.');
+          } else {
+            alert('Migration failed: ' + (result.error || 'Unknown error'));
+          }
+        } catch (e) {
+          alert('Connection failed: ' + e.message);
+        }
+
+        setActionLoading(null);
+      };
+
       const handleToggleRole = async (email, currentRole) => {
         const newRole = currentRole === 'admin' ? 'teacher' : 'admin';
         if (!confirm('Change ' + email + ' to ' + newRole + '?')) return;
@@ -15218,9 +15502,19 @@ ${examinerComment}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);")}>
               <h3 style={parseStyle("margin: 0;")}>Teacher Accounts</h3>
-              <button className="btn btn-primary" onClick={() => setShowAddTeacher(true)}>
-                + Add Teacher
-              </button>
+              <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleMigrateToFirebaseAuth}
+                  disabled={actionLoading === 'migrate'}
+                  title="Create Firebase Auth accounts for all existing users (enables password reset emails)"
+                >
+                  {actionLoading === 'migrate' ? 'Migrating...' : 'Migrate Users to Firebase Auth'}
+                </button>
+                <button className="btn btn-primary" onClick={() => setShowAddTeacher(true)}>
+                  + Add Teacher
+                </button>
+              </div>
             </div>
             
             {error && (

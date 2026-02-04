@@ -2,7 +2,7 @@
 // Handles login, registration, session management for teachers
 // First teacher to register becomes admin
 
-const { initializeFirebase } = require('./firebase-helper');
+const { initializeFirebase, getAuth } = require('./firebase-helper');
 
 // Use Web Crypto for password hashing (bcrypt alternative for edge functions)
 async function hashPassword(password) {
@@ -239,6 +239,75 @@ exports.handler = async (event, context) => {
     const { action } = body;
 
     // ========================================
+    // FIREBASE LOGIN (verify Firebase ID token, create custom session)
+    // ========================================
+    if (action === 'firebaseLogin') {
+      const { idToken } = body;
+      if (!idToken) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Firebase ID token required' })
+        };
+      }
+
+      try {
+        const auth = getAuth();
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const emailLower = decodedToken.email.trim().toLowerCase();
+
+        // Look up teacher in Firestore
+        const teacherDoc = await db.collection('teachers').doc(emailLower).get();
+
+        if (!teacherDoc.exists) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Teacher account not found' })
+          };
+        }
+
+        const teacher = teacherDoc.data();
+
+        // Create session
+        const sessionToken = generateSessionToken();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+        await db.collection('teacherSessions').doc(sessionToken).set({
+          email: emailLower,
+          createdAt: new Date().toISOString(),
+          expiresAt,
+          authMethod: 'firebase'
+        });
+
+        // Update last login
+        await db.collection('teachers').doc(emailLower).update({
+          lastLogin: new Date().toISOString()
+        });
+
+        const { passwordHash, ...safeTeacher } = teacher;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            sessionToken,
+            teacher: { ...safeTeacher, email: emailLower },
+            isAdmin: teacher.role === 'admin'
+          })
+        };
+      } catch (firebaseError) {
+        console.error('Firebase auth error:', firebaseError);
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Invalid Firebase token' })
+        };
+      }
+    }
+
+    // ========================================
     // CHECK SETUP (public - checks if any teachers exist)
     // ========================================
     if (action === 'checkSetup') {
@@ -419,9 +488,30 @@ exports.handler = async (event, context) => {
       };
       
       await db.collection('teachers').doc(emailLower).set(newTeacher);
-      
+
+      // Also create Firebase Auth user (non-blocking)
+      try {
+        const auth = getAuth();
+        try {
+          await auth.getUserByEmail(emailLower);
+          // User already exists, update password
+          const fbUser = await auth.getUserByEmail(emailLower);
+          await auth.updateUser(fbUser.uid, { password, displayName: name.trim() });
+        } catch (e) {
+          if (e.code === 'auth/user-not-found') {
+            await auth.createUser({
+              email: emailLower,
+              password: password,
+              displayName: name.trim()
+            });
+          }
+        }
+      } catch (fbErr) {
+        console.error('Failed to create Firebase Auth user for teacher:', fbErr.message);
+      }
+
       const { passwordHash: _, ...safeTeacher } = newTeacher;
-      
+
       return {
         statusCode: 200,
         headers,
@@ -429,7 +519,7 @@ exports.handler = async (event, context) => {
           success: true,
           teacher: safeTeacher,
           isFirstTeacher,
-          message: isFirstTeacher 
+          message: isFirstTeacher
             ? 'Admin account created successfully. You can now log in.'
             : 'Teacher account created successfully.'
         })
@@ -538,11 +628,20 @@ exports.handler = async (event, context) => {
         passwordResetBy: sessionCheck.email
       });
 
+      // Also update Firebase Auth password
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(emailLower);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password for teacher:', fbErr.message);
+      }
+
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ 
-          success: true, 
+        body: JSON.stringify({
+          success: true,
           newPassword,
           message: 'Password reset successfully'
         })
@@ -598,6 +697,15 @@ exports.handler = async (event, context) => {
         passwordHash,
         passwordChangedAt: new Date().toISOString()
       });
+
+      // Also update Firebase Auth password
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(sessionCheck.email);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password:', fbErr.message);
+      }
 
       return {
         statusCode: 200,
@@ -661,6 +769,15 @@ exports.handler = async (event, context) => {
 
       // Delete the teacher
       await db.collection('teachers').doc(emailLower).delete();
+
+      // Also delete Firebase Auth user
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(emailLower);
+        await auth.deleteUser(fbUser.uid);
+      } catch (fbErr) {
+        console.error('Failed to delete Firebase Auth user:', fbErr.message);
+      }
 
       // Clear teacherEmail on their classes
       const classesSnapshot = await db.collection('classes').where('teacherEmail', '==', emailLower).get();

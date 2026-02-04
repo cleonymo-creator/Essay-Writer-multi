@@ -4,7 +4,7 @@ let db = null;
 
 function initializeFirebase() {
   if (db) return db;
-  
+
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert({
@@ -14,9 +14,15 @@ function initializeFirebase() {
       })
     });
   }
-  
+
   db = admin.firestore();
   return db;
 }
 
-module.exports = { initializeFirebase };
+function getAuth() {
+  // Ensure Firebase is initialized
+  initializeFirebase();
+  return admin.auth();
+}
+
+module.exports = { initializeFirebase, getAuth };

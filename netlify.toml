@@ -24,6 +24,14 @@
 [functions."extract-pdf-content"]
   external_node_modules = ["@netlify/blobs"]
 
+# Migration function for Firebase Auth
+[functions."migrate-to-firebase-auth"]
+  external_node_modules = ["@netlify/blobs"]
+
+# Password reset email function
+[functions."send-password-reset"]
+  external_node_modules = ["@netlify/blobs"]
+
 # Headers for all pages
 [[headers]]
   for = "/*"

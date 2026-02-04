@@ -1,7 +1,9 @@
 // Student Authentication Function
 // Handles login, password verification, and session management
+// Supports both custom auth and Firebase Auth
 
 const { getStore } = require("@netlify/blobs");
+const { getAuth } = require('./firebase-helper');
 
 // Simple hash function for passwords
 async function hashPassword(password) {
@@ -50,6 +52,93 @@ exports.handler = async (event, context) => {
     const studentsStore = getStore("students");
     const sessionsStore = getStore("sessions");
     const classesStore = getStore("classes");
+
+    // FIREBASE LOGIN - Verify Firebase ID token and create custom session
+    if (action === 'firebaseLogin') {
+      const { idToken } = body;
+      if (!idToken) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Firebase ID token required' })
+        };
+      }
+
+      try {
+        const auth = getAuth();
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const emailLower = decodedToken.email.trim().toLowerCase();
+
+        // Look up student in Blobs
+        const studentData = await studentsStore.get(emailLower, { type: 'json' });
+
+        if (!studentData) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Account not found. Please contact your teacher if you believe this is an error.'
+            })
+          };
+        }
+
+        // Generate session token
+        const token = generateSessionToken();
+        const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
+
+        await sessionsStore.setJSON(token, {
+          email: emailLower,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(sessionExpiry).toISOString(),
+          authMethod: 'firebase'
+        });
+
+        // Update last login
+        await studentsStore.setJSON(emailLower, {
+          ...studentData,
+          lastLogin: new Date().toISOString()
+        });
+
+        // Get class assignments
+        let classAssignments = [];
+        if (studentData.classId) {
+          const classData = await classesStore.get(studentData.classId, { type: 'json' });
+          if (classData) {
+            classAssignments = classData.assignedEssays || [];
+          }
+        }
+
+        const allAssignments = [
+          ...new Set([
+            ...classAssignments,
+            ...(studentData.individualAssignments || [])
+          ])
+        ];
+
+        const { passwordHash, ...safeStudentData } = studentData;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            sessionToken: token,
+            student: {
+              ...safeStudentData,
+              assignedEssays: allAssignments
+            }
+          })
+        };
+      } catch (firebaseError) {
+        console.error('Firebase auth error:', firebaseError);
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Invalid Firebase token' })
+        };
+      }
+    }
 
     // LOGIN - Verify email and password
     if (action === 'login') {
@@ -281,6 +370,15 @@ exports.handler = async (event, context) => {
         passwordHash: newHash,
         passwordChangedAt: new Date().toISOString()
       });
+
+      // Also update Firebase Auth password (non-blocking)
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(session.email);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password:', fbErr.message);
+      }
 
       return {
         statusCode: 200,
