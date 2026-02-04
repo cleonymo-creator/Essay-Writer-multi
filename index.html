@@ -12957,6 +12957,7 @@ ${examinerComment}
       const [subject, setSubject] = useState('');
       const [yearGroup, setYearGroup] = useState('');
       const [examBoard, setExamBoard] = useState('');
+      const [examSeries, setExamSeries] = useState('');
       const [totalMarks, setTotalMarks] = useState('');
       const [timeAllowed, setTimeAllowed] = useState('');
       const [paperName, setPaperName] = useState('');
@@ -12969,6 +12970,11 @@ ${examinerComment}
       const [minWords, setMinWords] = useState('80');
       const [targetWords, setTargetWords] = useState('150');
       const [maxAttempts, setMaxAttempts] = useState('3');
+
+      // Editable essay state (for Step 5 review & edit)
+      const [editableEssay, setEditableEssay] = useState(null);
+      const [editExpandedParagraph, setEditExpandedParagraph] = useState(null);
+      const [editExpandedTier, setEditExpandedTier] = useState('foundation');
 
       // Paper and question selection state
       const [selectedPaper, setSelectedPaper] = useState('');
@@ -13744,6 +13750,9 @@ ${examinerComment}
             if (result.totalMarks && !totalMarks) {
               setTotalMarks(result.totalMarks.toString());
             }
+            if (result.examSeries && !examSeries.trim()) {
+              setExamSeries(result.examSeries);
+            }
             setExtractionSummary(result.summary || 'Content extracted successfully.');
             setExtractionStatus('');
           } else {
@@ -13869,7 +13878,7 @@ ${examinerComment}
 
         try {
           const payload = {
-            subject, yearGroup, examBoard, totalMarks: parseInt(totalMarks),
+            subject, yearGroup, examBoard, examSeries, totalMarks: parseInt(totalMarks),
             timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
             paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
             additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
@@ -13921,6 +13930,27 @@ ${examinerComment}
           setGeneratedConfig(result.config);
           setServerParsedEssay(result.parsedEssay || null);
           setGenerationStatus('');
+
+          // Parse into editable essay object for the review step
+          let parsed = result.parsedEssay || null;
+          if (parsed && parsed.paragraphs) {
+            setEditableEssay(JSON.parse(JSON.stringify(parsed))); // deep clone
+            setEditExpandedParagraph(0);
+          } else if (result.config) {
+            // Try quick client-side parse as fallback
+            try {
+              const window = { ESSAYS: {} };
+              const fn = new Function('window', result.config);
+              fn(window);
+              const essays = Object.values(window.ESSAYS);
+              if (essays.length > 0 && essays[0].paragraphs) {
+                setEditableEssay(JSON.parse(JSON.stringify(essays[0])));
+                setEditExpandedParagraph(0);
+              }
+            } catch (parseErr) {
+              console.warn('Client-side parse for editor failed:', parseErr.message);
+            }
+          }
           setStep(5);
 
         } catch (err) {
@@ -13934,13 +13964,22 @@ ${examinerComment}
 
       // Save to Firebase
       const handleSaveEssay = async () => {
-        if (!generatedConfig && !serverParsedEssay) return;
+        if (!editableEssay && !generatedConfig && !serverParsedEssay) return;
 
         try {
-          // Use server-parsed essay data if available (most reliable)
+          // Use the user-edited essay data if available (most reliable - already structured)
           let essayData = null;
 
-          if (serverParsedEssay && serverParsedEssay.paragraphs) {
+          if (editableEssay && editableEssay.paragraphs) {
+            // Validate before saving
+            const validationError = validateEditableEssay();
+            if (validationError) {
+              alert(validationError);
+              return;
+            }
+            essayData = editableEssay;
+            console.log('Using user-edited essay data');
+          } else if (serverParsedEssay && serverParsedEssay.paragraphs) {
             essayData = serverParsedEssay;
             console.log('Using server-parsed essay data');
           }
@@ -14249,7 +14288,9 @@ ${examinerComment}
             setStep(1);
             setGeneratedConfig(null);
             setServerParsedEssay(null);
-            setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
+            setEditableEssay(null);
+            setEditExpandedParagraph(null);
+            setSubject(''); setYearGroup(''); setExamBoard(''); setExamSeries(''); setTotalMarks('');
             setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
             setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
@@ -14261,21 +14302,130 @@ ${examinerComment}
         }
       };
 
+      // Helpers for editing the editable essay
+      const updateEssayField = (field, value) => {
+        setEditableEssay(prev => ({ ...prev, [field]: value }));
+      };
+      const updateParagraph = (idx, field, value) => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = [...updated.paragraphs];
+          updated.paragraphs[idx] = { ...updated.paragraphs[idx], [field]: value };
+          return updated;
+        });
+      };
+      const updateLearningMaterial = (idx, tier, value) => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = [...updated.paragraphs];
+          updated.paragraphs[idx] = { ...updated.paragraphs[idx] };
+          updated.paragraphs[idx].learningMaterial = {
+            ...updated.paragraphs[idx].learningMaterial,
+            [tier]: value
+          };
+          return updated;
+        });
+      };
+      const updateKeyPoints = (paraIdx, kpIdx, value) => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = [...updated.paragraphs];
+          updated.paragraphs[paraIdx] = { ...updated.paragraphs[paraIdx] };
+          const kps = [...(updated.paragraphs[paraIdx].keyPoints || [])];
+          kps[kpIdx] = value;
+          updated.paragraphs[paraIdx].keyPoints = kps;
+          return updated;
+        });
+      };
+      const addKeyPoint = (paraIdx) => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = [...updated.paragraphs];
+          updated.paragraphs[paraIdx] = { ...updated.paragraphs[paraIdx] };
+          updated.paragraphs[paraIdx].keyPoints = [...(updated.paragraphs[paraIdx].keyPoints || []), ''];
+          return updated;
+        });
+      };
+      const removeKeyPoint = (paraIdx, kpIdx) => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = [...updated.paragraphs];
+          updated.paragraphs[paraIdx] = { ...updated.paragraphs[paraIdx] };
+          updated.paragraphs[paraIdx].keyPoints = updated.paragraphs[paraIdx].keyPoints.filter((_, i) => i !== kpIdx);
+          return updated;
+        });
+      };
+      const addParagraph = () => {
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          const newId = updated.paragraphs.length + 1;
+          updated.paragraphs = [...updated.paragraphs, {
+            id: newId,
+            title: 'New Paragraph',
+            type: 'body',
+            learningMaterial: { foundation: '', intermediate: '', advanced: '' },
+            writingPrompt: '',
+            keyPoints: [],
+            exampleQuotes: []
+          }];
+          return updated;
+        });
+        setEditExpandedParagraph(editableEssay ? editableEssay.paragraphs.length : 0);
+      };
+      const removeParagraph = (idx) => {
+        if (!editableEssay || editableEssay.paragraphs.length <= 1) return;
+        if (!confirm('Remove this paragraph?')) return;
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          updated.paragraphs = updated.paragraphs.filter((_, i) => i !== idx).map((p, i) => ({ ...p, id: i + 1 }));
+          return updated;
+        });
+        setEditExpandedParagraph(null);
+      };
+      const moveParagraph = (idx, direction) => {
+        const newIdx = idx + direction;
+        if (!editableEssay || newIdx < 0 || newIdx >= editableEssay.paragraphs.length) return;
+        setEditableEssay(prev => {
+          const updated = { ...prev };
+          const paras = [...updated.paragraphs];
+          [paras[idx], paras[newIdx]] = [paras[newIdx], paras[idx]];
+          updated.paragraphs = paras.map((p, i) => ({ ...p, id: i + 1 }));
+          return updated;
+        });
+        setEditExpandedParagraph(newIdx);
+      };
+
+      // Validate editableEssay before save
+      const validateEditableEssay = () => {
+        if (!editableEssay) return 'No essay data to save.';
+        if (!editableEssay.title?.trim()) return 'Essay title is required.';
+        if (!editableEssay.paragraphs || editableEssay.paragraphs.length === 0) return 'At least one paragraph is required.';
+        for (let i = 0; i < editableEssay.paragraphs.length; i++) {
+          const p = editableEssay.paragraphs[i];
+          if (!p.title?.trim()) return `Paragraph ${i + 1} needs a title.`;
+          if (!p.writingPrompt?.trim()) return `Paragraph ${i + 1} ("${p.title}") needs a writing prompt.`;
+          const lm = p.learningMaterial;
+          if (!lm || (!lm.foundation?.trim() && !lm.intermediate?.trim() && !lm.advanced?.trim())) {
+            return `Paragraph ${i + 1} ("${p.title}") needs learning material for at least one tier.`;
+          }
+        }
+        return null;
+      };
+
       // Render steps indicator
+      const stepLabels = ['Details', 'Question', 'Mark Scheme', 'Generate', 'Review & Edit', 'Save'];
       const renderSteps = () => (
-        <div style={parseStyle("display: flex; justify-content: center; gap: var(--space-md); margin-bottom: var(--space-xl);")}>
-          {[1,2,3,4,5].map(s => (
+        <div style={parseStyle("display: flex; justify-content: center; gap: var(--space-sm); margin-bottom: var(--space-xl);")}>
+          {[1,2,3,4,5,6].map(s => (
             <div key={s} style={parseStyle("display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);")}>
               <div style={{
-                width: '36px', height: '36px', borderRadius: '50%',
+                width: '32px', height: '32px', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: '600', fontSize: '0.9rem',
+                fontWeight: '600', fontSize: '0.8rem',
                 background: s === step ? 'var(--color-primary)' : s < step ? 'var(--color-success)' : 'var(--color-border)',
                 color: s <= step ? 'white' : 'var(--color-text-muted)'
-              }}>{s < step ? <Icon name={ICONS.check} size={16} color="white" /> : s}</div>
-              <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{
-                s === 1 ? 'Details' : s === 2 ? 'Question' : s === 3 ? 'Mark Scheme' : s === 4 ? 'Generate' : 'Result'
-              }</span>
+              }}>{s < step ? <Icon name={ICONS.check} size={14} color="white" /> : s}</div>
+              <span style={parseStyle("font-size: 0.65rem; color: var(--color-text-muted); text-align: center; max-width: 60px;")}>{stepLabels[s - 1]}</span>
             </div>
           ))}
         </div>
@@ -14312,7 +14462,7 @@ ${examinerComment}
                 </div>
               </div>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
                   <select value={examBoard} onChange={e => { setExamBoard(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
@@ -14323,6 +14473,12 @@ ${examinerComment}
                     <option value="Edexcel">Edexcel</option>
                     <option value="Eduqas">Eduqas</option>
                   </select>
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Series</label>
+                  <input type="text" value={examSeries} onChange={e => setExamSeries(e.target.value)}
+                    placeholder="e.g., June 2024" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
@@ -14601,7 +14757,7 @@ ${examinerComment}
               <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
                 <p><strong>Subject:</strong> {subject}</p>
                 <p><strong>Year Group:</strong> {yearGroup}</p>
-                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}</p>
+                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}{examSeries ? ` (${examSeries})` : ''}</p>
                 <p><strong>Total Marks:</strong> {totalMarks}</p>
                 <p><strong>Time:</strong> {timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}</p>
                 <p><strong>Question:</strong> {examQuestion.substring(0, 100)}{examQuestion.length > 100 ? '...' : ''}</p>
@@ -14660,32 +14816,253 @@ ${examinerComment}
             </div>
           )}
 
-          {/* Step 5: Result */}
-          {step === 5 && generatedConfig && (
+          {/* Step 5: Fallback when parsing failed */}
+          {step === 5 && !editableEssay && generatedConfig && (
             <div className="card">
               <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Generated Essay Configuration</h4>
-
-              <div style={parseStyle("background: var(--color-success-bg); border: 1px solid var(--color-success); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); color: var(--color-success);")}>
-                Essay configuration generated successfully!
+              <div style={parseStyle("background: var(--color-warning-bg, #fef9e7); border: 1px solid var(--color-warning, #e6a817); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                The generated configuration could not be parsed for visual editing. You can still review the raw output below and save it directly.
               </div>
-
               <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); max-height: 400px; overflow: auto;")}>
                 <pre style={parseStyle("font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin: 0;")}>
-                  {generatedConfig.substring(0, 2000)}{generatedConfig.length > 2000 ? '...' : ''}
+                  {generatedConfig.substring(0, 3000)}{generatedConfig.length > 3000 ? '...' : ''}
                 </pre>
+              </div>
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={() => setStep(4)}>Back to Generate</button>
+                <button className="btn btn-primary" onClick={handleSaveEssay}>Save to System</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Review & Edit */}
+          {step === 5 && editableEssay && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-sm);")}>Review & Edit Essay</h4>
+              <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 var(--space-lg) 0;")}>
+                Review the AI-generated content below and make any changes before saving.
+              </p>
+
+              {/* Top-level essay fields */}
+              <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
+                <h5 style={parseStyle("margin: 0 0 var(--space-md) 0; font-size: 0.9rem;")}>Essay Details</h5>
+
+                <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                  <div>
+                    <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
+                    <input type="text" value={editableEssay.title || ''} onChange={e => updateEssayField('title', e.target.value)}
+                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  </div>
+                  <div>
+                    <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Essay ID</label>
+                    <input type="text" value={editableEssay.id || ''} onChange={e => updateEssayField('id', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: monospace; font-size: 0.8rem;")} />
+                  </div>
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Instructions for Students</label>
+                  <textarea value={editableEssay.instructions || ''} onChange={e => updateEssayField('instructions', e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: 60px;")} />
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Exam Question (as shown to students)</label>
+                  <textarea value={editableEssay.essayTitle || ''} onChange={e => updateEssayField('essayTitle', e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: 80px;")} />
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Source Material</label>
+                  <textarea value={editableEssay.sourceMaterial || ''} onChange={e => updateEssayField('sourceMaterial', e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: 100px;")} />
+                </div>
+
+                <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Task Overview (shown in reference panel)</label>
+                  <textarea value={editableEssay.originalTask || ''} onChange={e => updateEssayField('originalTask', e.target.value)}
+                    className="paragraph-editor" style={parseStyle("min-height: 80px;")} />
+                </div>
+
+                <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md);")}>
+                  <div>
+                    <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Total Marks</label>
+                    <input type="number" value={editableEssay.totalMarks || ''} onChange={e => updateEssayField('totalMarks', parseInt(e.target.value) || 0)}
+                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  </div>
+                  <div>
+                    <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Min Words/Para</label>
+                    <input type="number" value={editableEssay.minWordsPerParagraph || ''} onChange={e => updateEssayField('minWordsPerParagraph', parseInt(e.target.value) || 0)}
+                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  </div>
+                  <div>
+                    <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Target Words/Para</label>
+                    <input type="number" value={editableEssay.targetWordsPerParagraph || ''} onChange={e => updateEssayField('targetWordsPerParagraph', parseInt(e.target.value) || 0)}
+                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Paragraphs */}
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);")}>
+                  <h5 style={parseStyle("margin: 0; font-size: 0.9rem;")}>Paragraphs ({editableEssay.paragraphs.length})</h5>
+                  <button className="btn btn-secondary" style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm);")}
+                    onClick={addParagraph}>+ Add Paragraph</button>
+                </div>
+
+                {editableEssay.paragraphs.map((para, idx) => {
+                  const isExpanded = editExpandedParagraph === idx;
+                  return (
+                    <div key={idx} style={parseStyle(`margin-bottom: var(--space-sm); border: 1px solid ${isExpanded ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-md); overflow: hidden;`)}>
+                      {/* Paragraph header - always visible */}
+                      <div
+                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'var(--color-primary-light, #f0f4ff)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
+                        onClick={() => setEditExpandedParagraph(isExpanded ? null : idx)}>
+                        <span style={parseStyle("font-weight: 600; font-size: 0.85rem; min-width: 24px; text-align: center; color: var(--color-primary);")}>{idx + 1}</span>
+                        <span style={parseStyle("flex: 1; font-size: 0.85rem; font-weight: 500;")}>{para.title || 'Untitled'}</span>
+                        <span style={parseStyle("font-size: 0.7rem; color: var(--color-text-muted); padding: 2px 8px; border-radius: 10px; background: var(--color-bg);")}>{para.type || 'body'}</span>
+                        <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                      </div>
+
+                      {/* Paragraph body - expanded */}
+                      {isExpanded && (
+                        <div style={parseStyle("padding: var(--space-md);")}>
+                          {/* Paragraph controls */}
+                          <div style={parseStyle("display: flex; gap: var(--space-xs); margin-bottom: var(--space-md); justify-content: flex-end;")}>
+                            <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 8px;")}
+                              onClick={() => moveParagraph(idx, -1)} disabled={idx === 0}>Move Up</button>
+                            <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 8px;")}
+                              onClick={() => moveParagraph(idx, 1)} disabled={idx === editableEssay.paragraphs.length - 1}>Move Down</button>
+                            <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 8px; color: var(--color-error, #dc3545);")}
+                              onClick={() => removeParagraph(idx)} disabled={editableEssay.paragraphs.length <= 1}>Remove</button>
+                          </div>
+
+                          <div style={parseStyle("display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                            <div>
+                              <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
+                              <input type="text" value={para.title || ''} onChange={e => updateParagraph(idx, 'title', e.target.value)}
+                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                            </div>
+                            <div>
+                              <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Type</label>
+                              <select value={para.type || 'body'} onChange={e => updateParagraph(idx, 'type', e.target.value)}
+                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                                <option value="introduction">Introduction</option>
+                                <option value="body">Body</option>
+                                <option value="conclusion">Conclusion</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                            <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Writing Prompt *</label>
+                            <textarea value={para.writingPrompt || ''} onChange={e => updateParagraph(idx, 'writingPrompt', e.target.value)}
+                              className="paragraph-editor" style={parseStyle("min-height: 60px;")}
+                              placeholder="The instruction students see for this paragraph..." />
+                          </div>
+
+                          {/* Key Points */}
+                          <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                            <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xs);")}>
+                              <label style={parseStyle("font-size: 0.8rem; font-weight: 600;")}>Key Points / Mark Scheme Criteria</label>
+                              <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 8px;")}
+                                onClick={() => addKeyPoint(idx)}>+ Add</button>
+                            </div>
+                            {(para.keyPoints || []).map((kp, kpIdx) => (
+                              <div key={kpIdx} style={parseStyle("display: flex; gap: var(--space-xs); margin-bottom: var(--space-xs);")}>
+                                <input type="text" value={kp} onChange={e => updateKeyPoints(idx, kpIdx, e.target.value)}
+                                  className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-xs) var(--space-sm); flex: 1; font-size: 0.8rem;")} />
+                                <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 6px; color: var(--color-error, #dc3545);")}
+                                  onClick={() => removeKeyPoint(idx, kpIdx)}>x</button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Learning Material - tabbed by tier */}
+                          <div style={parseStyle("margin-bottom: var(--space-sm);")}>
+                            <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Learning Material (differentiated)</label>
+                            <div style={parseStyle("display: flex; gap: 0; margin-bottom: var(--space-sm);")}>
+                              {['foundation', 'intermediate', 'advanced'].map(tier => (
+                                <button key={tier}
+                                  className={editExpandedTier === tier ? 'btn btn-primary' : 'btn btn-secondary'}
+                                  style={parseStyle(`font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); border-radius: ${tier === 'foundation' ? 'var(--radius-sm) 0 0 var(--radius-sm)' : tier === 'advanced' ? '0 var(--radius-sm) var(--radius-sm) 0' : '0'};`)}
+                                  onClick={() => setEditExpandedTier(tier)}>
+                                  {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+                            <textarea
+                              value={(para.learningMaterial && para.learningMaterial[editExpandedTier]) || ''}
+                              onChange={e => updateLearningMaterial(idx, editExpandedTier, e.target.value)}
+                              className="paragraph-editor"
+                              style={parseStyle("min-height: 120px; font-size: 0.8rem;")}
+                              placeholder={`Learning material for ${editExpandedTier} tier students...`} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={parseStyle("display: flex; justify-content: space-between;")}>
-                <button className="btn btn-secondary" onClick={() => setStep(1)}>Start New</button>
+                <button className="btn btn-secondary" onClick={() => setStep(4)}>Back to Generate</button>
+                <button className="btn btn-primary" onClick={() => {
+                  const err = validateEditableEssay();
+                  if (err) { alert(err); return; }
+                  setStep(6);
+                }}>Continue to Save</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Save */}
+          {step === 6 && editableEssay && (
+            <div className="card">
+              <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Save Essay</h4>
+
+              <div style={parseStyle("background: var(--color-success-bg); border: 1px solid var(--color-success); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); color: var(--color-success);")}>
+                Essay ready to save: <strong>{editableEssay.title}</strong> ({editableEssay.paragraphs.length} paragraphs, {editableEssay.totalMarks} marks)
+              </div>
+
+              {/* Summary */}
+              <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
+                <p><strong>ID:</strong> <code style={parseStyle("font-size: 0.8rem;")}>{editableEssay.id}</code></p>
+                <p><strong>Title:</strong> {editableEssay.title}</p>
+                <p><strong>Subject:</strong> {editableEssay.subject}</p>
+                <p><strong>Total Marks:</strong> {editableEssay.totalMarks}</p>
+                <p><strong>Paragraphs:</strong></p>
+                <ol style={parseStyle("margin: var(--space-xs) 0 0 var(--space-lg); font-size: 0.85rem;")}>
+                  {editableEssay.paragraphs.map((p, i) => (
+                    <li key={i}>{p.title} <span style={parseStyle("color: var(--color-text-muted);")}> ({p.type})</span></li>
+                  ))}
+                </ol>
+              </div>
+
+              {generatedConfig && (
+                <details style={parseStyle("margin-bottom: var(--space-lg);")}>
+                  <summary style={parseStyle("cursor: pointer; font-size: 0.8rem; color: var(--color-text-muted);")} >View raw generated config</summary>
+                  <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-top: var(--space-sm); max-height: 300px; overflow: auto;")}>
+                    <pre style={parseStyle("font-family: monospace; font-size: 0.75rem; white-space: pre-wrap; margin: 0;")}>
+                      {generatedConfig.substring(0, 3000)}{generatedConfig.length > 3000 ? '...' : ''}
+                    </pre>
+                  </div>
+                </details>
+              )}
+
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={() => setStep(5)}>Back to Edit</button>
                 <div style={parseStyle("display: flex; gap: var(--space-md);")}>
                   <button className="btn btn-secondary" onClick={() => {
-                    const blob = new Blob([generatedConfig], { type: 'application/javascript' });
+                    const blob = new Blob([JSON.stringify(editableEssay, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'essay-config.js';
+                    a.download = (editableEssay.id || 'essay-config') + '.json';
                     a.click();
-                  }}>Download File</button>
+                    URL.revokeObjectURL(url);
+                  }}>Download JSON</button>
                   <button className="btn btn-primary" onClick={handleSaveEssay}>Save to System</button>
                 </div>
               </div>
