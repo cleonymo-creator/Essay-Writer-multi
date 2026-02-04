@@ -5053,6 +5053,34 @@
         }
       },
       
+      // Update an existing submission (e.g., to add official grading)
+      async updateSubmission(studentName, essayId, updateData) {
+        await firebaseReadyPromise;
+        if (!db) return null;
+        try {
+          // Find the submission by studentName and essayId
+          const snapshot = await db.collection('submissions')
+            .where('studentName', '==', studentName)
+            .where('essayId', '==', essayId)
+            .orderBy('submittedAt', 'desc')
+            .limit(1)
+            .get();
+          if (snapshot.empty) {
+            console.warn('FirebaseDB.updateSubmission: No submission found for', studentName, essayId);
+            return null;
+          }
+          const docRef = snapshot.docs[0].ref;
+          await docRef.update({
+            ...updateData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          return docRef.id;
+        } catch (error) {
+          console.error('Firebase updateSubmission error:', error);
+          return null;
+        }
+      },
+
       // Get all submissions (for teacher dashboard)
       async getSubmissions() {
         await firebaseReadyPromise;
@@ -10382,19 +10410,22 @@
       const [showFeedback, setShowFeedback] = useState(!!essayFeedback);
       const [showOfficialGrading, setShowOfficialGrading] = useState(!!officialGrading);
       const [autoRequestedFeedback, setAutoRequestedFeedback] = useState(false);
-      
+      const [autoRequestedOfficialGrading, setAutoRequestedOfficialGrading] = useState(false);
+
       // Comparison states
       const [essayComparison, setEssayComparison] = useState(null);
       const [isLoadingComparison, setIsLoadingComparison] = useState(false);
       const [autoRequestedComparison, setAutoRequestedComparison] = useState(false);
-      
+
       // Check if there are differences between original and final
       const hasOriginalVersions = paragraphs.some(p => {
         const state = paragraphStates[p.id];
-        return state?.originalBeforeCorrections && state?.finalText && 
+        return state?.originalBeforeCorrections && state?.finalText &&
                state.originalBeforeCorrections !== state.finalText;
       });
-      
+
+      const hasOfficialMarkScheme = !!config?.officialMarkScheme;
+
       // Auto-request feedback when compilation screen loads (if not already done)
       useEffect(() => {
         if (!essayFeedback && !isLoadingFeedback && !autoRequestedFeedback) {
@@ -10403,7 +10434,16 @@
           onRequestFeedback();
         }
       }, [essayFeedback, isLoadingFeedback, autoRequestedFeedback, onRequestFeedback]);
-      
+
+      // Auto-request official grading after feedback loads (if mark scheme exists)
+      useEffect(() => {
+        if (essayFeedback && hasOfficialMarkScheme && !officialGrading && !isLoadingOfficialGrading && !autoRequestedOfficialGrading) {
+          console.log('[EssayCompilationScreen] Auto-requesting official mark scheme grading');
+          setAutoRequestedOfficialGrading(true);
+          onRequestOfficialGrading();
+        }
+      }, [essayFeedback, hasOfficialMarkScheme, officialGrading, isLoadingOfficialGrading, autoRequestedOfficialGrading, onRequestOfficialGrading]);
+
       // Auto-request comparison after feedback loads (if originals exist)
       useEffect(() => {
         if (essayFeedback && hasOriginalVersions && !essayComparison && !isLoadingComparison && !autoRequestedComparison) {
@@ -10464,9 +10504,7 @@
       useEffect(() => {
         if (officialGrading) setShowOfficialGrading(true);
       }, [officialGrading]);
-      
-      const hasOfficialMarkScheme = !!config?.officialMarkScheme;
-      
+
       const compiledParagraphs = paragraphs.map(p => ({
         ...p,
         text: paragraphStates[p.id]?.finalText || '',
