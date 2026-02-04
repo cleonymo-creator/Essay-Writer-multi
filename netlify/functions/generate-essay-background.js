@@ -128,7 +128,7 @@ function makeRequest(apiKey, messages) {
 
 function buildMessages(data) {
   const {
-    subject, yearGroup, examBoard, totalMarks, timeAllowed, paperName,
+    subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
     examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
     additionalNotes, minWords, targetWords, maxAttempts,
     gradeBoundaries
@@ -186,6 +186,7 @@ function buildMessages(data) {
 - Subject: ${subject || 'Not specified'}
 - Year Group: ${yearGroup || 'Not specified'}
 - Exam Board: ${examBoard || 'Not specified'}
+${examSeries ? `- Exam Series: ${examSeries}` : ''}
 - Total Marks: ${totalMarks || 'Not specified'}
 - Time Allowed: ${timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}
 ${paperName ? `- Paper: ${paperName}` : ''}
@@ -223,7 +224,7 @@ Generate a complete essay configuration with 4-6 paragraphs. Output ONLY valid J
 window.ESSAYS = window.ESSAYS || {};
 window.ESSAYS['[essay-id-here]'] = {
   id: '[essay-id-here]',
-  title: "[Title for this essay task]",
+  title: "[Title for this essay task${examSeries ? ` - include '${examSeries}' in the title` : ''}]",
   subject: "${subject || 'Subject'}",
   yearGroup: "${yearGroup || 'Year'}",
   totalMarks: ${totalMarks || 40},

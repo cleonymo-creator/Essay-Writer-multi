@@ -177,6 +177,7 @@ Please respond in EXACTLY this JSON format (no markdown code fences, just raw JS
   "examQuestion": "The full exam question text here, including any sub-parts and mark allocations",
   "sourceMaterial": "The full source material / extract text here. If there are multiple extracts, include them all separated by line breaks. If there is no source material, use an empty string.",
   "totalMarks": null,
+  "examSeries": "The exam series/session and year, e.g. 'June 2023', 'November 2024', 'Sample Paper 2025'. If not identifiable, use an empty string.",
   "summary": "A brief 1-sentence summary of what this question paper asks students to do"
 }
 
@@ -185,6 +186,7 @@ IMPORTANT:
 - Preserve the original formatting as much as possible (line breaks, indentation)${hasSelectedQuestions ? '\n- ONLY extract the specific selected question(s) listed above - do NOT include other questions from the paper' : '\n- If there are multiple questions on the paper, extract ALL of them'}
 - Only include source material/extracts that are relevant to the selected question(s)
 - If you can identify the total marks for the question(s), include it as a number in totalMarks
+- Look for the exam series/session and year (often in the header, e.g. "June 2023", "November 2024", "Specimen 2025"). Include it in examSeries if found
 - Use plain ASCII characters only`;
 
     const messages = [{ role: 'user', content: prompt }];
@@ -230,6 +232,7 @@ IMPORTANT:
         examQuestion: extracted.examQuestion || '',
         sourceMaterial: extracted.sourceMaterial || '',
         totalMarks: extracted.totalMarks || null,
+        examSeries: extracted.examSeries || '',
         summary: extracted.summary || ''
       })
     };

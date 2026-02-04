@@ -12957,6 +12957,7 @@ ${examinerComment}
       const [subject, setSubject] = useState('');
       const [yearGroup, setYearGroup] = useState('');
       const [examBoard, setExamBoard] = useState('');
+      const [examSeries, setExamSeries] = useState('');
       const [totalMarks, setTotalMarks] = useState('');
       const [timeAllowed, setTimeAllowed] = useState('');
       const [paperName, setPaperName] = useState('');
@@ -13744,6 +13745,9 @@ ${examinerComment}
             if (result.totalMarks && !totalMarks) {
               setTotalMarks(result.totalMarks.toString());
             }
+            if (result.examSeries && !examSeries.trim()) {
+              setExamSeries(result.examSeries);
+            }
             setExtractionSummary(result.summary || 'Content extracted successfully.');
             setExtractionStatus('');
           } else {
@@ -13869,7 +13873,7 @@ ${examinerComment}
 
         try {
           const payload = {
-            subject, yearGroup, examBoard, totalMarks: parseInt(totalMarks),
+            subject, yearGroup, examBoard, examSeries, totalMarks: parseInt(totalMarks),
             timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
             paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
             additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
@@ -14249,7 +14253,7 @@ ${examinerComment}
             setStep(1);
             setGeneratedConfig(null);
             setServerParsedEssay(null);
-            setSubject(''); setYearGroup(''); setExamBoard(''); setTotalMarks('');
+            setSubject(''); setYearGroup(''); setExamBoard(''); setExamSeries(''); setTotalMarks('');
             setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
             setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
@@ -14312,7 +14316,7 @@ ${examinerComment}
                 </div>
               </div>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
                   <select value={examBoard} onChange={e => { setExamBoard(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
@@ -14323,6 +14327,12 @@ ${examinerComment}
                     <option value="Edexcel">Edexcel</option>
                     <option value="Eduqas">Eduqas</option>
                   </select>
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Series</label>
+                  <input type="text" value={examSeries} onChange={e => setExamSeries(e.target.value)}
+                    placeholder="e.g., June 2024" className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
@@ -14601,7 +14611,7 @@ ${examinerComment}
               <div style={parseStyle("background: var(--color-bg); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
                 <p><strong>Subject:</strong> {subject}</p>
                 <p><strong>Year Group:</strong> {yearGroup}</p>
-                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}</p>
+                <p><strong>Exam Board:</strong> {examBoard || 'Not specified'}{examSeries ? ` (${examSeries})` : ''}</p>
                 <p><strong>Total Marks:</strong> {totalMarks}</p>
                 <p><strong>Time:</strong> {timeAllowed ? timeAllowed + ' minutes' : 'Not specified'}</p>
                 <p><strong>Question:</strong> {examQuestion.substring(0, 100)}{examQuestion.length > 100 ? '...' : ''}</p>
