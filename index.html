@@ -15419,6 +15419,35 @@ ${examinerComment}
         setActionLoading(null);
       };
 
+      // Send password reset email to teacher via Firebase Auth
+      const handleSendTeacherResetEmail = async (email, name) => {
+        if (!confirm('Send password reset email to ' + (name || email) + '?\n\nThey will receive an email with a link to set a new password.')) return;
+
+        setActionLoading(email);
+
+        try {
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'sendResetEmail', email, displayName: name })
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            alert('Password reset email sent to ' + email);
+          } else {
+            alert('Failed to send email: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error sending password reset email: ' + err.message);
+        }
+
+        setActionLoading(null);
+      };
+
       // Migrate all existing users to Firebase Auth
       const handleMigrateToFirebaseAuth = async () => {
         if (!confirm('Migrate all existing students and teachers to Firebase Authentication?\n\nThis will create Firebase Auth accounts for all users. After migration, you can use "Send Password Reset Email" to let users set their own passwords.\n\nThis is safe to run multiple times - existing accounts will be skipped.')) return;
@@ -15575,10 +15604,20 @@ ${examinerComment}
                             <button
                               className="btn btn-secondary"
                               style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
+                              onClick={() => handleSendTeacherResetEmail(teacher.email, teacher.name)}
+                              disabled={actionLoading === teacher.email}
+                              title="Send password reset email"
+                            >
+                              Email Reset
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.8rem;")}
                               onClick={() => handleResetPassword(teacher.email)}
                               disabled={actionLoading === teacher.email}
+                              title="Reset password manually (shows new password)"
                             >
-                              Reset Password
+                              Reset PW
                             </button>
                             {teacher.email !== currentTeacher?.email && (
                               <>
