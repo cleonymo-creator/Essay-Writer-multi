@@ -110,13 +110,16 @@ exports.handler = async (event, context) => {
     const studentsStore = getStore("students");
 
     const results = {
-      students: { created: 0, skipped: 0, errors: [] },
-      teachers: { created: 0, skipped: 0, errors: [] }
+      students: { created: 0, skipped: 0, errors: [], found: 0 },
+      teachers: { created: 0, skipped: 0, errors: [], found: 0 }
     };
 
     // Migrate students from Netlify Blobs
     try {
-      const { blobs } = await studentsStore.list();
+      const listResult = await studentsStore.list();
+      const blobs = listResult.blobs || [];
+      results.students.found = blobs.length;
+      console.log('Found', blobs.length, 'students in Netlify Blobs');
 
       for (const blob of blobs) {
         try {
@@ -203,6 +206,8 @@ exports.handler = async (event, context) => {
     // Migrate teachers from Firestore
     try {
       const teachersSnapshot = await db.collection('teachers').get();
+      results.teachers.found = teachersSnapshot.docs.length;
+      console.log('Found', teachersSnapshot.docs.length, 'teachers in Firestore');
 
       for (const doc of teachersSnapshot.docs) {
         try {
@@ -252,12 +257,19 @@ exports.handler = async (event, context) => {
         message: 'Migration completed',
         results,
         summary: {
+          studentsFound: results.students.found,
           studentsCreated: results.students.created,
           studentsSkipped: results.students.skipped,
           studentErrors: results.students.errors.length,
+          teachersFound: results.teachers.found,
           teachersCreated: results.teachers.created,
           teachersSkipped: results.teachers.skipped,
           teacherErrors: results.teachers.errors.length
+        },
+        // Include error details for debugging
+        errors: {
+          students: results.students.errors.slice(0, 10), // First 10 errors
+          teachers: results.teachers.errors.slice(0, 10)
         },
         note: 'All migrated users have temporary passwords. Use "Send Password Reset Email" to let them set their own passwords.'
       })

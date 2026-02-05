@@ -15438,12 +15438,25 @@ ${examinerComment}
 
           if (result.success) {
             const s = result.summary;
-            alert('Migration Complete!\n\n' +
-              'Students: ' + s.studentsCreated + ' created, ' + s.studentsSkipped + ' already existed' +
+            let msg = 'Migration Complete!\n\n' +
+              'Students: ' + (s.studentsFound || 0) + ' found, ' + s.studentsCreated + ' created, ' + s.studentsSkipped + ' already existed' +
               (s.studentErrors > 0 ? ', ' + s.studentErrors + ' errors' : '') +
-              '\nTeachers: ' + s.teachersCreated + ' created, ' + s.teachersSkipped + ' already existed' +
-              (s.teacherErrors > 0 ? ', ' + s.teacherErrors + ' errors' : '') +
-              '\n\nNote: All new accounts have temporary passwords. Use "Email Reset" or "Email Reset to Class" to let users set their own passwords.');
+              '\nTeachers: ' + (s.teachersFound || 0) + ' found, ' + s.teachersCreated + ' created, ' + s.teachersSkipped + ' already existed' +
+              (s.teacherErrors > 0 ? ', ' + s.teacherErrors + ' errors' : '');
+
+            // Show error details if any
+            if (result.errors) {
+              if (result.errors.students && result.errors.students.length > 0) {
+                msg += '\n\nStudent Errors:\n' + result.errors.students.map(e => '- ' + e.email + ': ' + e.error).join('\n');
+              }
+              if (result.errors.teachers && result.errors.teachers.length > 0) {
+                msg += '\n\nTeacher Errors:\n' + result.errors.teachers.map(e => '- ' + e.email + ': ' + e.error).join('\n');
+              }
+            }
+
+            msg += '\n\nNote: All new accounts have temporary passwords. Use "Email Reset" or "Email Reset to Class" to let users set their own passwords.';
+            alert(msg);
+            console.log('Migration result:', result);
           } else {
             alert('Migration failed: ' + (result.error || 'Unknown error'));
           }
