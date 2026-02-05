@@ -108,99 +108,131 @@ exports.handler = async (event, context) => {
     const auth = getAuth();
     const db = initializeFirebase();
     const studentsStore = getStore("students");
+    const classesStore = getStore("classes");
 
     const results = {
-      students: { created: 0, skipped: 0, errors: [], found: 0 },
+      students: { created: 0, skipped: 0, errors: [], found: 0, fromClasses: 0 },
       teachers: { created: 0, skipped: 0, errors: [], found: 0 }
     };
 
-    // Migrate students from Netlify Blobs
+    // Collect all unique student emails from multiple sources
+    const allStudentEmails = new Map(); // email -> { name, source }
+
+    // Source 1: Netlify Blobs students store
     try {
       const listResult = await studentsStore.list();
       const blobs = listResult.blobs || [];
-      results.students.found = blobs.length;
       console.log('Found', blobs.length, 'students in Netlify Blobs');
 
       for (const blob of blobs) {
         try {
           const student = await studentsStore.get(blob.key, { type: 'json' });
           if (!student || !student.email) continue;
-
           const email = student.email.trim().toLowerCase();
-
-          // Check if Firebase Auth user already exists
-          try {
-            await auth.getUserByEmail(email);
-            results.students.skipped++;
-            continue;
-          } catch (e) {
-            if (e.code !== 'auth/user-not-found') {
-              results.students.errors.push({ email, error: e.message });
-              continue;
-            }
+          if (!allStudentEmails.has(email)) {
+            allStudentEmails.set(email, { name: student.name, source: 'blobs' });
           }
-
-          // Create Firebase Auth user with a temporary password
-          // User will need to use "Reset Password" to set their real password
-          const tempPassword = generateTempPassword();
-          await auth.createUser({
-            email: email,
-            password: tempPassword,
-            displayName: student.name || email.split('@')[0]
-          });
-
-          // Mark as migrated in student data
-          await studentsStore.setJSON(email, {
-            ...student,
-            firebaseAuthMigrated: true,
-            firebaseAuthMigratedAt: new Date().toISOString()
-          });
-
-          results.students.created++;
         } catch (err) {
-          results.students.errors.push({ email: blob.key, error: err.message });
+          console.error('Error reading student blob:', blob.key, err);
         }
       }
     } catch (e) {
-      console.error('Error migrating students from Blobs:', e);
+      console.error('Error listing students from Blobs:', e);
     }
 
-    // Also migrate students from Firestore (if any exist there)
+    // Source 2: Firestore students collection
     try {
       const studentsSnapshot = await db.collection('students').get();
+      console.log('Found', studentsSnapshot.docs.length, 'students in Firestore');
+
       for (const doc of studentsSnapshot.docs) {
-        try {
-          const student = doc.data();
-          const email = (student.email || doc.id).trim().toLowerCase();
-
-          try {
-            await auth.getUserByEmail(email);
-            // Already exists, skip
-            continue;
-          } catch (e) {
-            if (e.code !== 'auth/user-not-found') continue;
-          }
-
-          const tempPassword = generateTempPassword();
-          await auth.createUser({
-            email: email,
-            password: tempPassword,
-            displayName: student.name || email.split('@')[0]
-          });
-
-          // Mark as migrated
-          await db.collection('students').doc(doc.id).update({
-            firebaseAuthMigrated: true,
-            firebaseAuthMigratedAt: new Date().toISOString()
-          });
-
-          results.students.created++;
-        } catch (err) {
-          results.students.errors.push({ email: doc.id, error: err.message });
+        const student = doc.data();
+        const email = (student.email || doc.id).trim().toLowerCase();
+        if (!allStudentEmails.has(email)) {
+          allStudentEmails.set(email, { name: student.name, source: 'firestore' });
         }
       }
     } catch (e) {
-      console.error('Error migrating students from Firestore:', e);
+      console.error('Error reading students from Firestore:', e);
+    }
+
+    // Source 3: Netlify Blobs classes - get student emails from class rosters
+    try {
+      const classListResult = await classesStore.list();
+      const classBlobs = classListResult.blobs || [];
+      console.log('Found', classBlobs.length, 'classes in Netlify Blobs');
+
+      for (const blob of classBlobs) {
+        try {
+          const classData = await classesStore.get(blob.key, { type: 'json' });
+          if (classData && classData.students && Array.isArray(classData.students)) {
+            for (const studentEmail of classData.students) {
+              const email = studentEmail.trim().toLowerCase();
+              if (!allStudentEmails.has(email)) {
+                allStudentEmails.set(email, { name: null, source: 'class-roster' });
+                results.students.fromClasses++;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error reading class blob:', blob.key, err);
+        }
+      }
+    } catch (e) {
+      console.error('Error listing classes from Blobs:', e);
+    }
+
+    // Source 4: Firestore classes - get student emails from class rosters
+    try {
+      const classesSnapshot = await db.collection('classes').get();
+      console.log('Found', classesSnapshot.docs.length, 'classes in Firestore');
+
+      for (const doc of classesSnapshot.docs) {
+        const classData = doc.data();
+        if (classData && classData.students && Array.isArray(classData.students)) {
+          for (const studentEmail of classData.students) {
+            const email = studentEmail.trim().toLowerCase();
+            if (!allStudentEmails.has(email)) {
+              allStudentEmails.set(email, { name: null, source: 'class-roster-firestore' });
+              results.students.fromClasses++;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error reading classes from Firestore:', e);
+    }
+
+    results.students.found = allStudentEmails.size;
+    console.log('Total unique student emails found:', allStudentEmails.size);
+
+    // Now create Firebase Auth users for all collected emails
+    for (const [email, info] of allStudentEmails) {
+      try {
+        // Check if Firebase Auth user already exists
+        try {
+          await auth.getUserByEmail(email);
+          results.students.skipped++;
+          continue;
+        } catch (e) {
+          if (e.code !== 'auth/user-not-found') {
+            results.students.errors.push({ email, error: e.message });
+            continue;
+          }
+        }
+
+        // Create Firebase Auth user with a temporary password
+        const tempPassword = generateTempPassword();
+        await auth.createUser({
+          email: email,
+          password: tempPassword,
+          displayName: info.name || email.split('@')[0]
+        });
+
+        results.students.created++;
+      } catch (err) {
+        results.students.errors.push({ email, error: err.message });
+      }
     }
 
     // Migrate teachers from Firestore
@@ -258,6 +290,7 @@ exports.handler = async (event, context) => {
         results,
         summary: {
           studentsFound: results.students.found,
+          studentsFromClassRosters: results.students.fromClasses,
           studentsCreated: results.students.created,
           studentsSkipped: results.students.skipped,
           studentErrors: results.students.errors.length,
