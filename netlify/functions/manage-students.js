@@ -3,6 +3,7 @@
 // Now with teacher authentication and ownership filtering
 
 const { getStore } = require("@netlify/blobs");
+const { getAuth } = require('./firebase-helper');
 
 // Improved password hashing with PBKDF2
 async function hashPassword(password) {
@@ -100,6 +101,36 @@ function parseCSVLine(line) {
   values.push(current.trim().replace(/^["']|["']$/g, ''));
   
   return values;
+}
+
+// Helper to create or update Firebase Auth user
+async function ensureFirebaseAuthUser(email, password, displayName) {
+  try {
+    const auth = getAuth();
+    try {
+      // Check if user exists
+      const existingUser = await auth.getUserByEmail(email);
+      // Update password if provided
+      if (password) {
+        await auth.updateUser(existingUser.uid, { password });
+      }
+      return { success: true, existing: true };
+    } catch (e) {
+      if (e.code === 'auth/user-not-found') {
+        // Create new Firebase Auth user
+        await auth.createUser({
+          email: email,
+          password: password,
+          displayName: displayName || email.split('@')[0]
+        });
+        return { success: true, created: true };
+      }
+      throw e;
+    }
+  } catch (error) {
+    console.error('Firebase Auth user creation error for', email, ':', error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 // Helper to verify teacher session
@@ -358,6 +389,11 @@ exports.handler = async (event, context) => {
 
         await studentsStore.setJSON(emailLower, studentData);
 
+        // Create Firebase Auth user (non-blocking - don't fail if this errors)
+        ensureFirebaseAuthUser(emailLower, studentPassword, name.trim()).catch(err => {
+          console.error('Failed to create Firebase Auth user for', emailLower, err);
+        });
+
         // Add student to class roster
         if (classId && classInfo) {
           const updatedStudents = [...(classInfo.students || [])];
@@ -485,7 +521,12 @@ exports.handler = async (event, context) => {
             };
 
             await studentsStore.setJSON(emailLower, studentData);
-            
+
+            // Create Firebase Auth user (non-blocking)
+            ensureFirebaseAuthUser(emailLower, studentPassword, parsed.name.trim()).catch(err => {
+              console.error('Failed to create Firebase Auth user for', emailLower, err);
+            });
+
             if (classId && !newClassStudents.includes(emailLower)) {
               newClassStudents.push(emailLower);
             }
@@ -567,11 +608,16 @@ exports.handler = async (event, context) => {
           passwordResetBy: sessionCheck.valid ? sessionCheck.email : 'system'
         });
 
+        // Also update Firebase Auth password (non-blocking)
+        ensureFirebaseAuthUser(emailLower, newPassword, existing.name).catch(err => {
+          console.error('Failed to update Firebase Auth password for', emailLower, err);
+        });
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             newPassword,
             message: 'Password reset successfully'
           })
