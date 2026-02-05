@@ -15468,7 +15468,9 @@ ${examinerComment}
           if (result.success) {
             const s = result.summary;
             let msg = 'Migration Complete!\n\n' +
-              'Students: ' + (s.studentsFound || 0) + ' found, ' + s.studentsCreated + ' created, ' + s.studentsSkipped + ' already existed' +
+              'Students: ' + (s.studentsFound || 0) + ' found' +
+              (s.studentsFromClassRosters > 0 ? ' (' + s.studentsFromClassRosters + ' from class rosters)' : '') +
+              ', ' + s.studentsCreated + ' created, ' + s.studentsSkipped + ' already existed' +
               (s.studentErrors > 0 ? ', ' + s.studentErrors + ' errors' : '') +
               '\nTeachers: ' + (s.teachersFound || 0) + ' found, ' + s.teachersCreated + ' created, ' + s.teachersSkipped + ' already existed' +
               (s.teacherErrors > 0 ? ', ' + s.teacherErrors + ' errors' : '');
