@@ -5,8 +5,39 @@
 const { getStore } = require("@netlify/blobs");
 const { getAuth } = require('./firebase-helper');
 
-// Simple hash function for passwords
+// Password hashing with PBKDF2 (matches manage-students.js)
 async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  );
+
+  const hashArray = Array.from(new Uint8Array(derivedBits));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return saltHex + ':' + hashHex;
+}
+
+// Legacy SHA-256 hash for backward compatibility with old accounts
+async function hashPasswordLegacy(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -14,9 +45,42 @@ async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function verifyPassword(password, hash) {
-  const inputHash = await hashPassword(password);
-  return inputHash === hash;
+// Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
+async function verifyPassword(password, storedHash) {
+  // PBKDF2 hashes contain a colon separator: saltHex:hashHex
+  if (storedHash.includes(':')) {
+    const [saltHex, hashHex] = storedHash.split(':');
+    const encoder = new TextEncoder();
+    const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
+
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      256
+    );
+
+    const derivedHashHex = Array.from(new Uint8Array(derivedBits))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    return derivedHashHex === hashHex;
+  }
+
+  // Legacy SHA-256 hash (no colon separator)
+  const inputHash = await hashPasswordLegacy(password);
+  return inputHash === storedHash;
 }
 
 // Generate a simple session token
@@ -168,7 +232,7 @@ exports.handler = async (event, context) => {
 
       // Verify password
       const passwordValid = await verifyPassword(password, studentData.passwordHash);
-      
+
       if (!passwordValid) {
         return {
           statusCode: 401,
@@ -177,19 +241,26 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Upgrade legacy SHA-256 hash to PBKDF2 on successful login
+      let updatedHash = studentData.passwordHash;
+      if (!studentData.passwordHash.includes(':')) {
+        updatedHash = await hashPassword(password);
+      }
+
       // Generate session token
       const token = generateSessionToken();
       const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
-      
+
       await sessionsStore.setJSON(token, {
         email: emailLower,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(sessionExpiry).toISOString()
       });
 
-      // Update last login
+      // Update last login (and upgrade hash if needed)
       await studentsStore.setJSON(emailLower, {
         ...studentData,
+        passwordHash: updatedHash,
         lastLogin: new Date().toISOString()
       });
 
