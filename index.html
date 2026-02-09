@@ -5234,13 +5234,55 @@
       // STUDENT AUTHENTICATION METHODS
       // =====================================================
       
-      // Simple hash function for passwords
+      // Password hashing with PBKDF2 (matches server-side manage-students.js and student-auth.js)
       async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const keyMaterial = await crypto.subtle.importKey(
+          'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+        );
+
+        const derivedBits = await crypto.subtle.deriveBits(
+          { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+          keyMaterial, 256
+        );
+
+        const hashArray = Array.from(new Uint8Array(derivedBits));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return saltHex + ':' + hashHex;
+      },
+
+      // Legacy SHA-256 hash for backward compatibility
+      async hashPasswordLegacy(password) {
         const encoder = new TextEncoder();
         const data = encoder.encode(password);
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      },
+
+      // Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
+      async verifyPassword(password, storedHash) {
+        if (storedHash.includes(':')) {
+          const [saltHex, hashHex] = storedHash.split(':');
+          const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
+          const encoder = new TextEncoder();
+          const keyMaterial = await crypto.subtle.importKey(
+            'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+          );
+          const derivedBits = await crypto.subtle.deriveBits(
+            { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
+            keyMaterial, 256
+          );
+          const derivedHashHex = Array.from(new Uint8Array(derivedBits))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+          return derivedHashHex === hashHex;
+        }
+        // Legacy SHA-256 fallback
+        const inputHash = await this.hashPasswordLegacy(password);
+        return inputHash === storedHash;
       },
       
       // Generate random password
@@ -5268,17 +5310,25 @@
           }
           
           const studentData = doc.data();
-          const inputHash = await this.hashPassword(password);
-          
-          if (inputHash !== studentData.passwordHash) {
+          const passwordValid = await this.verifyPassword(password, studentData.passwordHash);
+
+          if (!passwordValid) {
             return { success: false, error: 'Incorrect password' };
           }
-          
+
+          // Upgrade legacy SHA-256 hash to PBKDF2 on successful login
+          if (!studentData.passwordHash.includes(':')) {
+            const upgradedHash = await this.hashPassword(password);
+            await db.collection('students').doc(emailLower).update({
+              passwordHash: upgradedHash
+            });
+          }
+
           // Generate session token
           const tokenArray = new Uint8Array(32);
           crypto.getRandomValues(tokenArray);
           const sessionToken = Array.from(tokenArray).map(b => b.toString(16).padStart(2, '0')).join('');
-          
+
           // Save session
           const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
           await db.collection('sessions').doc(sessionToken).set({
@@ -5286,7 +5336,7 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt: sessionExpiry
           });
-          
+
           // Update last login
           await db.collection('students').doc(emailLower).update({
             lastLogin: firebase.firestore.FieldValue.serverTimestamp()
@@ -5401,9 +5451,9 @@
           if (!studentDoc.exists) return { success: false, error: 'Student not found' };
           
           const studentData = studentDoc.data();
-          const currentHash = await this.hashPassword(currentPassword);
-          
-          if (currentHash !== studentData.passwordHash) {
+          const currentValid = await this.verifyPassword(currentPassword, studentData.passwordHash);
+
+          if (!currentValid) {
             return { success: false, error: 'Current password is incorrect' };
           }
           
