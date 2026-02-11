@@ -133,8 +133,25 @@ exports.handler = async (event, context) => {
         const decodedToken = await auth.verifyIdToken(idToken);
         const emailLower = decodedToken.email.trim().toLowerCase();
 
-        // Look up student in Blobs
-        const studentData = await studentsStore.get(emailLower, { type: 'json' });
+        // Look up student in Blobs, then Firestore as fallback
+        let studentData = await studentsStore.get(emailLower, { type: 'json' });
+
+        if (!studentData) {
+          // Student might only exist in Firestore (e.g. created via client-side)
+          try {
+            const db = initializeFirebase();
+            if (db) {
+              const studentDoc = await db.collection('students').doc(emailLower).get();
+              if (studentDoc.exists) {
+                studentData = studentDoc.data();
+                // Sync to Blobs so future logins don't need this fallback
+                await studentsStore.setJSON(emailLower, studentData);
+              }
+            }
+          } catch (fsErr) {
+            console.error('Firestore fallback error in firebaseLogin:', fsErr.message);
+          }
+        }
 
         if (!studentData) {
           return {
