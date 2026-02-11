@@ -5597,6 +5597,58 @@
         }
       },
       
+      // Update student details
+      async updateStudent(email, updates, allClasses) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const emailLower = email.trim().toLowerCase();
+          const studentDoc = await db.collection('students').doc(emailLower).get();
+          if (!studentDoc.exists) return { success: false, error: 'Student not found' };
+
+          const existingData = studentDoc.data();
+          const updateData = { updatedAt: new Date().toISOString() };
+
+          if (updates.name !== undefined) updateData.name = updates.name;
+          if (updates.yearGroup !== undefined) updateData.yearGroup = updates.yearGroup;
+
+          if (updates.classIds !== undefined) {
+            const oldClassIds = existingData.classIds || (existingData.classId ? [existingData.classId] : []);
+            const newClassIds = updates.classIds;
+
+            // Remove from old classes not in new list
+            for (const cid of oldClassIds) {
+              if (!newClassIds.includes(cid)) {
+                await db.collection('classes').doc(cid).update({
+                  students: firebase.firestore.FieldValue.arrayRemove(emailLower)
+                }).catch(() => {});
+              }
+            }
+
+            // Add to new classes not in old list
+            for (const cid of newClassIds) {
+              if (!oldClassIds.includes(cid)) {
+                await db.collection('classes').doc(cid).update({
+                  students: firebase.firestore.FieldValue.arrayUnion(emailLower)
+                }).catch(() => {});
+              }
+            }
+
+            updateData.classIds = newClassIds;
+            updateData.classNames = newClassIds.map(cid => {
+              const cls = (allClasses || []).find(c => c.id === cid);
+              return cls ? cls.name : '';
+            }).filter(Boolean);
+          }
+
+          await db.collection('students').doc(emailLower).update(updateData);
+          return { success: true, student: { ...existingData, ...updateData, email: emailLower } };
+        } catch (error) {
+          console.error('Update student error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
       // Reset student password
       async resetStudentPassword(email) {
         await firebaseReadyPromise;
@@ -5822,6 +5874,31 @@
         }
       },
       
+      // Update class details
+      async updateClass(classId, updates) {
+        await firebaseReadyPromise;
+        if (!db) return { success: false, error: 'Database not available' };
+        try {
+          const classDoc = await db.collection('classes').doc(classId).get();
+          if (!classDoc.exists) return { success: false, error: 'Class not found' };
+
+          const existingData = classDoc.data();
+          const updateData = { updatedAt: new Date().toISOString() };
+
+          if (updates.name !== undefined) updateData.name = updates.name;
+          if (updates.subject !== undefined) updateData.subject = updates.subject;
+          if (updates.yearGroup !== undefined) updateData.yearGroup = updates.yearGroup;
+          if (updates.teacher !== undefined) updateData.teacher = updates.teacher;
+          if (updates.teacherEmail !== undefined) updateData.teacherEmail = updates.teacherEmail;
+
+          await db.collection('classes').doc(classId).update(updateData);
+          return { success: true, class: { ...existingData, ...updateData, id: classId } };
+        } catch (error) {
+          console.error('Update class error:', error);
+          return { success: false, error: error.message };
+        }
+      },
+
       // Assign essay to class
       async assignToClass(classId, essayId) {
         await firebaseReadyPromise;
@@ -11710,6 +11787,16 @@ ${examinerComment}
                       <span className="sidebar-item-icon"><Icon name={ICONS.graduationCap} size={18} /></span>
                       <span>Teachers</span>
                     </div>
+                    <div className={`sidebar-item ${activeTab === 'admin-students' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('admin-students'); setSidebarOpen(false); }}>
+                      <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
+                      <span>Students</span>
+                    </div>
+                    <div className={`sidebar-item ${activeTab === 'admin-classes' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('admin-classes'); setSidebarOpen(false); }}>
+                      <span className="sidebar-item-icon"><Icon name={ICONS.book} size={18} /></span>
+                      <span>Classes</span>
+                    </div>
                   </div>
                 )}
 
@@ -11757,6 +11844,8 @@ ${examinerComment}
                   {activeTab === 'performance' && <><Icon name={ICONS.chart} size={24} /> Performance Analytics</>}
                   {activeTab === 'essays' && <><Icon name={ICONS.fileText} size={24} /> Essay Management</>}
                   {activeTab === 'teachers' && <><Icon name={ICONS.graduationCap} size={24} /> Teacher Management</>}
+                  {activeTab === 'admin-students' && <><Icon name={ICONS.users} size={24} /> Student Administration</>}
+                  {activeTab === 'admin-classes' && <><Icon name={ICONS.book} size={24} /> Class Administration</>}
                 </h2>
               </div>
 
@@ -11766,6 +11855,8 @@ ${examinerComment}
               {activeTab === 'performance' && <StudentPerformancePanel />}
               {activeTab === 'essays' && isAdmin && <EssayManagementPanel />}
               {activeTab === 'teachers' && isAdmin && <TeacherManagementPanel />}
+              {activeTab === 'admin-students' && isAdmin && <AdminStudentsPanel />}
+              {activeTab === 'admin-classes' && isAdmin && <AdminClassesPanel />}
 
               {activeTab === 'submissions' && (
           <>
@@ -16323,6 +16414,815 @@ ${examinerComment}
       );
     }
     
+    // =====================================================
+    // ADMIN STUDENTS PANEL
+    // =====================================================
+
+    function AdminStudentsPanel() {
+      const [students, setStudents] = useState([]);
+      const [classes, setClasses] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedClass, setSelectedClass] = useState('');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [editingStudent, setEditingStudent] = useState(null);
+      const [showAddStudent, setShowAddStudent] = useState(false);
+      const [showImportCSV, setShowImportCSV] = useState(false);
+
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
+            const [studentList, classList] = await Promise.all([
+              FirebaseDB.getStudents(),
+              FirebaseDB.getClasses()
+            ]);
+            setStudents(studentList);
+            setClasses(classList);
+          } else {
+            const sessionToken = TeacherAuth.getSessionToken();
+            const [studentsRes, classesRes] = await Promise.all([
+              fetch('/.netlify/functions/manage-students?sessionToken=' + sessionToken),
+              fetch('/.netlify/functions/manage-classes?sessionToken=' + sessionToken)
+            ]);
+            const studentsData = await studentsRes.json();
+            const classesData = await classesRes.json();
+            if (studentsData.success) setStudents(studentsData.students || []);
+            if (classesData.success) setClasses(classesData.classes || []);
+          }
+        } catch (err) {
+          console.error('Load error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      const filteredStudents = students.filter(s => {
+        const matchesSearch = !searchTerm ||
+          (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const studentClassIds = s.classIds || (s.classId ? [s.classId] : []);
+        const matchesClass = !selectedClass || studentClassIds.includes(selectedClass);
+        return matchesSearch && matchesClass;
+      });
+
+      const handleDeleteStudent = async (email, name) => {
+        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
+        try {
+          let result;
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
+            result = await FirebaseDB.deleteStudent(email);
+          } else {
+            const response = await fetch('/.netlify/functions/manage-students?email=' + encodeURIComponent(email), {
+              method: 'DELETE'
+            });
+            result = await response.json();
+          }
+          if (result.success) {
+            setStudents(students.filter(s => s.email !== email));
+          } else {
+            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error deleting student');
+        }
+      };
+
+      const handleResetPassword = async (email) => {
+        if (!confirm('Reset password for ' + email + '?')) return;
+        try {
+          const sessionToken = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/manage-students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({ action: 'resetPassword', email })
+          });
+          const result = await response.json();
+          if (result.success) {
+            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
+          } else {
+            alert('Failed to reset password: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error resetting password');
+        }
+      };
+
+      const handleSendResetEmail = async (email, name) => {
+        if (!confirm('Send password reset email to ' + (name || email) + '?')) return;
+        if (!firebaseAuth) {
+          alert('Firebase Auth is not available.');
+          return;
+        }
+        try {
+          await firebaseAuth.sendPasswordResetEmail(email.trim().toLowerCase());
+          alert('Password reset email sent to ' + email);
+        } catch (err) {
+          if (err.code === 'auth/user-not-found') {
+            alert('No Firebase Auth account found for ' + email + '. Run "Migrate Users to Firebase Auth" first.');
+          } else {
+            alert('Failed to send email: ' + (err.message || 'Unknown error'));
+          }
+        }
+      };
+
+      const handleStudentUpdated = (updatedStudent) => {
+        setStudents(students.map(s => s.email === updatedStudent.email ? { ...s, ...updatedStudent } : s));
+        setEditingStudent(null);
+      };
+
+      const getClassNames = (student) => {
+        if (student.classNames?.length > 0) return student.classNames.filter(Boolean).join(', ');
+        if (student.className) return student.className;
+        const studentClassIds = student.classIds || (student.classId ? [student.classId] : []);
+        if (studentClassIds.length > 0) {
+          return studentClassIds.map(cid => {
+            const cls = classes.find(c => c.id === cid);
+            return cls ? cls.name : cid;
+          }).join(', ');
+        }
+        return '-';
+      };
+
+      if (loading) {
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);">}>Loading students...</p></div>;
+      }
+
+      return (
+        <div className="card">
+          <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin: 0;")}>
+              All Students ({filteredStudents.length})
+            </h2>
+            <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+              <button className="btn btn-secondary" onClick={() => setShowImportCSV(true)}>
+                Import CSV
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowAddStudent(true)}>
+                + Add Student
+              </button>
+            </div>
+          </div>
+
+          <div style={parseStyle("display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap;")}>
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="paragraph-editor"
+              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+            />
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              style={parseStyle("padding: var(--space-sm) var(--space-md); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={parseStyle("overflow-x: auto;")}>
+            <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+              <thead>
+                <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Year Group</th>
+                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map(student => (
+                  <tr key={student.email} style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                    <td style={parseStyle("padding: var(--space-md);")}>{student.name}</td>
+                    <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>{student.email}</td>
+                    <td style={parseStyle("padding: var(--space-md); font-size: 0.9rem;")}>{getClassNames(student)}</td>
+                    <td style={parseStyle("padding: var(--space-md); font-size: 0.9rem; color: var(--color-text-muted);")}>{student.yearGroup || '-'}</td>
+                    <td style={parseStyle("padding: var(--space-md); text-align: right;")}>
+                      <button
+                        onClick={() => setEditingStudent(student)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
+                        title="Edit student details"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleSendResetEmail(student.email, student.name)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
+                        title="Send password reset email"
+                      >
+                        Email Reset
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(student.email)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); margin-right: var(--space-xs);")}
+                        title="Reset password manually"
+                      >
+                        Reset PW
+                      </button>
+                      <button
+                        onClick={() => handleDeleteStudent(student.email, student.name)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); color: var(--color-error);")}
+                        title="Delete student"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredStudents.length === 0 && (
+            <div style={parseStyle("text-align: center; padding: var(--space-xl); color: var(--color-text-muted);")}>
+              No students found.
+            </div>
+          )}
+
+          {editingStudent && (
+            <EditStudentModal
+              student={editingStudent}
+              classes={classes}
+              onClose={() => setEditingStudent(null)}
+              onSuccess={handleStudentUpdated}
+            />
+          )}
+
+          {showAddStudent && (
+            <AddStudentModal
+              classes={classes}
+              onClose={() => setShowAddStudent(false)}
+              onSuccess={(newStudent, password) => {
+                setStudents([...students, newStudent]);
+                setShowAddStudent(false);
+                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
+              }}
+            />
+          )}
+
+          {showImportCSV && (
+            <ImportCSVModal
+              classes={classes}
+              onClose={() => setShowImportCSV(false)}
+              onSuccess={() => {
+                loadData();
+                setShowImportCSV(false);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
+    // EDIT STUDENT MODAL
+    // =====================================================
+
+    function EditStudentModal({ student, classes, onClose, onSuccess }) {
+      const [name, setName] = useState(student.name || '');
+      const [yearGroup, setYearGroup] = useState(student.yearGroup || '');
+      const [selectedClassIds, setSelectedClassIds] = useState(
+        student.classIds || (student.classId ? [student.classId] : [])
+      );
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const toggleClass = (classId) => {
+        if (selectedClassIds.includes(classId)) {
+          setSelectedClassIds(selectedClassIds.filter(id => id !== classId));
+        } else {
+          setSelectedClassIds([...selectedClassIds, classId]);
+        }
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!name.trim()) {
+          setError('Name is required');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          let result;
+
+          if (firebaseReady) {
+            result = await FirebaseDB.updateStudent(student.email, {
+              name: name.trim(),
+              yearGroup: yearGroup || null,
+              classIds: selectedClassIds
+            }, classes);
+          } else {
+            const sessionToken = TeacherAuth.getSessionToken();
+            const response = await fetch('/.netlify/functions/manage-students', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+              body: JSON.stringify({
+                email: student.email,
+                updates: {
+                  name: name.trim(),
+                  yearGroup: yearGroup || null,
+                  classId: selectedClassIds[0] || null
+                }
+              })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            onSuccess(result.student || { ...student, name: name.trim(), yearGroup, classIds: selectedClassIds });
+          } else {
+            setError(result.error || 'Failed to update student');
+          }
+        } catch (err) {
+          setError('Unable to save changes: ' + (err.message || 'Unknown error'));
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Student</h2>
+
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email</label>
+                <div style={parseStyle("padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                  {student.email}
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                <input
+                  type="text"
+                  value={yearGroup}
+                  onChange={(e) => setYearGroup(e.target.value)}
+                  placeholder="e.g. Year 10"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes</label>
+                <div style={parseStyle("max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm);")}>
+                  {classes.length === 0 ? (
+                    <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>No classes available</p>
+                  ) : (
+                    classes.map(c => (
+                      <label key={c.id} style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer;")}>
+                        <input
+                          type="checkbox"
+                          checked={selectedClassIds.includes(c.id)}
+                          onChange={() => toggleClass(c.id)}
+                          style={parseStyle("width: 18px; height: 18px; cursor: pointer;")}
+                        />
+                        <span>{c.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {selectedClassIds.length > 0 && (
+                  <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
+                    Selected: {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================
+    // ADMIN CLASSES PANEL
+    // =====================================================
+
+    function AdminClassesPanel() {
+      const [classes, setClasses] = useState([]);
+      const [students, setStudents] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [editingClass, setEditingClass] = useState(null);
+      const [showAddClass, setShowAddClass] = useState(false);
+      const [expandedClass, setExpandedClass] = useState(null);
+
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady) {
+            const [classList, studentList] = await Promise.all([
+              FirebaseDB.getClasses(),
+              FirebaseDB.getStudents()
+            ]);
+            setClasses(classList);
+            setStudents(studentList);
+          } else {
+            const sessionToken = TeacherAuth.getSessionToken();
+            const [classesRes, studentsRes] = await Promise.all([
+              fetch('/.netlify/functions/manage-classes?sessionToken=' + sessionToken),
+              fetch('/.netlify/functions/manage-students?sessionToken=' + sessionToken)
+            ]);
+            const classesData = await classesRes.json();
+            const studentsData = await studentsRes.json();
+            if (classesData.success) setClasses(classesData.classes || []);
+            if (studentsData.success) setStudents(studentsData.students || []);
+          }
+        } catch (err) {
+          console.error('Load error:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadData();
+      }, []);
+
+      const filteredClasses = classes.filter(c => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (c.name || '').toLowerCase().includes(term) ||
+               (c.subject || '').toLowerCase().includes(term) ||
+               (c.teacher || '').toLowerCase().includes(term) ||
+               (c.yearGroup || '').toLowerCase().includes(term);
+      });
+
+      const getStudentCount = (cls) => {
+        return (cls.students || []).length;
+      };
+
+      const getClassStudents = (cls) => {
+        const classStudentEmails = cls.students || [];
+        return students.filter(s => classStudentEmails.includes(s.email));
+      };
+
+      const handleDeleteClass = async (cls) => {
+        const studentCount = getStudentCount(cls);
+        const msg = 'Delete class "' + cls.name + '"?' +
+          (studentCount > 0 ? '\n\nThis class has ' + studentCount + ' student(s). They will be removed from this class.' : '') +
+          '\n\nThis cannot be undone.';
+        if (!confirm(msg)) return;
+
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          let result;
+
+          if (firebaseReady) {
+            result = await FirebaseDB.deleteClass(cls.id);
+          } else {
+            const sessionToken = TeacherAuth.getSessionToken();
+            const response = await fetch('/.netlify/functions/manage-classes?classId=' + encodeURIComponent(cls.id) + '&sessionToken=' + sessionToken, {
+              method: 'DELETE'
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            setClasses(classes.filter(c => c.id !== cls.id));
+          } else {
+            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Error deleting class: ' + (err.message || 'Unknown error'));
+        }
+      };
+
+      const handleClassUpdated = (updatedClass) => {
+        setClasses(classes.map(c => c.id === updatedClass.id ? { ...c, ...updatedClass } : c));
+        setEditingClass(null);
+      };
+
+      if (loading) {
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);">}>Loading classes...</p></div>;
+      }
+
+      return (
+        <div className="card">
+          <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md);")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin: 0;")}>
+              All Classes ({filteredClasses.length})
+            </h2>
+            <button className="btn btn-primary" onClick={() => setShowAddClass(true)}>
+              + Create Class
+            </button>
+          </div>
+
+          <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+            <input
+              type="text"
+              placeholder="Search by name, subject, teacher, or year group..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="paragraph-editor"
+              style={parseStyle("min-height: auto; padding: var(--space-sm); width: 100%;")}
+            />
+          </div>
+
+          <div style={parseStyle("display: flex; flex-direction: column; gap: var(--space-md);")}>
+            {filteredClasses.map(cls => {
+              const studentCount = getStudentCount(cls);
+              const isExpanded = expandedClass === cls.id;
+              const classStudents = isExpanded ? getClassStudents(cls) : [];
+
+              return (
+                <div key={cls.id} style={parseStyle("border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;")}>
+                  <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-md); background: var(--glass-bg); flex-wrap: wrap; gap: var(--space-sm);")}>
+                    <div style={parseStyle("flex: 1; min-width: 200px;")}>
+                      <div style={parseStyle("font-weight: 600; font-size: 1.05rem; margin-bottom: var(--space-xs);")}>
+                        {cls.name}
+                      </div>
+                      <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap; font-size: 0.85rem; color: var(--color-text-muted);")}>
+                        {cls.subject && <span>Subject: {cls.subject}</span>}
+                        {cls.yearGroup && <span>Year: {cls.yearGroup}</span>}
+                        {cls.teacher && <span>Teacher: {cls.teacher}</span>}
+                        <span>Students: {studentCount}</span>
+                      </div>
+                    </div>
+                    <div style={parseStyle("display: flex; gap: var(--space-xs); flex-wrap: wrap;")}>
+                      <button
+                        onClick={() => setExpandedClass(isExpanded ? null : cls.id)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                      >
+                        {isExpanded ? 'Hide Students' : 'View Students'} ({studentCount})
+                      </button>
+                      <button
+                        onClick={() => setEditingClass(cls)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClass(cls)}
+                        className="btn btn-secondary"
+                        style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm); color: var(--color-error);")}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div style={parseStyle("padding: var(--space-md); border-top: 1px solid var(--color-border);")}>
+                      {classStudents.length === 0 ? (
+                        <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; text-align: center; padding: var(--space-md);")}>
+                          No students in this class.
+                        </p>
+                      ) : (
+                        <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
+                          <thead>
+                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Name</th>
+                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Email</th>
+                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Year Group</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {classStudents.map(s => (
+                              <tr key={s.email} style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                                <td style={parseStyle("padding: var(--space-sm); font-size: 0.9rem;")}>{s.name}</td>
+                                <td style={parseStyle("padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>{s.email}</td>
+                                <td style={parseStyle("padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>{s.yearGroup || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredClasses.length === 0 && (
+            <div style={parseStyle("text-align: center; padding: var(--space-xl); color: var(--color-text-muted);")}>
+              No classes found.
+            </div>
+          )}
+
+          {editingClass && (
+            <EditClassModal
+              classData={editingClass}
+              onClose={() => setEditingClass(null)}
+              onSuccess={handleClassUpdated}
+            />
+          )}
+
+          {showAddClass && (
+            <AddClassModal
+              onClose={() => setShowAddClass(false)}
+              onSuccess={(newClass) => {
+                setClasses([...classes, newClass]);
+                setShowAddClass(false);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================
+    // EDIT CLASS MODAL
+    // =====================================================
+
+    function EditClassModal({ classData, onClose, onSuccess }) {
+      const [name, setName] = useState(classData.name || '');
+      const [subject, setSubject] = useState(classData.subject || '');
+      const [yearGroup, setYearGroup] = useState(classData.yearGroup || '');
+      const [teacher, setTeacher] = useState(classData.teacher || '');
+      const [teacherEmail, setTeacherEmail] = useState(classData.teacherEmail || '');
+      const [error, setError] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!name.trim()) {
+          setError('Class name is required');
+          return;
+        }
+
+        setIsLoading(true);
+
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          let result;
+
+          if (firebaseReady) {
+            result = await FirebaseDB.updateClass(classData.id, {
+              name: name.trim(),
+              subject: subject.trim() || 'English',
+              yearGroup: yearGroup.trim() || null,
+              teacher: teacher.trim() || null,
+              teacherEmail: teacherEmail.trim().toLowerCase() || null
+            });
+          } else {
+            const sessionToken = TeacherAuth.getSessionToken();
+            const response = await fetch('/.netlify/functions/manage-classes', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+              body: JSON.stringify({
+                classId: classData.id,
+                updates: {
+                  name: name.trim(),
+                  subject: subject.trim() || 'English',
+                  yearGroup: yearGroup.trim() || null,
+                  teacher: teacher.trim() || null,
+                  teacherEmail: teacherEmail.trim().toLowerCase() || null
+                }
+              })
+            });
+            result = await response.json();
+          }
+
+          if (result.success) {
+            onSuccess(result.class || { ...classData, name: name.trim(), subject, yearGroup, teacher, teacherEmail });
+          } else {
+            setError(result.error || 'Failed to update class');
+          }
+        } catch (err) {
+          setError('Unable to save changes: ' + (err.message || 'Unknown error'));
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
+          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
+            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Class</h2>
+
+            <form onSubmit={handleSubmit}>
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. 10B English"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+                <div>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="e.g. English"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  />
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                  <input
+                    type="text"
+                    value={yearGroup}
+                    onChange={(e) => setYearGroup(e.target.value)}
+                    placeholder="e.g. Year 10"
+                    className="paragraph-editor"
+                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  />
+                </div>
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+                <input
+                  type="text"
+                  value={teacher}
+                  onChange={(e) => setTeacher(e.target.value)}
+                  placeholder="e.g. Mr Davies"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+                <input
+                  type="email"
+                  value={teacherEmail}
+                  onChange={(e) => setTeacherEmail(e.target.value)}
+                  placeholder="e.g. pdavies@bb-hs.co.uk"
+                  className="paragraph-editor"
+                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                />
+              </div>
+
+              {error && (
+                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                  {error}
+                </div>
+              )}
+
+              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
     // =====================================================
     // TEACHER CHANGE PASSWORD MODAL
     // =====================================================
