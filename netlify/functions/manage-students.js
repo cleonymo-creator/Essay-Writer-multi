@@ -277,8 +277,21 @@ exports.handler = async (event, context) => {
       const teacherEmailFilter = event.queryStringParameters?.teacherEmail;
       
       if (email) {
-        // Get specific student
-        const student = await studentsStore.get(email.toLowerCase(), { type: 'json' });
+        // Get specific student (try Blobs first, then Firestore)
+        let student = await studentsStore.get(email.toLowerCase(), { type: 'json' });
+        if (!student) {
+          try {
+            const db = initializeFirebase();
+            if (db) {
+              const doc = await db.collection('students').doc(email.toLowerCase()).get();
+              if (doc.exists) {
+                student = { ...doc.data(), email: email.toLowerCase() };
+              }
+            }
+          } catch (e) {
+            console.error('Firestore student lookup error:', e);
+          }
+        }
         if (!student) {
           return {
             statusCode: 404,
@@ -304,31 +317,62 @@ exports.handler = async (event, context) => {
         };
       }
       
-      // List students (filtered by ownership)
-      const { blobs } = await studentsStore.list();
-      const students = [];
-      
-      for (const blob of blobs) {
-        try {
-          const student = await studentsStore.get(blob.key, { type: 'json' });
-          if (student) {
-            // Apply ownership filter
-            if (!canAccessStudent(student)) continue;
-            
-            // Filter by class if specified
-            if (classId && student.classId !== classId) continue;
-            
-            // Filter by teacher email if specified
-            if (teacherEmailFilter && student.teacherEmail !== teacherEmailFilter.toLowerCase()) continue;
-            
-            const { passwordHash, ...safeStudent } = student;
-            students.push(safeStudent);
+      // List students from both Blobs and Firestore, merging by email
+      const studentsMap = new Map();
+
+      // 1. Read from Netlify Blobs
+      try {
+        const { blobs } = await studentsStore.list();
+        for (const blob of blobs) {
+          try {
+            const student = await studentsStore.get(blob.key, { type: 'json' });
+            if (student) {
+              studentsMap.set((student.email || blob.key).toLowerCase(), student);
+            }
+          } catch (e) {
+            console.error('Error reading student from Blobs:', blob.key, e);
           }
-        } catch (e) {
-          console.error('Error reading student:', blob.key, e);
         }
+      } catch (e) {
+        console.error('Error listing Blobs students:', e);
       }
-      
+
+      // 2. Read from Firestore (merge, Firestore wins on conflict)
+      try {
+        const db = initializeFirebase();
+        if (db) {
+          const snapshot = await db.collection('students').get();
+          snapshot.forEach(doc => {
+            const student = doc.data();
+            const emailKey = (student.email || doc.id).toLowerCase();
+            if (!studentsMap.has(emailKey)) {
+              studentsMap.set(emailKey, { ...student, email: emailKey });
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Error reading Firestore students:', e);
+      }
+
+      // 3. Apply filters
+      const students = [];
+      for (const student of studentsMap.values()) {
+        // Apply ownership filter
+        if (!canAccessStudent(student)) continue;
+
+        // Filter by class if specified (support both classId string and classIds array)
+        if (classId) {
+          const studentClassIds = student.classIds || (student.classId ? [student.classId] : []);
+          if (!studentClassIds.includes(classId)) continue;
+        }
+
+        // Filter by teacher email if specified
+        if (teacherEmailFilter && student.teacherEmail !== teacherEmailFilter.toLowerCase()) continue;
+
+        const { passwordHash, ...safeStudent } = student;
+        students.push(safeStudent);
+      }
+
       students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       
       return {
@@ -345,8 +389,10 @@ exports.handler = async (event, context) => {
 
       // Single student creation
       if (action === 'create') {
-        const { email, name, classId, yearGroup, password } = body;
-        
+        const { email, name, yearGroup, password } = body;
+        // Support both classIds (array) from new UI and classId (singular) for backwards compat
+        const classIds = body.classIds || (body.classId ? [body.classId] : []);
+
         if (!email || !name) {
           return {
             statusCode: 400,
@@ -356,8 +402,8 @@ exports.handler = async (event, context) => {
         }
 
         const emailLower = email.trim().toLowerCase();
-        
-        // Check if student already exists
+
+        // Check if student already exists (check both Blobs and Firestore)
         const existing = await studentsStore.get(emailLower, { type: 'json' });
         if (existing) {
           return {
@@ -366,21 +412,42 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ success: false, error: 'A student with this email already exists' })
           };
         }
+        let existsInFirestore = false;
+        try {
+          const db = initializeFirebase();
+          if (db) {
+            const doc = await db.collection('students').doc(emailLower).get();
+            if (doc.exists) existsInFirestore = true;
+          }
+        } catch (e) { /* ignore */ }
+        if (existsInFirestore) {
+          return {
+            statusCode: 409,
+            headers,
+            body: JSON.stringify({ success: false, error: 'A student with this email already exists' })
+          };
+        }
 
-        // Get class info if classId provided
-        let classInfo = null;
-        if (classId) {
-          classInfo = await classesStore.get(classId, { type: 'json' });
-          
-          // Check class ownership
-          if (classInfo && sessionCheck.valid && !sessionCheck.isAdmin) {
-            if (classInfo.teacherEmail !== sessionCheck.email) {
-              return {
-                statusCode: 403,
-                headers,
-                body: JSON.stringify({ success: false, error: 'Access denied to this class' })
-              };
+        // Get class info for each classId
+        const classInfos = [];
+        const classNames = [];
+        const teachers = [];
+        for (const cid of classIds) {
+          const ci = await classesStore.get(cid, { type: 'json' });
+          if (ci) {
+            // Check class ownership
+            if (sessionCheck.valid && !sessionCheck.isAdmin) {
+              if (ci.teacherEmail !== sessionCheck.email) {
+                return {
+                  statusCode: 403,
+                  headers,
+                  body: JSON.stringify({ success: false, error: 'Access denied to class: ' + (ci.name || cid) })
+                };
+              }
             }
+            classInfos.push({ id: cid, ...ci });
+            classNames.push(ci.name);
+            if (ci.teacher && !teachers.includes(ci.teacher)) teachers.push(ci.teacher);
           }
         }
 
@@ -389,10 +456,10 @@ exports.handler = async (event, context) => {
         const passwordHash = await hashPassword(studentPassword);
 
         // Use authenticated teacher info if available
-        let teacherName = classInfo?.teacher || null;
-        let teacherEmail = classInfo?.teacherEmail || null;
-        
-        if (sessionCheck.valid && !classInfo) {
+        let teacherName = classInfos[0]?.teacher || null;
+        let teacherEmail = classInfos[0]?.teacherEmail || null;
+
+        if (sessionCheck.valid && classInfos.length === 0) {
           teacherName = sessionCheck.name;
           teacherEmail = sessionCheck.email;
         }
@@ -400,43 +467,57 @@ exports.handler = async (event, context) => {
         const studentData = {
           email: emailLower,
           name: name.trim(),
-          classId: classId || null,
-          className: classInfo?.name || null,
-          yearGroup: yearGroup || classInfo?.yearGroup || null,
+          classId: classIds[0] || null,
+          classIds: classIds,
+          className: classNames[0] || null,
+          classNames: classNames,
+          yearGroup: yearGroup || classInfos[0]?.yearGroup || null,
           teacher: teacherName,
           teacherEmail: teacherEmail,
+          teachers: teachers.length > 0 ? teachers : (teacherName ? [teacherName] : []),
           individualAssignments: [],
           passwordHash,
           createdAt: new Date().toISOString(),
           lastLogin: null
         };
 
+        // Write to Netlify Blobs
         await studentsStore.setJSON(emailLower, studentData);
+
+        // Also write to Firestore so both backends stay in sync
+        try {
+          const db = initializeFirebase();
+          if (db) {
+            await db.collection('students').doc(emailLower).set(studentData);
+          }
+        } catch (firestoreErr) {
+          console.error('Failed to sync student to Firestore for', emailLower, firestoreErr.message);
+        }
 
         // Create Firebase Auth user (non-blocking - don't fail if this errors)
         ensureFirebaseAuthUser(emailLower, studentPassword, name.trim()).catch(err => {
           console.error('Failed to create Firebase Auth user for', emailLower, err);
         });
 
-        // Add student to class roster
-        if (classId && classInfo) {
-          const updatedStudents = [...(classInfo.students || [])];
+        // Add student to all class rosters
+        for (const ci of classInfos) {
+          const updatedStudents = [...(ci.students || [])];
           if (!updatedStudents.includes(emailLower)) {
             updatedStudents.push(emailLower);
-            await classesStore.setJSON(classId, {
-              ...classInfo,
+            await classesStore.setJSON(ci.id, {
+              ...ci,
               students: updatedStudents
             });
           }
         }
 
         const { passwordHash: _, ...safeStudent } = studentData;
-        
+
         return {
           statusCode: 201,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             student: safeStudent,
             generatedPassword: studentPassword
           })
