@@ -6225,11 +6225,14 @@
             }
           }
 
-          // Fall back to custom auth (FirebaseDB or Netlify function)
+          // Fall back to custom auth - try Firestore first, then Netlify function (Blobs)
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             result = await FirebaseDB.studentLogin(emailLower, password);
-          } else {
+          }
+
+          // If Firestore login failed or wasn't available, try Netlify function (checks Blobs)
+          if (!result || !result.success) {
             const response = await fetch('/.netlify/functions/student-auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
