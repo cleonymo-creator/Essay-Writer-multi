@@ -402,8 +402,11 @@ exports.handler = async (event, context) => {
 
       const emailLower = email.trim().toLowerCase();
 
-      // Look up student
-      const studentData = await studentsStore.get(emailLower, { type: 'json' });
+      // Look up student - try Blobs first, then Firestore
+      let studentData = await studentsStore.get(emailLower, { type: 'json' });
+      if (!studentData) {
+        studentData = await getStudentFromFirestore(emailLower);
+      }
 
       if (!studentData) {
         return {

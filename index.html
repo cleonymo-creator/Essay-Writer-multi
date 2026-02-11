@@ -5515,7 +5515,8 @@
         try {
           let query = db.collection('students');
           if (classId) {
-            query = query.where('classId', '==', classId);
+            // Students store classes in classIds array, use array-contains
+            query = query.where('classIds', 'array-contains', classId);
           }
           const snapshot = await query.get();
           return snapshot.docs.map(doc => {
