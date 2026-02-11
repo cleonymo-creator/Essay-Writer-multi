@@ -3,7 +3,7 @@
 // Now with teacher authentication and ownership filtering
 
 const { getStore } = require("@netlify/blobs");
-const { getAuth } = require('./firebase-helper');
+const { getAuth, initializeFirebase } = require('./firebase-helper');
 
 // Improved password hashing with PBKDF2
 async function hashPassword(password) {
@@ -608,10 +608,29 @@ exports.handler = async (event, context) => {
           passwordResetBy: sessionCheck.valid ? sessionCheck.email : 'system'
         });
 
-        // Also update Firebase Auth password (non-blocking)
-        ensureFirebaseAuthUser(emailLower, newPassword, existing.name).catch(err => {
-          console.error('Failed to update Firebase Auth password for', emailLower, err);
-        });
+        // Also update Firestore so client-side login fallback works
+        try {
+          const db = initializeFirebase();
+          if (db) {
+            const studentDoc = await db.collection('students').doc(emailLower).get();
+            if (studentDoc.exists) {
+              await db.collection('students').doc(emailLower).update({
+                passwordHash,
+                passwordResetAt: new Date().toISOString(),
+                passwordResetBy: sessionCheck.valid ? sessionCheck.email : 'system'
+              });
+            }
+          }
+        } catch (firestoreErr) {
+          console.error('Failed to update Firestore password for', emailLower, firestoreErr.message);
+        }
+
+        // Update Firebase Auth password (awaited so primary login path works)
+        try {
+          await ensureFirebaseAuthUser(emailLower, newPassword, existing.name);
+        } catch (fbErr) {
+          console.error('Failed to update Firebase Auth password for', emailLower, fbErr.message);
+        }
 
         return {
           statusCode: 200,
