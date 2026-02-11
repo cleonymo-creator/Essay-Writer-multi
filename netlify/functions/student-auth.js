@@ -3,7 +3,7 @@
 // Supports both custom auth and Firebase Auth
 
 const { getStore } = require("@netlify/blobs");
-const { getAuth, initializeFirebase } = require('./firebase-helper');
+const { getAuth } = require('./firebase-helper');
 
 // Password hashing with PBKDF2 (matches manage-students.js)
 async function hashPassword(password) {
@@ -135,25 +135,8 @@ exports.handler = async (event, context) => {
         const decodedToken = await auth.verifyIdToken(idToken);
         const emailLower = decodedToken.email.trim().toLowerCase();
 
-        // Look up student in Blobs, then Firestore as fallback
-        let studentData = await studentsStore.get(emailLower, { type: 'json' });
-
-        if (!studentData) {
-          // Student might only exist in Firestore (e.g. created via client-side)
-          try {
-            const db = initializeFirebase();
-            if (db) {
-              const studentDoc = await db.collection('students').doc(emailLower).get();
-              if (studentDoc.exists) {
-                studentData = studentDoc.data();
-                // Sync to Blobs so future logins don't need this fallback
-                await studentsStore.setJSON(emailLower, studentData);
-              }
-            }
-          } catch (fsErr) {
-            console.error('Firestore fallback error in firebaseLogin:', fsErr.message);
-          }
-        }
+        // Look up student in Blobs
+        const studentData = await studentsStore.get(emailLower, { type: 'json' });
 
         if (!studentData) {
           return {
@@ -282,23 +265,6 @@ exports.handler = async (event, context) => {
         passwordHash: updatedHash,
         lastLogin: new Date().toISOString()
       });
-
-      // Sync password hash to Firestore so the client-side login path stays in sync
-      try {
-        const db = initializeFirebase();
-        if (db) {
-          const studentDoc = await db.collection('students').doc(emailLower).get();
-          if (studentDoc.exists) {
-            await db.collection('students').doc(emailLower).update({
-              passwordHash: updatedHash,
-              lastLogin: new Date().toISOString()
-            });
-          }
-        }
-      } catch (fsErr) {
-        // Non-critical: Firestore sync failure shouldn't block login
-        console.error('Firestore sync error on login:', fsErr.message);
-      }
 
       // Get class info for assignments
       let classAssignments = [];
