@@ -1,9 +1,8 @@
 // Class Management Function
 // Handles CRUD for classes and assignment management
-// Now with teacher authentication and ownership filtering
+// Uses Firestore as the sole data store
 
-const { getStore } = require("@netlify/blobs");
-const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
+const { initializeFirebase } = require('./firebase-helper');
 
 // Generate a simple class ID from name
 function generateClassId(name) {
@@ -13,63 +12,30 @@ function generateClassId(name) {
     '-' + Date.now().toString(36);
 }
 
-// Helper to verify teacher session (Firestore first, Blobs fallback)
-async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore) {
+// Helper to verify teacher session via Firestore
+async function verifyTeacherSession(sessionToken, db) {
   if (!sessionToken) {
     return { valid: false, error: 'No session token provided' };
   }
 
   try {
-    // Try Firestore first (primary storage for teacher-auth.js)
-    // Use timeout to prevent hanging when Firestore is unreachable
-    const db = initializeFirebase();
-    if (db) {
-      try {
-        const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
-        if (sessionDoc.exists) {
-          const session = sessionDoc.data();
-          const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
-          if (expiresAt < new Date()) {
-            return { valid: false, error: 'Session expired' };
-          }
-
-          const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
-          if (!teacherDoc.exists) {
-            return { valid: false, error: 'Teacher not found' };
-          }
-
-          const teacher = teacherDoc.data();
-          return {
-            valid: true,
-            email: session.email,
-            name: teacher.name,
-            role: teacher.role || 'teacher',
-            isAdmin: teacher.role === 'admin',
-            teacher
-          };
-        }
-      } catch (firestoreErr) {
-        console.warn('Firestore session check failed, falling back to Blobs:', firestoreErr.message);
-      }
-    }
-
-    // Fallback to Netlify Blobs
-    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
-
-    if (!session) {
+    const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+    if (!sessionDoc.exists) {
       return { valid: false, error: 'Invalid session' };
     }
 
-    if (new Date(session.expiresAt) < new Date()) {
-      await teacherSessionsStore.delete(sessionToken);
+    const session = sessionDoc.data();
+    const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+    if (expiresAt < new Date()) {
       return { valid: false, error: 'Session expired' };
     }
 
-    const teacher = await teachersStore.get(session.email, { type: 'json' });
-    if (!teacher) {
+    const teacherDoc = await db.collection('teachers').doc(session.email).get();
+    if (!teacherDoc.exists) {
       return { valid: false, error: 'Teacher not found' };
     }
 
+    const teacher = teacherDoc.data();
     return {
       valid: true,
       email: session.email,
@@ -86,12 +52,10 @@ async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachers
 
 // Extract session token from request
 function getSessionToken(event) {
-  // Check Authorization header first
   const authHeader = event.headers.authorization || event.headers.Authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  // Check query parameter
   return event.queryStringParameters?.sessionToken || null;
 }
 
@@ -108,36 +72,22 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const classesStore = getStore("classes");
-    const studentsStore = getStore("students");
-    const teachersStore = getStore("teachers");
-    const teacherSessionsStore = getStore("teacher-sessions");
+    const db = initializeFirebase();
 
     // Get and verify session token
     const sessionToken = getSessionToken(event);
-    
-    // Check if teachers exist (Firestore first, Blobs fallback)
+
+    // Check if teachers exist in Firestore
     let teachersExist = false;
-    try {
-      const db = initializeFirebase();
-      if (db) {
-        const snapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
-        if (!snapshot.empty) teachersExist = true;
-      }
-    } catch (e) { /* Firestore unavailable or timed out */ }
-    if (!teachersExist) {
-      try {
-        const { blobs } = await teachersStore.list();
-        teachersExist = blobs && blobs.length > 0;
-      } catch (e) { /* Store might not exist yet */ }
-    }
+    const teachersSnapshot = await db.collection('teachers').limit(1).get();
+    if (!teachersSnapshot.empty) teachersExist = true;
 
     let sessionCheck = { valid: false };
     const params = event.queryStringParameters || {};
 
     if (teachersExist) {
       if (sessionToken) {
-        sessionCheck = await verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore);
+        sessionCheck = await verifyTeacherSession(sessionToken, db);
       }
 
       // Fallback to legacy password auth
@@ -173,18 +123,19 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'GET') {
       const classId = event.queryStringParameters?.classId;
       const teacherEmailFilter = event.queryStringParameters?.teacherEmail;
-      
+
       if (classId) {
         // Get specific class
-        const classData = await classesStore.get(classId, { type: 'json' });
-        if (!classData) {
+        const classDoc = await db.collection('classes').doc(classId).get();
+        if (!classDoc.exists) {
           return {
             statusCode: 404,
             headers,
             body: JSON.stringify({ success: false, error: 'Class not found' })
           };
         }
-        
+        const classData = { id: classDoc.id, ...classDoc.data() };
+
         // Check ownership (admin can see all, teachers only their own)
         if (sessionCheck.valid && !sessionCheck.isAdmin) {
           if (classData.teacherEmail !== sessionCheck.email) {
@@ -195,41 +146,35 @@ exports.handler = async (event, context) => {
             };
           }
         }
-        
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({ success: true, class: classData })
         };
       }
-      
-      // List classes (filtered by ownership)
-      const { blobs } = await classesStore.list();
+
+      // List classes from Firestore
+      const classesSnapshot = await db.collection('classes').get();
       const classes = [];
-      
-      for (const blob of blobs) {
-        try {
-          const classData = await classesStore.get(blob.key, { type: 'json' });
-          if (classData) {
-            // Apply ownership filter
-            if (sessionCheck.valid && !sessionCheck.isAdmin) {
-              // Teachers only see their own classes
-              if (classData.teacherEmail !== sessionCheck.email) continue;
-            }
-            
-            // Apply explicit teacher email filter if provided
-            if (teacherEmailFilter && classData.teacherEmail !== teacherEmailFilter.toLowerCase()) continue;
-            
-            classes.push(classData);
-          }
-        } catch (e) {
-          console.error('Error reading class:', blob.key, e);
+
+      classesSnapshot.forEach(doc => {
+        const classData = { id: doc.id, ...doc.data() };
+
+        // Apply ownership filter
+        if (sessionCheck.valid && !sessionCheck.isAdmin) {
+          if (classData.teacherEmail !== sessionCheck.email) return;
         }
-      }
-      
+
+        // Apply explicit teacher email filter if provided
+        if (teacherEmailFilter && classData.teacherEmail !== teacherEmailFilter.toLowerCase()) return;
+
+        classes.push(classData);
+      });
+
       // Sort by name
       classes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      
+
       return {
         statusCode: 200,
         headers,
@@ -245,7 +190,7 @@ exports.handler = async (event, context) => {
       // Create new class
       if (action === 'create') {
         const { name, subject, yearGroup, teacher, teacherEmail } = body;
-        
+
         if (!name) {
           return {
             statusCode: 400,
@@ -256,10 +201,9 @@ exports.handler = async (event, context) => {
 
         const classId = generateClassId(name);
 
-        // If authenticated, use the teacher's info
         let finalTeacher = teacher;
         let finalTeacherEmail = teacherEmail?.toLowerCase();
-        
+
         if (sessionCheck.valid) {
           finalTeacher = finalTeacher || sessionCheck.name;
           finalTeacherEmail = finalTeacherEmail || sessionCheck.email;
@@ -277,8 +221,8 @@ exports.handler = async (event, context) => {
           createdAt: new Date().toISOString()
         };
 
-        await classesStore.setJSON(classId, classData);
-        
+        await db.collection('classes').doc(classId).set(classData);
+
         return {
           statusCode: 201,
           headers,
@@ -288,24 +232,25 @@ exports.handler = async (event, context) => {
 
       // Helper to check class ownership for modifications
       const checkClassOwnership = async (classId) => {
-        const classData = await classesStore.get(classId, { type: 'json' });
-        if (!classData) {
+        const classDoc = await db.collection('classes').doc(classId).get();
+        if (!classDoc.exists) {
           return { allowed: false, error: 'Class not found', status: 404 };
         }
-        
+        const classData = { id: classDoc.id, ...classDoc.data() };
+
         if (sessionCheck.valid && !sessionCheck.isAdmin) {
           if (classData.teacherEmail !== sessionCheck.email) {
             return { allowed: false, error: 'Access denied to this class', status: 403 };
           }
         }
-        
+
         return { allowed: true, classData };
       };
 
       // Assign essay to class
       if (action === 'assignToClass') {
         const { classId, essayId } = body;
-        
+
         if (!classId || !essayId) {
           return {
             statusCode: 400,
@@ -327,8 +272,7 @@ exports.handler = async (event, context) => {
         const assignments = [...(classData.assignedEssays || [])];
         if (!assignments.includes(essayId)) {
           assignments.push(essayId);
-          await classesStore.setJSON(classId, {
-            ...classData,
+          await db.collection('classes').doc(classId).update({
             assignedEssays: assignments,
             updatedAt: new Date().toISOString()
           });
@@ -337,8 +281,8 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             message: 'Essay assigned to class',
             assignedEssays: assignments
           })
@@ -348,7 +292,7 @@ exports.handler = async (event, context) => {
       // Remove essay from class
       if (action === 'unassignFromClass') {
         const { classId, essayId } = body;
-        
+
         if (!classId || !essayId) {
           return {
             statusCode: 400,
@@ -368,8 +312,7 @@ exports.handler = async (event, context) => {
 
         const classData = ownershipCheck.classData;
         const assignments = (classData.assignedEssays || []).filter(id => id !== essayId);
-        await classesStore.setJSON(classId, {
-          ...classData,
+        await db.collection('classes').doc(classId).update({
           assignedEssays: assignments,
           updatedAt: new Date().toISOString()
         });
@@ -377,8 +320,8 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             message: 'Essay removed from class',
             assignedEssays: assignments
           })
@@ -388,7 +331,7 @@ exports.handler = async (event, context) => {
       // Assign essay to individual student
       if (action === 'assignToStudent') {
         const { studentEmail, essayId } = body;
-        
+
         if (!studentEmail || !essayId) {
           return {
             statusCode: 400,
@@ -398,15 +341,16 @@ exports.handler = async (event, context) => {
         }
 
         const emailLower = studentEmail.trim().toLowerCase();
-        const studentData = await studentsStore.get(emailLower, { type: 'json' });
-        
-        if (!studentData) {
+        const studentDoc = await db.collection('students').doc(emailLower).get();
+
+        if (!studentDoc.exists) {
           return {
             statusCode: 404,
             headers,
             body: JSON.stringify({ success: false, error: 'Student not found' })
           };
         }
+        const studentData = studentDoc.data();
 
         // Check if teacher owns the student's class
         if (sessionCheck.valid && !sessionCheck.isAdmin) {
@@ -422,8 +366,7 @@ exports.handler = async (event, context) => {
         const assignments = [...(studentData.individualAssignments || [])];
         if (!assignments.includes(essayId)) {
           assignments.push(essayId);
-          await studentsStore.setJSON(emailLower, {
-            ...studentData,
+          await db.collection('students').doc(emailLower).update({
             individualAssignments: assignments,
             updatedAt: new Date().toISOString()
           });
@@ -432,8 +375,8 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             message: 'Essay assigned to student',
             individualAssignments: assignments
           })
@@ -443,7 +386,7 @@ exports.handler = async (event, context) => {
       // Remove essay from individual student
       if (action === 'unassignFromStudent') {
         const { studentEmail, essayId } = body;
-        
+
         if (!studentEmail || !essayId) {
           return {
             statusCode: 400,
@@ -453,17 +396,17 @@ exports.handler = async (event, context) => {
         }
 
         const emailLower = studentEmail.trim().toLowerCase();
-        const studentData = await studentsStore.get(emailLower, { type: 'json' });
-        
-        if (!studentData) {
+        const studentDoc = await db.collection('students').doc(emailLower).get();
+
+        if (!studentDoc.exists) {
           return {
             statusCode: 404,
             headers,
             body: JSON.stringify({ success: false, error: 'Student not found' })
           };
         }
+        const studentData = studentDoc.data();
 
-        // Check ownership
         if (sessionCheck.valid && !sessionCheck.isAdmin) {
           if (studentData.teacherEmail !== sessionCheck.email) {
             return {
@@ -475,8 +418,7 @@ exports.handler = async (event, context) => {
         }
 
         const assignments = (studentData.individualAssignments || []).filter(id => id !== essayId);
-        await studentsStore.setJSON(emailLower, {
-          ...studentData,
+        await db.collection('students').doc(emailLower).update({
           individualAssignments: assignments,
           updatedAt: new Date().toISOString()
         });
@@ -484,8 +426,8 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            success: true, 
+          body: JSON.stringify({
+            success: true,
             message: 'Essay removed from student',
             individualAssignments: assignments
           })
@@ -495,7 +437,7 @@ exports.handler = async (event, context) => {
       // Bulk assign to multiple students
       if (action === 'bulkAssign') {
         const { studentEmails, essayId } = body;
-        
+
         if (!studentEmails || !Array.isArray(studentEmails) || !essayId) {
           return {
             statusCode: 400,
@@ -508,14 +450,14 @@ exports.handler = async (event, context) => {
 
         for (const email of studentEmails) {
           const emailLower = email.trim().toLowerCase();
-          const studentData = await studentsStore.get(emailLower, { type: 'json' });
-          
-          if (!studentData) {
+          const studentDoc = await db.collection('students').doc(emailLower).get();
+
+          if (!studentDoc.exists) {
             results.notFound.push(emailLower);
             continue;
           }
+          const studentData = studentDoc.data();
 
-          // Check ownership
           if (sessionCheck.valid && !sessionCheck.isAdmin) {
             if (studentData.teacherEmail !== sessionCheck.email) {
               results.accessDenied.push(emailLower);
@@ -526,8 +468,7 @@ exports.handler = async (event, context) => {
           const assignments = [...(studentData.individualAssignments || [])];
           if (!assignments.includes(essayId)) {
             assignments.push(essayId);
-            await studentsStore.setJSON(emailLower, {
-              ...studentData,
+            await db.collection('students').doc(emailLower).update({
               individualAssignments: assignments,
               updatedAt: new Date().toISOString()
             });
@@ -552,7 +493,7 @@ exports.handler = async (event, context) => {
     // PUT - Update class
     if (event.httpMethod === 'PUT') {
       const { classId, updates } = JSON.parse(event.body || '{}');
-      
+
       if (!classId) {
         return {
           statusCode: 400,
@@ -561,17 +502,17 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const classData = await classesStore.get(classId, { type: 'json' });
-      
-      if (!classData) {
+      const classDoc = await db.collection('classes').doc(classId).get();
+
+      if (!classDoc.exists) {
         return {
           statusCode: 404,
           headers,
           body: JSON.stringify({ success: false, error: 'Class not found' })
         };
       }
+      const classData = { id: classDoc.id, ...classDoc.data() };
 
-      // Check ownership
       if (sessionCheck.valid && !sessionCheck.isAdmin) {
         if (classData.teacherEmail !== sessionCheck.email) {
           return {
@@ -582,50 +523,46 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // Apply allowed updates
-      // Note: only admins can change teacher assignment
       const allowedFields = ['name', 'subject', 'yearGroup', 'assignedEssays'];
       if (sessionCheck.isAdmin) {
         allowedFields.push('teacher', 'teacherEmail');
       }
-      
-      const updatedData = { ...classData };
-      
+
+      const updateObj = {};
       for (const field of allowedFields) {
         if (updates[field] !== undefined) {
-          updatedData[field] = updates[field];
+          updateObj[field] = updates[field];
         }
       }
+      updateObj.updatedAt = new Date().toISOString();
 
       // If teacher info changed (admin only), update all students in class
       if (sessionCheck.isAdmin && (updates.teacher !== undefined || updates.teacherEmail !== undefined)) {
+        const batch = db.batch();
         for (const studentEmail of (classData.students || [])) {
-          const studentData = await studentsStore.get(studentEmail, { type: 'json' });
-          if (studentData) {
-            await studentsStore.setJSON(studentEmail, {
-              ...studentData,
-              teacher: updatedData.teacher,
-              teacherEmail: updatedData.teacherEmail,
-              className: updatedData.name
-            });
-          }
+          const studentRef = db.collection('students').doc(studentEmail);
+          batch.update(studentRef, {
+            teacher: updates.teacher || classData.teacher,
+            teacherEmail: updates.teacherEmail || classData.teacherEmail,
+            className: updates.name || classData.name
+          });
         }
+        await batch.commit();
       }
 
-      updatedData.updatedAt = new Date().toISOString();
-      await classesStore.setJSON(classId, updatedData);
+      await db.collection('classes').doc(classId).update(updateObj);
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, class: updatedData })
+        body: JSON.stringify({ success: true, class: { ...classData, ...updateObj } })
       };
     }
 
     // DELETE - Remove class
     if (event.httpMethod === 'DELETE') {
       const classId = event.queryStringParameters?.classId;
-      
+
       if (!classId) {
         return {
           statusCode: 400,
@@ -634,17 +571,17 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const classData = await classesStore.get(classId, { type: 'json' });
-      
-      if (!classData) {
+      const classDoc = await db.collection('classes').doc(classId).get();
+
+      if (!classDoc.exists) {
         return {
           statusCode: 404,
           headers,
           body: JSON.stringify({ success: false, error: 'Class not found' })
         };
       }
+      const classData = classDoc.data();
 
-      // Check ownership
       if (sessionCheck.valid && !sessionCheck.isAdmin) {
         if (classData.teacherEmail !== sessionCheck.email) {
           return {
@@ -655,25 +592,20 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // Remove class reference from all students
+      // Remove class reference from all students using batch
+      const batch = db.batch();
       for (const studentEmail of (classData.students || [])) {
-        try {
-          const studentData = await studentsStore.get(studentEmail, { type: 'json' });
-          if (studentData && studentData.classId === classId) {
-            await studentsStore.setJSON(studentEmail, {
-              ...studentData,
-              classId: null,
-              className: null,
-              teacher: null,
-              teacherEmail: null
-            });
-          }
-        } catch (e) {
-          console.error('Error updating student:', studentEmail, e);
-        }
+        const studentRef = db.collection('students').doc(studentEmail);
+        batch.update(studentRef, {
+          classId: null,
+          className: null,
+          teacher: null,
+          teacherEmail: null
+        });
       }
+      await batch.commit();
 
-      await classesStore.delete(classId);
+      await db.collection('classes').doc(classId).delete();
 
       return {
         statusCode: 200,
