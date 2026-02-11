@@ -4,7 +4,7 @@
 
 const nodeCrypto = require('crypto');
 const { getStore } = require("@netlify/blobs");
-const { getAuth, initializeFirebase } = require('./firebase-helper');
+const { getAuth, initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 // Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
 function hashPassword(password) {
@@ -65,7 +65,7 @@ async function getStudentFromFirestore(emailLower) {
   try {
     const db = initializeFirebase();
     if (!db) return null;
-    const studentDoc = await db.collection('students').doc(emailLower).get();
+    const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
     if (studentDoc.exists) {
       return studentDoc.data();
     }
@@ -99,7 +99,7 @@ async function getClassAssignments(studentData, classesStore) {
       try {
         const db = initializeFirebase();
         if (db) {
-          const classDoc = await db.collection('classes').doc(classId).get();
+          const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
           if (classDoc.exists) {
             classAssignments.push(...(classDoc.data().assignedEssays || []));
           }

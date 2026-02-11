@@ -25,4 +25,16 @@ function getAuth() {
   return admin.auth();
 }
 
-module.exports = { initializeFirebase, getAuth };
+// Wrap a promise with a timeout to prevent Firestore hangs from killing Netlify functions.
+// When Firestore is unreachable, calls hang indefinitely until the function times out (500).
+// This lets us fail fast and fall back to Netlify Blobs instead.
+function firestoreTimeout(promise, ms = 4000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore timeout')), ms)
+    )
+  ]);
+}
+
+module.exports = { initializeFirebase, getAuth, firestoreTimeout };

@@ -1,4 +1,4 @@
-const { initializeFirebase } = require('./firebase-helper');
+const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
         console.log('[save-progress] Looking up progress for:', docId);
         
         const docRef = db.collection('progress').doc(docId);
-        const doc = await docRef.get();
+        const doc = await firestoreTimeout(docRef.get());
         
         if (doc.exists && !doc.data().completed) {
           console.log('[save-progress] Found progress for:', params.email);
@@ -89,7 +89,7 @@ exports.handler = async (event, context) => {
 
       if (sessionToken) {
         try {
-          const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+          const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
           if (sessionDoc.exists) {
             const session = sessionDoc.data();
             const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
@@ -117,9 +117,9 @@ exports.handler = async (event, context) => {
       }
 
       // Get all progress documents
-      const snapshot = await db.collection('progress')
+      const snapshot = await firestoreTimeout(db.collection('progress')
         .orderBy('lastUpdate', 'desc')
-        .get();
+        .get(), 6000);
       
       const inProgress = [];
       snapshot.forEach(doc => {
@@ -206,7 +206,7 @@ exports.handler = async (event, context) => {
     // If completed, delete progress entry
     if (progressData.completed || progressData.percentComplete >= 100) {
       try {
-        await db.collection('progress').doc(docId).delete();
+        await firestoreTimeout(db.collection('progress').doc(docId).delete());
         console.log('[save-progress] Progress cleared for completed student:', progressData.studentEmail);
       } catch (e) {
         console.log('[save-progress] Delete error (may not exist):', e.message);
@@ -227,7 +227,7 @@ exports.handler = async (event, context) => {
 
     // Save progress
     progressData.lastUpdate = new Date().toISOString();
-    await db.collection('progress').doc(docId).set(progressData);
+    await firestoreTimeout(db.collection('progress').doc(docId).set(progressData));
     
     console.log('[save-progress] Progress saved:', {
       email: progressData.studentEmail,
