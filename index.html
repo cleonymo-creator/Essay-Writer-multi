@@ -6961,11 +6961,12 @@
             setSubmissions(submissionList || []);
             setProgress(progressList || []);
           } else {
+            const authHeaders = { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() };
             const [studentsRes, classesRes, submissionsRes, progressRes] = await Promise.all([
-              fetch('/.netlify/functions/manage-students'),
-              fetch('/.netlify/functions/manage-classes'),
-              fetch('/.netlify/functions/get-submissions'),
-              fetch('/.netlify/functions/save-progress')
+              fetch('/.netlify/functions/manage-students', { headers: authHeaders }),
+              fetch('/.netlify/functions/manage-classes', { headers: authHeaders }),
+              fetch('/.netlify/functions/get-submissions', { headers: authHeaders }),
+              fetch('/.netlify/functions/save-progress', { headers: authHeaders })
             ]);
             const studentsData = await studentsRes.json();
             const classesData = await classesRes.json();
@@ -7779,9 +7780,10 @@
             setStudents(studentList);
             setClasses(classList);
           } else {
+            const authHeaders = { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() };
             const [studentsRes, classesRes] = await Promise.all([
-              fetch('/.netlify/functions/manage-students'),
-              fetch('/.netlify/functions/manage-classes')
+              fetch('/.netlify/functions/manage-students', { headers: authHeaders }),
+              fetch('/.netlify/functions/manage-classes', { headers: authHeaders })
             ]);
             const studentsData = await studentsRes.json();
             const classesData = await classesRes.json();
@@ -8623,9 +8625,10 @@
               setClasses(classList);
               setStudents(studentList);
             } else {
+              const authHeaders = { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() };
               const [classesRes, studentsRes] = await Promise.all([
-                fetch('/.netlify/functions/manage-classes'),
-                fetch('/.netlify/functions/manage-students')
+                fetch('/.netlify/functions/manage-classes', { headers: authHeaders }),
+                fetch('/.netlify/functions/manage-students', { headers: authHeaders })
               ]);
               const classesData = await classesRes.json();
               const studentsData = await studentsRes.json();
@@ -8666,7 +8669,7 @@
             const updated = await FirebaseDB.getClasses();
             setClasses(updated);
           } else {
-            const res = await fetch('/.netlify/functions/manage-classes');
+            const res = await fetch('/.netlify/functions/manage-classes', { headers: { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() } });
             const data = await res.json();
             if (data.success) setClasses(data.classes || []);
           }
@@ -8700,7 +8703,7 @@
             const updated = await FirebaseDB.getStudents();
             setStudents(updated);
           } else {
-            const res = await fetch('/.netlify/functions/manage-students');
+            const res = await fetch('/.netlify/functions/manage-students', { headers: { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() } });
             const data = await res.json();
             if (data.success) setStudents(data.students || []);
           }
@@ -11498,13 +11501,16 @@ ${examinerComment}
         try {
           setError(null);
           const sessionToken = TeacherAuth.getSessionToken();
-          const authParam = sessionToken 
-            ? encodeURIComponent(sessionToken)
-            : encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
-          
+          const fetchOpts = sessionToken
+            ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
+            : {};
+          const authParam = sessionToken
+            ? ''
+            : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+
           const [submissionsRes, progressRes] = await Promise.all([
-            fetch(`/.netlify/functions/get-submissions?auth=${authParam}`),
-            fetch(`/.netlify/functions/save-progress?auth=${authParam}`)
+            fetch('/.netlify/functions/get-submissions' + authParam, fetchOpts),
+            fetch('/.netlify/functions/save-progress' + authParam, fetchOpts)
           ]);
           
           const submissionsData = await submissionsRes.json();
@@ -11603,12 +11609,15 @@ ${examinerComment}
               if (studentList) setStudents(studentList);
             } else {
               const sessionToken = TeacherAuth.getSessionToken();
+              const fetchOpts = sessionToken
+                ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
+                : {};
               const authParam = sessionToken
-                ? encodeURIComponent(sessionToken)
-                : encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+                ? ''
+                : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
               const [classesRes, studentsRes] = await Promise.all([
-                fetch(`/.netlify/functions/manage-classes?auth=${authParam}`),
-                fetch(`/.netlify/functions/manage-students?auth=${authParam}`)
+                fetch('/.netlify/functions/manage-classes' + authParam, fetchOpts),
+                fetch('/.netlify/functions/manage-students' + authParam, fetchOpts)
               ]);
               const classesData = await classesRes.json();
               const studentsData = await studentsRes.json();
@@ -12599,7 +12608,7 @@ ${examinerComment}
       async isTeacherAuthEnabled() {
         try {
           // Try to access a protected endpoint
-          const response = await fetch('/.netlify/functions/manage-classes');
+          const response = await fetch('/.netlify/functions/manage-classes', { headers: { 'Authorization': 'Bearer ' + (this.getSessionToken() || '') } });
           const result = await response.json();
           return result.requiresAuth === true;
         } catch (e) {
