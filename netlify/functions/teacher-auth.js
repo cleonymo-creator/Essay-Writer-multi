@@ -355,8 +355,9 @@ exports.handler = async (event, context) => {
       }
       
       const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+
       if (!teacherDoc.exists) {
+        console.log('Login failed: no teacher document for', emailLower);
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
@@ -364,11 +365,12 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: 'Invalid email or password' })
         };
       }
-      
+
       const teacher = teacherDoc.data();
       const passwordValid = await verifyPassword(password, teacher.passwordHash);
-      
+
       if (!passwordValid) {
+        console.log('Login failed: password mismatch for', emailLower, '(hash format:', teacher.passwordHash?.includes(':') ? 'PBKDF2' : 'legacy/unknown', ')');
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
