@@ -5042,7 +5042,7 @@
             setTimeout(() => reject(new Error('Firestore connectivity timeout')), 5000)
           );
           await Promise.race([
-            db.collection('teachers').limit(1).get(),
+            db.collection('submissions').limit(1).get(),
             timeout
           ]);
           firebaseConnected = true;
@@ -11885,7 +11885,7 @@ ${examinerComment}
                     <span className="sidebar-item-icon"><Icon name={ICONS.key} size={18} /></span>
                     <span>Change Password</span>
                   </div>
-                  <div className="sidebar-item" onClick={async () => { await TeacherAuth.logout(); onLogout(); }}>
+                  <div className="sidebar-item" onClick={onLogout}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.logout} size={18} /></span>
                     <span>Logout</span>
                   </div>
