@@ -41,6 +41,25 @@ function verifyPassword(password, storedHash) {
   });
 }
 
+// Verify password via Firebase Auth REST API (fallback when local hash is stale after email reset)
+async function verifyPasswordViaFirebaseAuth(email, password) {
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
+  if (!apiKey) return false;
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: false })
+      }
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Generate a simple session token
 function generateSessionToken() {
   return nodeCrypto.randomBytes(32).toString('hex');
@@ -311,8 +330,18 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Verify password
-      const passwordValid = await verifyPassword(password, studentData.passwordHash);
+      // Verify password (local hash first, then Firebase Auth REST API as fallback)
+      let passwordValid = await verifyPassword(password, studentData.passwordHash);
+      let hashNeedsSync = false;
+
+      if (!passwordValid) {
+        // Hash mismatch - password may have been reset via Firebase Auth email
+        passwordValid = await verifyPasswordViaFirebaseAuth(emailLower, password);
+        if (passwordValid) {
+          hashNeedsSync = true;
+        }
+      }
+
       if (!passwordValid) {
         return {
           statusCode: 401,
@@ -321,10 +350,11 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Upgrade legacy SHA-256 hash to PBKDF2 on successful login
-      if (!studentData.passwordHash.includes(':')) {
-        const upgradedHash = await hashPassword(password);
-        await firestoreTimeout(db.collection('students').doc(emailLower).update({ passwordHash: upgradedHash }));
+      // Sync password hash to Firestore if it was stale (reset via Firebase Auth email)
+      // Also upgrade legacy SHA-256 hashes to PBKDF2
+      if (hashNeedsSync || !studentData.passwordHash || !studentData.passwordHash.includes(':')) {
+        const newHash = await hashPassword(password);
+        await firestoreTimeout(db.collection('students').doc(emailLower).update({ passwordHash: newHash }));
       }
 
       // Generate session token
@@ -415,7 +445,10 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const currentValid = await verifyPassword(currentPassword, pwStudentData.passwordHash);
+      let currentValid = await verifyPassword(currentPassword, pwStudentData.passwordHash);
+      if (!currentValid) {
+        currentValid = await verifyPasswordViaFirebaseAuth(session.email, currentPassword);
+      }
       if (!currentValid) {
         return {
           statusCode: 401,
