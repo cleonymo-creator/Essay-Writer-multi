@@ -56,9 +56,14 @@
     // Load Firebase config from Netlify Function (keeps API key in environment variables)
     async function loadFirebaseConfig() {
       try {
-        const response = await fetch('/.netlify/functions/firebase-config');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch('/.netlify/functions/firebase-config', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
         if (!response.ok) {
-          throw new Error('Failed to load Firebase config');
+          throw new Error('Failed to load Firebase config: HTTP ' + response.status);
         }
         const config = await response.json();
         if (config.error) {
@@ -70,8 +75,7 @@
         console.log('Firebase config loaded successfully');
         return true;
       } catch (error) {
-        console.error('Could not load Firebase config:', error);
-        console.log('Falling back to Netlify Blobs (if available)');
+        console.error('Could not load Firebase config:', error.name === 'AbortError' ? 'Request timed out after 10s' : error);
         return false;
       }
     }
@@ -12506,6 +12510,7 @@ ${examinerComment}
         // Try Firebase Auth first (with timeout so we fall back quickly)
         if (firebaseAuth) {
           try {
+            console.log('Attempting Firebase Auth login...');
             const firebaseTimeout = new Promise((_, reject) =>
               setTimeout(() => reject(new Error('timeout')), 8000)
             );
@@ -12513,6 +12518,7 @@ ${examinerComment}
               firebaseAuth.signInWithEmailAndPassword(email.trim().toLowerCase(), password),
               firebaseTimeout
             ]);
+            console.log('Firebase Auth succeeded, exchanging token...');
             const idToken = await userCredential.user.getIdToken();
 
             const response = await fetch('/.netlify/functions/teacher-auth', {
@@ -12526,9 +12532,12 @@ ${examinerComment}
               this.setSession(result.sessionToken, result.teacher);
               return { success: true, teacher: result.teacher };
             }
+            console.log('Firebase token exchange failed:', result.error);
           } catch (firebaseErr) {
-            console.log('Firebase Auth login failed for teacher, trying custom:', firebaseErr.code);
+            console.log('Firebase Auth login failed:', firebaseErr.code || firebaseErr.message, '- trying custom auth');
           }
+        } else {
+          console.log('Firebase Auth not initialized, using custom auth only');
         }
 
         // Fall back to custom auth
