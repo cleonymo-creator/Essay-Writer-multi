@@ -71,7 +71,7 @@ async function verifyTeacherSession(sessionToken) {
     console.error('Session verification error:', error);
     return { valid: false, error: 'Session verification failed' };
   }
-
+}
 
 // Check if teachers table exists (Firestore first, Blobs fallback)
 async function teachersExist() {
