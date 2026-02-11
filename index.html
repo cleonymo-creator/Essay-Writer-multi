@@ -11630,6 +11630,7 @@ ${examinerComment}
 
       // Manual refresh function
       const handleRefresh = async () => {
+        setError(null);
         const firebaseReady = await FirebaseDB.isReady();
         if (firebaseReady) {
           setLoading(true);
@@ -12558,22 +12559,19 @@ ${examinerComment}
       // Logout
       async logout() {
         const token = this.getSessionToken();
+        // Clear local session first so UI can navigate immediately
+        this.clearSession();
+        // Then do server-side cleanup (best-effort, don't block)
         if (token) {
-          try {
-            await fetch('/.netlify/functions/teacher-auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'logout', sessionToken: token })
-            });
-          } catch (e) {
-            // Ignore logout errors
-          }
+          fetch('/.netlify/functions/teacher-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'logout', sessionToken: token })
+          }).catch(() => {});
         }
-        // Also sign out from Firebase Auth
         if (firebaseAuth) {
           try { await firebaseAuth.signOut(); } catch (e) { /* ignore */ }
         }
-        this.clearSession();
       },
       
       // Check if teacher system is enabled (any teachers exist)
