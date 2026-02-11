@@ -11532,12 +11532,15 @@ ${examinerComment}
             // Real-time Firebase listeners
             setLoading(true);
 
-            // Safety timeout - if Firebase never responds, stop loading after 10s
+            // Safety timeout - if Firebase never responds, fall back to Netlify
             loadingTimeout = setTimeout(() => {
               setLoading(prevLoading => {
                 if (prevLoading) {
                   console.warn('Firebase subscription timeout - falling back to Netlify');
-                  setError('Firebase connection timed out. Try refreshing.');
+                  if (unsubscribeSubmissions) { unsubscribeSubmissions(); unsubscribeSubmissions = null; }
+                  if (unsubscribeProgress) { unsubscribeProgress(); unsubscribeProgress = null; }
+                  fetchFromNetlify();
+                  interval = setInterval(fetchFromNetlify, 15000);
                 }
                 return false;
               });
@@ -11545,6 +11548,7 @@ ${examinerComment}
 
             unsubscribeSubmissions = FirebaseDB.subscribeToSubmissions((data) => {
               if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
+              setError(null);
               setSubmissions(data);
               setLoading(false);
             }, (err) => {
