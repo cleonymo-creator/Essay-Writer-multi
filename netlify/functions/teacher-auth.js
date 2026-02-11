@@ -362,7 +362,7 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ success: false, error: 'Invalid email or password' })
+          body: JSON.stringify({ success: false, error: 'No account found for this email. Please check your email or contact an administrator.' })
         };
       }
 
@@ -375,7 +375,7 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ success: false, error: 'Invalid email or password' })
+          body: JSON.stringify({ success: false, error: 'Incorrect password' })
         };
       }
       
