@@ -5265,6 +5265,7 @@
 
       // Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
       async verifyPassword(password, storedHash) {
+        if (!storedHash) return false;
         if (storedHash.includes(':')) {
           const [saltHex, hashHex] = storedHash.split(':');
           const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));

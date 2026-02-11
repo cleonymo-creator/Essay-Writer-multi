@@ -47,6 +47,8 @@ async function hashPasswordLegacy(password) {
 
 // Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
 async function verifyPassword(password, storedHash) {
+  if (!storedHash) return false;
+
   // PBKDF2 hashes contain a colon separator: saltHex:hashHex
   if (storedHash.includes(':')) {
     const [saltHex, hashHex] = storedHash.split(':');
