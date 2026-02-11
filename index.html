@@ -12493,7 +12493,7 @@ ${examinerComment}
       async verifySession() {
         const token = this.getSessionToken();
         if (!token) return { valid: false };
-        
+
         try {
           const response = await fetch('/.netlify/functions/teacher-auth', {
             method: 'POST',
@@ -12501,15 +12501,30 @@ ${examinerComment}
             body: JSON.stringify({ action: 'verify', sessionToken: token })
           });
           const result = await response.json();
-          
+
           if (result.success) {
             localStorage.setItem('teacherData', JSON.stringify(result.teacher));
             return { valid: true, teacher: result.teacher, isAdmin: result.isAdmin };
-          } else {
+          } else if (response.status === 401) {
+            // Only clear session on explicit auth rejection (expired/invalid token)
             this.clearSession();
+            return { valid: false };
+          } else {
+            // Server error (500, 502, etc.) - keep session, use cached data
+            console.log('Session verify server error, using cached session');
+            const cached = this.getTeacher();
+            if (cached) {
+              return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+            }
             return { valid: false };
           }
         } catch (e) {
+          // Network error - keep session, use cached data
+          console.log('Session verify network error, using cached session');
+          const cached = this.getTeacher();
+          if (cached) {
+            return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+          }
           return { valid: false, error: e.message };
         }
       },
