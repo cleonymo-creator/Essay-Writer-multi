@@ -5,46 +5,85 @@
 const { initializeFirebase } = require('./firebase-helper');
 const { getStore } = require("@netlify/blobs");
 
-// Helper to verify teacher session
+// Helper to verify teacher session (Firestore first, Blobs fallback)
 async function verifyTeacherSession(sessionToken) {
   if (!sessionToken) {
     return { valid: false, error: 'No session token provided' };
   }
-  
+
   try {
-    const teachersStore = getStore("teachers");
+    // Try Firestore first (primary storage for teacher-auth.js)
+    const db = initializeFirebase();
+    if (db) {
+      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+      if (sessionDoc.exists) {
+        const session = sessionDoc.data();
+        const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+        if (expiresAt < new Date()) {
+          return { valid: false, error: 'Session expired' };
+        }
+
+        const teacherDoc = await db.collection('teachers').doc(session.email).get();
+        if (!teacherDoc.exists) {
+          return { valid: false, error: 'Teacher not found' };
+        }
+
+        const teacher = teacherDoc.data();
+        return {
+          valid: true,
+          email: session.email,
+          name: teacher.name,
+          role: teacher.role || 'teacher',
+          isAdmin: teacher.role === 'admin',
+          teacher
+        };
+      }
+    }
+
+    // Fallback to Netlify Blobs
     const teacherSessionsStore = getStore("teacher-sessions");
-    
+    const teachersStore = getStore("teachers");
+
     const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
-    
+
     if (!session) {
       return { valid: false, error: 'Invalid session' };
     }
-    
+
     if (new Date(session.expiresAt) < new Date()) {
       return { valid: false, error: 'Session expired' };
     }
-    
+
     const teacher = await teachersStore.get(session.email, { type: 'json' });
     if (!teacher) {
       return { valid: false, error: 'Teacher not found' };
     }
-    
-    return { 
-      valid: true, 
-      email: session.email, 
+
+    return {
+      valid: true,
+      email: session.email,
       name: teacher.name,
       role: teacher.role || 'teacher',
-      isAdmin: teacher.role === 'admin'
+      isAdmin: teacher.role === 'admin',
+      teacher
     };
   } catch (error) {
     console.error('Session verification error:', error);
     return { valid: false, error: 'Session verification failed' };
   }
-}
 
-// Check if teachers table exists
+
+// Check if teachers table exists (Firestore first, Blobs fallback)
 async function teachersExist() {
+  try {
+    const db = initializeFirebase();
+    if (db) {
+      const snapshot = await db.collection('teachers').limit(1).get();
+      if (!snapshot.empty) return true;
+    }
+  } catch (e) {
+    // Firestore failed, try Blobs
+  }
   try {
     const teachersStore = getStore("teachers");
     const { blobs } = await teachersStore.list();
@@ -54,18 +93,36 @@ async function teachersExist() {
   }
 }
 
-// Get list of student emails that belong to a teacher
+// Get list of student emails that belong to a teacher (Firestore first, Blobs fallback)
 async function getTeacherStudentEmails(teacherEmail) {
-  const studentsStore = getStore("students");
   const emails = [];
-  
+
   try {
+    const db = initializeFirebase();
+    if (db) {
+      const snapshot = await db.collection('students')
+        .where('teacherEmail', '==', teacherEmail)
+        .get();
+      if (!snapshot.empty) {
+        snapshot.forEach(doc => {
+          const student = doc.data();
+          if (student.email) emails.push(student.email);
+          if (student.name) emails.push(student.name.toLowerCase());
+        });
+        return emails;
+      }
+    }
+  } catch (e) {
+    // Firestore failed, try Blobs
+  }
+
+  try {
+    const studentsStore = getStore("students");
     const { blobs } = await studentsStore.list();
     for (const blob of blobs) {
       const student = await studentsStore.get(blob.key, { type: 'json' });
       if (student && student.teacherEmail === teacherEmail) {
         emails.push(student.email);
-        // Also add variations that might be used in submissions
         if (student.name) {
           emails.push(student.name.toLowerCase());
         }
@@ -74,7 +131,7 @@ async function getTeacherStudentEmails(teacherEmail) {
   } catch (e) {
     console.error('Error getting teacher students:', e);
   }
-  
+
   return emails;
 }
 

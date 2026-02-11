@@ -80,15 +80,40 @@ exports.handler = async (event, context) => {
       }
       
       // Teacher dashboard - list all in-progress
-      if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
-        return {
-          statusCode: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          body: JSON.stringify({ error: 'Unauthorized' })
-        };
+      // Try session-based auth first (Firestore)
+      let authorized = false;
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      const sessionToken = (authHeader && authHeader.startsWith('Bearer '))
+        ? authHeader.substring(7)
+        : params.sessionToken;
+
+      if (sessionToken) {
+        try {
+          const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+          if (sessionDoc.exists) {
+            const session = sessionDoc.data();
+            const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+            if (expiresAt >= new Date()) {
+              authorized = true;
+            }
+          }
+        } catch (e) {
+          console.error('[save-progress] Session verification error:', e.message);
+        }
+      }
+
+      // Fallback to legacy password auth
+      if (!authorized) {
+        if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
+          return {
+            statusCode: 401,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ error: 'Unauthorized' })
+          };
+        }
       }
 
       // Get all progress documents

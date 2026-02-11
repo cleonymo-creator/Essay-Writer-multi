@@ -3,45 +3,75 @@
 // Now with teacher authentication and ownership filtering
 
 const { getStore } = require("@netlify/blobs");
+const { initializeFirebase } = require('./firebase-helper');
 
 // Generate a simple class ID from name
 function generateClassId(name) {
   return name.toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') + 
+    .replace(/^-|-$/g, '') +
     '-' + Date.now().toString(36);
 }
 
-// Helper to verify teacher session
+// Helper to verify teacher session (Firestore first, Blobs fallback)
 async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachersStore) {
   if (!sessionToken) {
     return { valid: false, error: 'No session token provided' };
   }
-  
+
   try {
+    // Try Firestore first (primary storage for teacher-auth.js)
+    const db = initializeFirebase();
+    if (db) {
+      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+      if (sessionDoc.exists) {
+        const session = sessionDoc.data();
+        const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+        if (expiresAt < new Date()) {
+          return { valid: false, error: 'Session expired' };
+        }
+
+        const teacherDoc = await db.collection('teachers').doc(session.email).get();
+        if (!teacherDoc.exists) {
+          return { valid: false, error: 'Teacher not found' };
+        }
+
+        const teacher = teacherDoc.data();
+        return {
+          valid: true,
+          email: session.email,
+          name: teacher.name,
+          role: teacher.role || 'teacher',
+          isAdmin: teacher.role === 'admin',
+          teacher
+        };
+      }
+    }
+
+    // Fallback to Netlify Blobs
     const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
-    
+
     if (!session) {
       return { valid: false, error: 'Invalid session' };
     }
-    
+
     if (new Date(session.expiresAt) < new Date()) {
       await teacherSessionsStore.delete(sessionToken);
       return { valid: false, error: 'Session expired' };
     }
-    
+
     const teacher = await teachersStore.get(session.email, { type: 'json' });
     if (!teacher) {
       return { valid: false, error: 'Teacher not found' };
     }
-    
-    return { 
-      valid: true, 
-      email: session.email, 
+
+    return {
+      valid: true,
+      email: session.email,
       name: teacher.name,
       role: teacher.role || 'teacher',
       isAdmin: teacher.role === 'admin',
-      teacher: teacher
+      teacher
     };
   } catch (error) {
     console.error('Session verification error:', error);
@@ -81,13 +111,20 @@ exports.handler = async (event, context) => {
     // Get and verify session token
     const sessionToken = getSessionToken(event);
     
-    // Check if teachers exist (for backward compatibility during migration)
+    // Check if teachers exist (Firestore first, Blobs fallback)
     let teachersExist = false;
     try {
-      const { blobs } = await teachersStore.list();
-      teachersExist = blobs && blobs.length > 0;
-    } catch (e) {
-      // Store might not exist yet
+      const db = initializeFirebase();
+      if (db) {
+        const snapshot = await db.collection('teachers').limit(1).get();
+        if (!snapshot.empty) teachersExist = true;
+      }
+    } catch (e) { /* Firestore unavailable */ }
+    if (!teachersExist) {
+      try {
+        const { blobs } = await teachersStore.list();
+        teachersExist = blobs && blobs.length > 0;
+      } catch (e) { /* Store might not exist yet */ }
     }
 
     let sessionCheck = { valid: false };
