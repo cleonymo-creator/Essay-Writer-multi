@@ -1,8 +1,9 @@
 // Student Authentication Function
 // Handles login, password verification, and session management
-// Uses Firestore as the sole data store
+// Uses Firestore as the primary data store, with Blobs fallback for unmigrated students
 
 const nodeCrypto = require('crypto');
+const { getStore, connectLambda } = require('@netlify/blobs');
 const { getAuth, initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 // Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
@@ -63,6 +64,39 @@ async function getClassAssignments(studentData, db) {
   return classAssignments;
 }
 
+// Find student in Firestore, falling back to Blobs with auto-migration
+async function findStudent(emailLower, db) {
+  // Try Firestore first
+  try {
+    const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
+    if (studentDoc.exists) {
+      return studentDoc.data();
+    }
+  } catch (err) {
+    console.warn('Firestore student lookup failed:', err.message);
+  }
+
+  // Fall back to Blobs (for students not yet migrated to Firestore)
+  try {
+    const studentsStore = getStore('students');
+    const studentData = await studentsStore.get(emailLower, { type: 'json' });
+    if (studentData) {
+      // Auto-migrate to Firestore for future lookups
+      try {
+        await firestoreTimeout(db.collection('students').doc(emailLower).set(studentData));
+        console.log('Migrated student from Blobs to Firestore:', emailLower);
+      } catch (migrateErr) {
+        console.warn('Failed to migrate student to Firestore:', emailLower, migrateErr.message);
+      }
+      return studentData;
+    }
+  } catch (blobErr) {
+    console.warn('Blobs student lookup failed:', blobErr.message);
+  }
+
+  return null;
+}
+
 // Build student response with assignments
 async function buildStudentResponse(studentData, db) {
   const classAssignments = await getClassAssignments(studentData, db);
@@ -95,6 +129,9 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ success: false, error: 'Method not allowed' })
     };
   }
+
+  // Initialize Blobs context for fallback lookups
+  try { connectLambda(event); } catch (e) { /* Blobs not available */ }
 
   try {
     const body = JSON.parse(event.body || '{}');
@@ -130,8 +167,8 @@ exports.handler = async (event, context) => {
       // Token is valid - look up student and create session
       const emailLower = decodedToken.email.trim().toLowerCase();
 
-      const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
-      if (!studentDoc.exists) {
+      const studentData = await findStudent(emailLower, db);
+      if (!studentData) {
         return {
           statusCode: 401,
           headers,
@@ -141,8 +178,6 @@ exports.handler = async (event, context) => {
           })
         };
       }
-
-      const studentData = studentDoc.data();
 
       // Create session in Firestore
       const token = generateSessionToken();
@@ -185,8 +220,8 @@ exports.handler = async (event, context) => {
           const decodedToken = await auth.verifyIdToken(sessionToken);
           const emailLower = decodedToken.email.trim().toLowerCase();
 
-          const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
-          if (!studentDoc.exists) {
+          const verifyStudentData = await findStudent(emailLower, db);
+          if (!verifyStudentData) {
             return {
               statusCode: 401,
               headers,
@@ -194,7 +229,7 @@ exports.handler = async (event, context) => {
             };
           }
 
-          const student = await buildStudentResponse(studentDoc.data(), db);
+          const student = await buildStudentResponse(verifyStudentData, db);
 
           return {
             statusCode: 200,
@@ -234,8 +269,8 @@ exports.handler = async (event, context) => {
       }
 
       // Get student data
-      const studentDoc = await firestoreTimeout(db.collection('students').doc(session.email).get());
-      if (!studentDoc.exists) {
+      const sessionStudentData = await findStudent(session.email, db);
+      if (!sessionStudentData) {
         return {
           statusCode: 401,
           headers,
@@ -243,7 +278,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const student = await buildStudentResponse(studentDoc.data(), db);
+      const student = await buildStudentResponse(sessionStudentData, db);
 
       return {
         statusCode: 200,
@@ -264,8 +299,8 @@ exports.handler = async (event, context) => {
 
       const emailLower = email.trim().toLowerCase();
 
-      const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
-      if (!studentDoc.exists) {
+      const studentData = await findStudent(emailLower, db);
+      if (!studentData) {
         return {
           statusCode: 401,
           headers,
@@ -275,8 +310,6 @@ exports.handler = async (event, context) => {
           })
         };
       }
-
-      const studentData = studentDoc.data();
 
       // Verify password
       const passwordValid = await verifyPassword(password, studentData.passwordHash);
@@ -373,8 +406,8 @@ exports.handler = async (event, context) => {
       }
 
       // Get student and verify current password
-      const studentDoc = await firestoreTimeout(db.collection('students').doc(session.email).get());
-      if (!studentDoc.exists) {
+      const pwStudentData = await findStudent(session.email, db);
+      if (!pwStudentData) {
         return {
           statusCode: 404,
           headers,
@@ -382,8 +415,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const studentData = studentDoc.data();
-      const currentValid = await verifyPassword(currentPassword, studentData.passwordHash);
+      const currentValid = await verifyPassword(currentPassword, pwStudentData.passwordHash);
       if (!currentValid) {
         return {
           statusCode: 401,
