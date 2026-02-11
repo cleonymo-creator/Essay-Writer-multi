@@ -4,7 +4,7 @@
 
 const nodeCrypto = require('crypto');
 const { getStore } = require("@netlify/blobs");
-const { getAuth, initializeFirebase } = require('./firebase-helper');
+const { getAuth, initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 // Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
 function hashPassword(password) {
@@ -122,30 +122,35 @@ async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachers
 
   try {
     // Try Firestore first (primary storage for teacher-auth.js)
+    // Use timeout to prevent hanging when Firestore is unreachable
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-      if (sessionDoc.exists) {
-        const session = sessionDoc.data();
-        const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
-        if (expiresAt < new Date()) {
-          return { valid: false, error: 'Session expired' };
-        }
+      try {
+        const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+        if (sessionDoc.exists) {
+          const session = sessionDoc.data();
+          const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+          if (expiresAt < new Date()) {
+            return { valid: false, error: 'Session expired' };
+          }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
-        if (!teacherDoc.exists) {
-          return { valid: false, error: 'Teacher not found' };
-        }
+          const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
+          if (!teacherDoc.exists) {
+            return { valid: false, error: 'Teacher not found' };
+          }
 
-        const teacher = teacherDoc.data();
-        return {
-          valid: true,
-          email: session.email,
-          name: teacher.name,
-          role: teacher.role || 'teacher',
-          isAdmin: teacher.role === 'admin',
-          teacher
-        };
+          const teacher = teacherDoc.data();
+          return {
+            valid: true,
+            email: session.email,
+            name: teacher.name,
+            role: teacher.role || 'teacher',
+            isAdmin: teacher.role === 'admin',
+            teacher
+          };
+        }
+      } catch (firestoreErr) {
+        console.warn('Firestore session check failed, falling back to Blobs:', firestoreErr.message);
       }
     }
 
@@ -215,10 +220,10 @@ exports.handler = async (event, context) => {
     try {
       const db = initializeFirebase();
       if (db) {
-        const snapshot = await db.collection('teachers').limit(1).get();
+        const snapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
         if (!snapshot.empty) teachersExist = true;
       }
-    } catch (e) { /* Firestore unavailable */ }
+    } catch (e) { /* Firestore unavailable or timed out */ }
     if (!teachersExist) {
       try {
         const { blobs } = await teachersStore.list();
@@ -283,7 +288,7 @@ exports.handler = async (event, context) => {
           try {
             const db = initializeFirebase();
             if (db) {
-              const doc = await db.collection('students').doc(email.toLowerCase()).get();
+              const doc = await firestoreTimeout(db.collection('students').doc(email.toLowerCase()).get());
               if (doc.exists) {
                 student = { ...doc.data(), email: email.toLowerCase() };
               }
@@ -341,7 +346,7 @@ exports.handler = async (event, context) => {
       try {
         const db = initializeFirebase();
         if (db) {
-          const snapshot = await db.collection('students').get();
+          const snapshot = await firestoreTimeout(db.collection('students').get());
           snapshot.forEach(doc => {
             const student = doc.data();
             const emailKey = (student.email || doc.id).toLowerCase();
@@ -416,7 +421,7 @@ exports.handler = async (event, context) => {
         try {
           const db = initializeFirebase();
           if (db) {
-            const doc = await db.collection('students').doc(emailLower).get();
+            const doc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
             if (doc.exists) existsInFirestore = true;
           }
         } catch (e) { /* ignore */ }
@@ -488,7 +493,7 @@ exports.handler = async (event, context) => {
         try {
           const db = initializeFirebase();
           if (db) {
-            await db.collection('students').doc(emailLower).set(studentData);
+            await firestoreTimeout(db.collection('students').doc(emailLower).set(studentData));
           }
         } catch (firestoreErr) {
           console.error('Failed to sync student to Firestore for', emailLower, firestoreErr.message);
@@ -717,13 +722,13 @@ exports.handler = async (event, context) => {
         try {
           const db = initializeFirebase();
           if (db) {
-            const studentDoc = await db.collection('students').doc(emailLower).get();
+            const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
             if (studentDoc.exists) {
-              await db.collection('students').doc(emailLower).update({
+              await firestoreTimeout(db.collection('students').doc(emailLower).update({
                 passwordHash,
                 passwordResetAt: new Date().toISOString(),
                 passwordResetBy: sessionCheck.valid ? sessionCheck.email : 'system'
-              });
+              }));
             }
           }
         } catch (firestoreErr) {

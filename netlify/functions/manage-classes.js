@@ -3,7 +3,7 @@
 // Now with teacher authentication and ownership filtering
 
 const { getStore } = require("@netlify/blobs");
-const { initializeFirebase } = require('./firebase-helper');
+const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 // Generate a simple class ID from name
 function generateClassId(name) {
@@ -21,30 +21,35 @@ async function verifyTeacherSession(sessionToken, teacherSessionsStore, teachers
 
   try {
     // Try Firestore first (primary storage for teacher-auth.js)
+    // Use timeout to prevent hanging when Firestore is unreachable
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-      if (sessionDoc.exists) {
-        const session = sessionDoc.data();
-        const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
-        if (expiresAt < new Date()) {
-          return { valid: false, error: 'Session expired' };
-        }
+      try {
+        const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+        if (sessionDoc.exists) {
+          const session = sessionDoc.data();
+          const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+          if (expiresAt < new Date()) {
+            return { valid: false, error: 'Session expired' };
+          }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
-        if (!teacherDoc.exists) {
-          return { valid: false, error: 'Teacher not found' };
-        }
+          const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
+          if (!teacherDoc.exists) {
+            return { valid: false, error: 'Teacher not found' };
+          }
 
-        const teacher = teacherDoc.data();
-        return {
-          valid: true,
-          email: session.email,
-          name: teacher.name,
-          role: teacher.role || 'teacher',
-          isAdmin: teacher.role === 'admin',
-          teacher
-        };
+          const teacher = teacherDoc.data();
+          return {
+            valid: true,
+            email: session.email,
+            name: teacher.name,
+            role: teacher.role || 'teacher',
+            isAdmin: teacher.role === 'admin',
+            teacher
+          };
+        }
+      } catch (firestoreErr) {
+        console.warn('Firestore session check failed, falling back to Blobs:', firestoreErr.message);
       }
     }
 
@@ -116,10 +121,10 @@ exports.handler = async (event, context) => {
     try {
       const db = initializeFirebase();
       if (db) {
-        const snapshot = await db.collection('teachers').limit(1).get();
+        const snapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
         if (!snapshot.empty) teachersExist = true;
       }
-    } catch (e) { /* Firestore unavailable */ }
+    } catch (e) { /* Firestore unavailable or timed out */ }
     if (!teachersExist) {
       try {
         const { blobs } = await teachersStore.list();

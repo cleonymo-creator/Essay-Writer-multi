@@ -2,7 +2,7 @@
 // Retrieves student submissions with teacher authentication
 // Teachers only see submissions from their own students
 
-const { initializeFirebase } = require('./firebase-helper');
+const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 const { getStore } = require("@netlify/blobs");
 
 // Helper to verify teacher session (Firestore first, Blobs fallback)
@@ -13,30 +13,35 @@ async function verifyTeacherSession(sessionToken) {
 
   try {
     // Try Firestore first (primary storage for teacher-auth.js)
+    // Use timeout to prevent hanging when Firestore is unreachable
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-      if (sessionDoc.exists) {
-        const session = sessionDoc.data();
-        const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
-        if (expiresAt < new Date()) {
-          return { valid: false, error: 'Session expired' };
-        }
+      try {
+        const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+        if (sessionDoc.exists) {
+          const session = sessionDoc.data();
+          const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+          if (expiresAt < new Date()) {
+            return { valid: false, error: 'Session expired' };
+          }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
-        if (!teacherDoc.exists) {
-          return { valid: false, error: 'Teacher not found' };
-        }
+          const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
+          if (!teacherDoc.exists) {
+            return { valid: false, error: 'Teacher not found' };
+          }
 
-        const teacher = teacherDoc.data();
-        return {
-          valid: true,
-          email: session.email,
-          name: teacher.name,
-          role: teacher.role || 'teacher',
-          isAdmin: teacher.role === 'admin',
-          teacher
-        };
+          const teacher = teacherDoc.data();
+          return {
+            valid: true,
+            email: session.email,
+            name: teacher.name,
+            role: teacher.role || 'teacher',
+            isAdmin: teacher.role === 'admin',
+            teacher
+          };
+        }
+      } catch (firestoreErr) {
+        console.warn('Firestore session check failed, falling back to Blobs:', firestoreErr.message);
       }
     }
 
@@ -78,7 +83,7 @@ async function teachersExist() {
   try {
     const db = initializeFirebase();
     if (db) {
-      const snapshot = await db.collection('teachers').limit(1).get();
+      const snapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
       if (!snapshot.empty) return true;
     }
   } catch (e) {
@@ -100,9 +105,9 @@ async function getTeacherStudentEmails(teacherEmail) {
   try {
     const db = initializeFirebase();
     if (db) {
-      const snapshot = await db.collection('students')
+      const snapshot = await firestoreTimeout(db.collection('students')
         .where('teacherEmail', '==', teacherEmail)
-        .get();
+        .get());
       if (!snapshot.empty) {
         snapshot.forEach(doc => {
           const student = doc.data();
@@ -226,16 +231,34 @@ exports.handler = async (event, context) => {
     }
 
     const db = initializeFirebase();
-    
+
     // Get all submissions, ordered by newest first
-    const snapshot = await db.collection('submissions')
-      .orderBy('serverTimestamp', 'desc')
-      .get();
-    
     let submissions = [];
-    snapshot.forEach(doc => {
-      submissions.push(doc.data());
-    });
+    try {
+      const snapshot = await firestoreTimeout(
+        db.collection('submissions').orderBy('serverTimestamp', 'desc').get(),
+        6000  // slightly longer timeout for potentially large result set
+      );
+      snapshot.forEach(doc => {
+        submissions.push(doc.data());
+      });
+    } catch (firestoreErr) {
+      console.warn('Firestore submissions query failed:', firestoreErr.message);
+      // Try Blobs fallback for submissions
+      try {
+        const submissionsStore = getStore("submissions");
+        const { blobs } = await submissionsStore.list();
+        for (const blob of blobs) {
+          try {
+            const sub = await submissionsStore.get(blob.key, { type: 'json' });
+            if (sub) submissions.push(sub);
+          } catch (e) { /* skip bad entries */ }
+        }
+        submissions.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+      } catch (blobErr) {
+        console.warn('Blobs submissions fallback also failed:', blobErr.message);
+      }
+    }
 
     // Filter by teacher's students if not admin
     if (teacherStudentEmails !== null) {
