@@ -121,33 +121,37 @@ async function getStudentFromFirestore(emailLower) {
   return null;
 }
 
-// Get class assignments for a student
+// Get class assignments for a student (supports both classIds array and legacy classId)
 async function getClassAssignments(studentData, classesStore) {
   let classAssignments = [];
-  if (studentData.classId) {
+  const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+
+  for (const classId of classIds) {
+    let found = false;
     // Try Blobs first
     if (classesStore) {
       try {
-        const classData = await classesStore.get(studentData.classId, { type: 'json' });
+        const classData = await classesStore.get(classId, { type: 'json' });
         if (classData) {
-          classAssignments = classData.assignedEssays || [];
+          classAssignments.push(...(classData.assignedEssays || []));
+          found = true;
         }
       } catch (err) {
-        console.warn('Blobs class lookup failed:', err.message);
+        console.warn('Blobs class lookup failed for', classId, ':', err.message);
       }
     }
     // Fallback to Firestore if Blobs didn't return data
-    if (classAssignments.length === 0) {
+    if (!found) {
       try {
         const db = initializeFirebase();
         if (db) {
-          const classDoc = await db.collection('classes').doc(studentData.classId).get();
+          const classDoc = await db.collection('classes').doc(classId).get();
           if (classDoc.exists) {
-            classAssignments = classDoc.data().assignedEssays || [];
+            classAssignments.push(...(classDoc.data().assignedEssays || []));
           }
         }
       } catch (err) {
-        console.warn('Firestore class lookup failed:', err.message);
+        console.warn('Firestore class lookup failed for', classId, ':', err.message);
       }
     }
   }
@@ -398,14 +402,8 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Get class assignments
-      let classAssignments = [];
-      if (studentData.classId) {
-        const classData = await classesStore.get(studentData.classId, { type: 'json' });
-        if (classData) {
-          classAssignments = classData.assignedEssays || [];
-        }
-      }
+      // Get class assignments (supports multiple classes)
+      const classAssignments = await getClassAssignments(studentData, classesStore);
 
       const allAssignments = [
         ...new Set([
@@ -498,14 +496,8 @@ exports.handler = async (event, context) => {
         lastLogin: new Date().toISOString()
       });
 
-      // Get class info for assignments
-      let classAssignments = [];
-      if (studentData.classId) {
-        const classData = await classesStore.get(studentData.classId, { type: 'json' });
-        if (classData) {
-          classAssignments = classData.assignedEssays || [];
-        }
-      }
+      // Get class info for assignments (supports multiple classes)
+      const classAssignments = await getClassAssignments(studentData, classesStore);
 
       // Combine class and individual assignments
       const allAssignments = [
