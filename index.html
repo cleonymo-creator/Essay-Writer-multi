@@ -6278,10 +6278,16 @@
         try {
           let result = null;
 
-          // Try Firebase Auth first
+          // Try Firebase Auth first (with timeout so we fall back quickly)
           if (firebaseAuth) {
             try {
-              const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailLower, password);
+              const firebaseTimeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), 8000)
+              );
+              const userCredential = await Promise.race([
+                firebaseAuth.signInWithEmailAndPassword(emailLower, password),
+                firebaseTimeout
+              ]);
               const idToken = await userCredential.user.getIdToken();
 
               // Exchange Firebase ID token for custom session
@@ -12497,10 +12503,16 @@ ${examinerComment}
       
       // Login - tries Firebase Auth first, falls back to custom
       async login(email, password) {
-        // Try Firebase Auth first
+        // Try Firebase Auth first (with timeout so we fall back quickly)
         if (firebaseAuth) {
           try {
-            const userCredential = await firebaseAuth.signInWithEmailAndPassword(email.trim().toLowerCase(), password);
+            const firebaseTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), 8000)
+            );
+            const userCredential = await Promise.race([
+              firebaseAuth.signInWithEmailAndPassword(email.trim().toLowerCase(), password),
+              firebaseTimeout
+            ]);
             const idToken = await userCredential.user.getIdToken();
 
             const response = await fetch('/.netlify/functions/teacher-auth', {
