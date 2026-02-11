@@ -7725,17 +7725,16 @@
 
         try {
           let result;
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            result = await FirebaseDB.resetStudentPassword(email);
-          } else {
-            const response = await fetch('/.netlify/functions/manage-students', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'resetPassword', email })
-            });
-            result = await response.json();
-          }
+          const sessionToken = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/manage-students', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'resetPassword', email })
+          });
+          result = await response.json();
 
           if (result.success) {
             alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
