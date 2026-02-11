@@ -5140,7 +5140,7 @@
       },
       
       // Subscribe to real-time submissions updates
-      subscribeToSubmissions(callback) {
+      subscribeToSubmissions(callback, errorCallback) {
         if (!db) return () => {};
         return db.collection('submissions')
           .orderBy('submittedAt', 'desc')
@@ -5154,6 +5154,7 @@
             callback(submissions);
           }, error => {
             console.error('Submissions subscription error:', error);
+            if (errorCallback) errorCallback(error);
           });
       },
       
@@ -11523,18 +11524,37 @@ ${examinerComment}
         let unsubscribeSubmissions = null;
         let unsubscribeProgress = null;
         let interval = null;
-        
+        let loadingTimeout = null;
+
         const setup = async () => {
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             // Real-time Firebase listeners
             setLoading(true);
-            
+
+            // Safety timeout - if Firebase never responds, stop loading after 10s
+            loadingTimeout = setTimeout(() => {
+              setLoading(prevLoading => {
+                if (prevLoading) {
+                  console.warn('Firebase subscription timeout - falling back to Netlify');
+                  setError('Firebase connection timed out. Try refreshing.');
+                }
+                return false;
+              });
+            }, 10000);
+
             unsubscribeSubmissions = FirebaseDB.subscribeToSubmissions((data) => {
+              if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
               setSubmissions(data);
               setLoading(false);
+            }, (err) => {
+              if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
+              console.error('Firebase subscription failed, falling back to Netlify:', err);
+              setLoading(false);
+              fetchFromNetlify();
+              interval = setInterval(fetchFromNetlify, 15000);
             });
-            
+
             unsubscribeProgress = FirebaseDB.subscribeToProgress((data) => {
               setInProgress(data);
             });
@@ -11544,13 +11564,14 @@ ${examinerComment}
             interval = setInterval(fetchFromNetlify, 15000);
           }
         };
-        
+
         setup();
-        
+
         return () => {
           if (unsubscribeSubmissions) unsubscribeSubmissions();
           if (unsubscribeProgress) unsubscribeProgress();
           if (interval) clearInterval(interval);
+          if (loadingTimeout) clearTimeout(loadingTimeout);
         };
       }, [fetchFromNetlify]);
       
