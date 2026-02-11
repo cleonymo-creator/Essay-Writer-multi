@@ -2,48 +2,29 @@
 // Handles CRUD operations for students and CSV import
 // Now with teacher authentication and ownership filtering
 
+const nodeCrypto = require('crypto');
 const { getStore } = require("@netlify/blobs");
 const { getAuth, initializeFirebase } = require('./firebase-helper');
 
-// Improved password hashing with PBKDF2
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return saltHex + ':' + hashHex;
+// Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = nodeCrypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(saltHex + ':' + derivedKey.toString('hex'));
+    });
+  });
 }
 
 // Generate a random password (easy to read/type)
 function generatePassword(length = 8) {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   let password = '';
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
+  const bytes = nodeCrypto.randomBytes(length);
   for (let i = 0; i < length; i++) {
-    password += chars[array[i] % chars.length];
+    password += chars[bytes[i] % chars.length];
   }
   return password;
 }
