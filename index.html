@@ -4793,7 +4793,7 @@
   <div id="root"></div>
   
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
     // Helper: allow writing inline styles as CSS strings in JSX.
     // Converts "margin-top: 8px; background: var(--color-bg);" -> { marginTop: "8px", background: "var(--color-bg)" }
@@ -11386,11 +11386,19 @@ ${examinerComment}
       const [selectedSubmission, setSelectedSubmission] = useState(null);
       const [error, setError] = useState(null);
       const [filterEssayId, setFilterEssayId] = useState('all');
+      const [filterSubject, setFilterSubject] = useState('all');
+      const [filterYearGroup, setFilterYearGroup] = useState('all');
+      const [filterClass, setFilterClass] = useState('all');
       const [studentSearch, setStudentSearch] = useState('');
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
       const [sidebarOpen, setSidebarOpen] = useState(false);
       const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
+      const [classes, setClasses] = useState([]);
+      const [students, setStudents] = useState([]);
+      const [showPreviewEssays, setShowPreviewEssays] = useState(false);
+      const [showInProgress, setShowInProgress] = useState(true);
+      const [showCompleted, setShowCompleted] = useState(true);
 
       // Teacher auth state
       const [teacherData, setTeacherData] = useState(TeacherAuth.getTeacher());
@@ -11469,6 +11477,55 @@ ${examinerComment}
         };
       }, [fetchFromNetlify]);
       
+      // Load classes and students for filtering
+      useEffect(() => {
+        const loadFilterData = async () => {
+          try {
+            const firebaseReady = await FirebaseDB.isReady();
+            if (firebaseReady) {
+              const [classList, studentList] = await Promise.all([
+                FirebaseDB.getClasses(),
+                FirebaseDB.getStudents()
+              ]);
+              if (classList) setClasses(classList);
+              if (studentList) setStudents(studentList);
+            } else {
+              const sessionToken = TeacherAuth.getSessionToken();
+              const authParam = sessionToken
+                ? encodeURIComponent(sessionToken)
+                : encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+              const [classesRes, studentsRes] = await Promise.all([
+                fetch(`/.netlify/functions/manage-classes?auth=${authParam}`),
+                fetch(`/.netlify/functions/manage-students?auth=${authParam}`)
+              ]);
+              const classesData = await classesRes.json();
+              const studentsData = await studentsRes.json();
+              if (classesData.success) setClasses(classesData.classes || []);
+              if (studentsData.success) setStudents(studentsData.students || []);
+            }
+          } catch (err) {
+            console.error('Failed to load filter data:', err);
+          }
+        };
+        loadFilterData();
+      }, []);
+
+      // Build a lookup: studentEmail -> array of classIds
+      const studentClassMap = useMemo(() => {
+        const map = {};
+        students.forEach(s => {
+          map[(s.email || '').toLowerCase()] = s.classIds || (s.classId ? [s.classId] : []);
+        });
+        return map;
+      }, [students]);
+
+      // Build a lookup: classId -> class object
+      const classMap = useMemo(() => {
+        const map = {};
+        classes.forEach(c => { map[c.id] = c; });
+        return map;
+      }, [classes]);
+
       // Manual refresh function
       const handleRefresh = async () => {
         const firebaseReady = await FirebaseDB.isReady();
@@ -11491,7 +11548,7 @@ ${examinerComment}
         }
       };
       
-      // Filter submissions and progress by selected essay and student search
+      // Filter submissions and progress by selected filters
       const matchesStudentSearch = (item) => {
         if (!studentSearch.trim()) return true;
         const search = studentSearch.toLowerCase();
@@ -11499,19 +11556,75 @@ ${examinerComment}
                (item.studentEmail || '').toLowerCase().includes(search);
       };
 
+      const matchesSubjectFilter = (item) => {
+        if (filterSubject === 'all') return true;
+        const essayInfo = getEssayList().find(e => e.id === item.essayId);
+        return essayInfo && essayInfo.subject === filterSubject;
+      };
+
+      const matchesYearGroupFilter = (item) => {
+        if (filterYearGroup === 'all') return true;
+        const essayInfo = getEssayList().find(e => e.id === item.essayId);
+        return essayInfo && essayInfo.yearGroup === filterYearGroup;
+      };
+
+      const matchesClassFilter = (item) => {
+        if (filterClass === 'all') return true;
+        const email = (item.studentEmail || '').toLowerCase();
+        const studentClasses = studentClassMap[email] || [];
+        return studentClasses.includes(filterClass);
+      };
+
       const filteredSubmissions = submissions
         .filter(s => filterEssayId === 'all' || s.essayId === filterEssayId)
+        .filter(matchesSubjectFilter)
+        .filter(matchesYearGroupFilter)
+        .filter(matchesClassFilter)
         .filter(matchesStudentSearch);
 
       const filteredInProgress = inProgress
         .filter(p => filterEssayId === 'all' || p.essayId === filterEssayId)
+        .filter(matchesSubjectFilter)
+        .filter(matchesYearGroupFilter)
+        .filter(matchesClassFilter)
         .filter(matchesStudentSearch);
-      
+
+      // Get unique subjects and year groups from all essays
+      const allEssays = getEssayList();
+      const availableSubjects = [...new Set(allEssays.map(e => e.subject).filter(Boolean))].sort();
+      const availableYearGroups = [...new Set(allEssays.map(e => e.yearGroup).filter(Boolean))].sort();
+
+      // Get essays filtered by current subject/yearGroup selection (for cascading dropdown)
+      const filteredEssayOptions = allEssays.filter(e => {
+        if (filterSubject !== 'all' && e.subject !== filterSubject) return false;
+        if (filterYearGroup !== 'all' && e.yearGroup !== filterYearGroup) return false;
+        return true;
+      });
+
       // Get unique essay IDs from submissions for filter
       const availableEssays = [...new Set([
         ...submissions.map(s => s.essayId).filter(Boolean),
         ...inProgress.map(p => p.essayId).filter(Boolean)
       ])];
+
+      // Reset essay filter if it no longer matches subject/yearGroup selection
+      useEffect(() => {
+        if (filterEssayId !== 'all') {
+          const stillValid = filteredEssayOptions.some(e => e.id === filterEssayId);
+          if (!stillValid) setFilterEssayId('all');
+        }
+      }, [filterSubject, filterYearGroup]);
+
+      // Helper to check if any filters are active
+      const hasActiveFilters = studentSearch || filterEssayId !== 'all' || filterSubject !== 'all' || filterYearGroup !== 'all' || filterClass !== 'all';
+
+      const clearAllFilters = () => {
+        setStudentSearch('');
+        setFilterEssayId('all');
+        setFilterSubject('all');
+        setFilterYearGroup('all');
+        setFilterClass('all');
+      };
       
       if (loading) {
         return (
@@ -11658,8 +11771,72 @@ ${examinerComment}
           <>
           {/* Filters Card */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filters</h4>
+            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filter Submissions</h4>
             <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap; align-items: flex-end;")}>
+              {/* Subject Filter */}
+              {availableSubjects.length > 1 && (
+                <div style={parseStyle("min-width: 180px;")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Subject</label>
+                  <select
+                    value={filterSubject}
+                    onChange={e => { setFilterSubject(e.target.value); }}
+                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                  >
+                    <option value="all">All Subjects</option>
+                    {availableSubjects.map(subj => (
+                      <option key={subj} value={subj}>{subj}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Year Group Filter */}
+              {availableYearGroups.length > 1 && (
+                <div style={parseStyle("min-width: 160px;")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Year Group</label>
+                  <select
+                    value={filterYearGroup}
+                    onChange={e => { setFilterYearGroup(e.target.value); }}
+                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                  >
+                    <option value="all">All Year Groups</option>
+                    {availableYearGroups.map(yg => (
+                      <option key={yg} value={yg}>{yg}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Class Filter */}
+              {classes.length > 0 && (
+                <div style={parseStyle("min-width: 180px;")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Class</label>
+                  <select
+                    value={filterClass}
+                    onChange={e => setFilterClass(e.target.value)}
+                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                  >
+                    <option value="all">All Classes</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Essay Filter */}
+              {filteredEssayOptions.length > 1 && (
+                <div style={parseStyle("min-width: 200px;")}>
+                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Essay</label>
+                  <select
+                    value={filterEssayId}
+                    onChange={e => setFilterEssayId(e.target.value)}
+                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
+                  >
+                    <option value="all">All Essays ({filteredEssayOptions.length})</option>
+                    {filteredEssayOptions.map(essay => (
+                      <option key={essay.id} value={essay.id}>{essay.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {/* Student Search */}
               <div style={parseStyle("flex: 1; min-width: 200px;")}>
                 <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Search Student</label>
@@ -11672,61 +11849,104 @@ ${examinerComment}
                   style={parseStyle("min-height: auto; padding: var(--space-sm);")}
                 />
               </div>
-              {/* Essay Filter */}
-              {getEssayList().length > 1 && (
-                <div style={parseStyle("min-width: 200px;")}>
-                  <label style={parseStyle("display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Essay</label>
-                  <select
-                    value={filterEssayId}
-                    onChange={e => setFilterEssayId(e.target.value)}
-                    style={parseStyle("width: 100%; padding: var(--space-sm); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);")}
-                  >
-                    <option value="all">All Essays</option>
-                    {getEssayList().map(essay => (
-                      <option key={essay.id} value={essay.id}>{essay.title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
               {/* Clear Filters */}
-              {(studentSearch || filterEssayId !== 'all') && (
+              {hasActiveFilters && (
                 <button
                   className="btn btn-secondary"
-                  onClick={() => { setStudentSearch(''); setFilterEssayId('all'); }}
+                  onClick={clearAllFilters}
                   style={parseStyle("padding: var(--space-sm) var(--space-md);")}
                 >
                   Clear Filters
                 </button>
               )}
             </div>
+            {/* Active filter summary */}
+            {hasActiveFilters && (
+              <div style={parseStyle("margin-top: var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted);")}>
+                Showing {filteredInProgress.length} in progress, {filteredSubmissions.length} completed
+                {filterSubject !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterSubject}</span>}
+                {filterYearGroup !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterYearGroup}</span>}
+                {filterClass !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{classMap[filterClass]?.name || filterClass}</span>}
+                {filterEssayId !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{getEssayList().find(e => e.id === filterEssayId)?.title || filterEssayId}</span>}
+              </div>
+            )}
           </div>
           
-          {/* Preview Essays */}
+          {/* Preview Essays - Collapsible, grouped by Subject then Year Group */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Preview Essays</h4>
-            <div style={parseStyle("display: flex; gap: var(--space-md); flex-wrap: wrap;")}>
-              {getEssayList().map(essay => (
-                <button 
-                  key={essay.id}
-                  className="btn btn-primary"
-                  onClick={() => onPreview(essay.id)}
-                >
-                  {essay.icon} {essay.title}
-                </button>
-              ))}
-            </div>
+            <h4
+              style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
+              onClick={() => setShowPreviewEssays(!showPreviewEssays)}
+            >
+              <span>Preview Essays ({allEssays.length})</span>
+              <span style={parseStyle(`transform: rotate(${showPreviewEssays ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
+            </h4>
+            {showPreviewEssays && (
+              <div style={parseStyle("margin-top: var(--space-md);")}>
+                {(() => {
+                  // Group essays by subject, then by yearGroup
+                  const grouped = {};
+                  allEssays.forEach(essay => {
+                    const subj = essay.subject || 'Uncategorized';
+                    const yg = essay.yearGroup || 'General';
+                    if (!grouped[subj]) grouped[subj] = {};
+                    if (!grouped[subj][yg]) grouped[subj][yg] = [];
+                    grouped[subj][yg].push(essay);
+                  });
+                  const subjects = Object.keys(grouped).sort();
+                  // If there's only one subject and one year group, show flat
+                  const totalGroups = subjects.reduce((sum, s) => sum + Object.keys(grouped[s]).length, 0);
+                  if (totalGroups <= 1) {
+                    return (
+                      <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+                        {allEssays.map(essay => (
+                          <button key={essay.id} className="btn btn-primary" style={parseStyle("font-size: 0.85rem;")} onClick={() => onPreview(essay.id)}>
+                            {essay.icon} {essay.title}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return subjects.map(subj => (
+                    <div key={subj} style={parseStyle("margin-bottom: var(--space-md);")}>
+                      <div style={parseStyle("font-weight: 600; font-size: 0.9rem; color: var(--color-primary-light); margin-bottom: var(--space-sm); padding-bottom: var(--space-xs); border-bottom: 1px solid var(--color-border-light);")}>
+                        {subj}
+                      </div>
+                      {Object.keys(grouped[subj]).sort().map(yg => (
+                        <div key={yg} style={parseStyle("margin-bottom: var(--space-sm); margin-left: var(--space-md);")}>
+                          <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>{yg}</div>
+                          <div style={parseStyle("display: flex; gap: var(--space-sm); flex-wrap: wrap;")}>
+                            {grouped[subj][yg].map(essay => (
+                              <button key={essay.id} className="btn btn-primary" style={parseStyle("font-size: 0.85rem; padding: var(--space-xs) var(--space-md);")} onClick={() => onPreview(essay.id)}>
+                                {essay.icon} {essay.title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
           </div>
           
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}> In Progress ({filteredInProgress.length})</h3>
-            
-            {filteredInProgress.length === 0 ? (
-              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg);")}>
+            <h3
+              style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
+              onClick={() => setShowInProgress(!showInProgress)}
+            >
+              <span>In Progress ({filteredInProgress.length})</span>
+              <span style={parseStyle(`transform: rotate(${showInProgress ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
+            </h3>
+
+            {!showInProgress ? null : filteredInProgress.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-lg); margin-top: var(--space-md);")}>
                 No students currently working on essays.
               </p>
             ) : (
-              <div style={parseStyle("overflow-x: auto;")}>
+              <div style={parseStyle("overflow-x: auto; margin-top: var(--space-md);")}>
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
@@ -11863,14 +12083,20 @@ ${examinerComment}
           
           {/* Completed Submissions */}
           <div className="card">
-            <h3 style={parseStyle("margin-bottom: var(--space-lg);")}> Completed Essays ({filteredSubmissions.length})</h3>
-            
-            {filteredSubmissions.length === 0 ? (
-              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl);")}>
+            <h3
+              style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              <span>Completed Essays ({filteredSubmissions.length})</span>
+              <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
+            </h3>
+
+            {!showCompleted ? null : filteredSubmissions.length === 0 ? (
+              <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl); margin-top: var(--space-md);")}>
                 No essays submitted yet.
               </p>
             ) : (
-              <div style={parseStyle("overflow-x: auto;")}>
+              <div style={parseStyle("overflow-x: auto; margin-top: var(--space-md);")}>
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
