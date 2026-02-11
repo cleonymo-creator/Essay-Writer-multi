@@ -160,47 +160,54 @@ exports.handler = async (event, context) => {
     
     // Check if new teacher auth system is in use
     const hasTeachers = await teachersExist();
-    
+
     let sessionCheck = { valid: false, isAdmin: false };
     let teacherStudentEmails = null;
-    
+
     if (hasTeachers) {
       // Get session token from header or query param
       const authHeader = event.headers.authorization || event.headers.Authorization;
       let sessionToken = null;
-      
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         sessionToken = authHeader.substring(7);
       } else {
         sessionToken = params.sessionToken;
       }
-      
-      if (!sessionToken) {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ 
-            success: false, 
-            error: 'Authentication required',
-            requiresAuth: true
-          })
-        };
+
+      if (sessionToken) {
+        sessionCheck = await verifyTeacherSession(sessionToken);
       }
-      
-      sessionCheck = await verifyTeacherSession(sessionToken);
-      
+
+      // If session auth failed or no token, try legacy password fallback
       if (!sessionCheck.valid) {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ 
-            success: false, 
-            error: sessionCheck.error,
-            requiresAuth: true
-          })
-        };
+        const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
+        if (params.auth === expectedPassword || params.auth === 'teacher123') {
+          // Legacy password accepted - treat as admin
+          sessionCheck = { valid: true, isAdmin: true };
+        } else if (!sessionToken) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Authentication required',
+              requiresAuth: true
+            })
+          };
+        } else {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: sessionCheck.error || 'Invalid session',
+              requiresAuth: true
+            })
+          };
+        }
       }
-      
+
       // If not admin, get list of student emails for filtering
       if (!sessionCheck.isAdmin) {
         teacherStudentEmails = await getTeacherStudentEmails(sessionCheck.email);
@@ -208,7 +215,7 @@ exports.handler = async (event, context) => {
     } else {
       // Legacy authentication - use old password system
       const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
-      
+
       if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
         return {
           statusCode: 401,
