@@ -3,7 +3,7 @@
 // First teacher to register becomes admin
 
 const nodeCrypto = require('crypto');
-const { initializeFirebase, getAuth } = require('./firebase-helper');
+const { initializeFirebase, getAuth, firestoreTimeout } = require('./firebase-helper');
 
 // Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
 function hashPassword(password) {
@@ -115,21 +115,21 @@ async function verifyTeacherSession(sessionToken, db) {
   }
   
   try {
-    const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-    
+    const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+
     if (!sessionDoc.exists) {
       return { valid: false, error: 'Invalid session' };
     }
-    
+
     const session = sessionDoc.data();
-    
+
     if (new Date(session.expiresAt) < new Date()) {
-      await db.collection('teacherSessions').doc(sessionToken).delete();
+      await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).delete());
       return { valid: false, error: 'Session expired' };
     }
-    
+
     // Get teacher data
-    const teacherDoc = await db.collection('teachers').doc(session.email).get();
+    const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
     if (!teacherDoc.exists) {
       return { valid: false, error: 'Teacher not found' };
     }
@@ -196,7 +196,7 @@ exports.handler = async (event, context) => {
       }
       
       // List all teachers
-      const teachersSnapshot = await db.collection('teachers').get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').get());
       const teachers = [];
       
       teachersSnapshot.forEach(doc => {
@@ -237,7 +237,7 @@ exports.handler = async (event, context) => {
         const emailLower = decodedToken.email.trim().toLowerCase();
 
         // Look up teacher in Firestore
-        const teacherDoc = await db.collection('teachers').doc(emailLower).get();
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
 
         if (!teacherDoc.exists) {
           return {
@@ -253,17 +253,17 @@ exports.handler = async (event, context) => {
         const sessionToken = generateSessionToken();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-        await db.collection('teacherSessions').doc(sessionToken).set({
+        await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).set({
           email: emailLower,
           createdAt: new Date().toISOString(),
           expiresAt,
           authMethod: 'firebase'
-        });
+        }));
 
         // Update last login
-        await db.collection('teachers').doc(emailLower).update({
+        await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
           lastLogin: new Date().toISOString()
-        });
+        }));
 
         const { passwordHash, ...safeTeacher } = teacher;
 
@@ -291,7 +291,7 @@ exports.handler = async (event, context) => {
     // CHECK SETUP (public - checks if any teachers exist)
     // ========================================
     if (action === 'checkSetup') {
-      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
       const teachersExist = !teachersSnapshot.empty;
       
       return {
@@ -334,7 +334,7 @@ exports.handler = async (event, context) => {
         };
       }
       
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
 
       if (!teacherDoc.exists) {
         console.log('Login failed: no teacher document for', emailLower);
@@ -356,7 +356,7 @@ exports.handler = async (event, context) => {
         if (passwordValid) {
           // Password correct via Firebase Auth — update the local hash so it works next time
           const newHash = await hashPassword(password);
-          await db.collection('teachers').doc(emailLower).update({ passwordHash: newHash });
+          await firestoreTimeout(db.collection('teachers').doc(emailLower).update({ passwordHash: newHash }));
           console.log('Updated stale password hash for', emailLower);
         }
       }
@@ -372,21 +372,21 @@ exports.handler = async (event, context) => {
       }
 
       clearFailedAttempts(emailLower);
-      
+
       // Create session
       const sessionToken = generateSessionToken();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-      
-      await db.collection('teacherSessions').doc(sessionToken).set({
+
+      await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).set({
         email: emailLower,
         createdAt: new Date().toISOString(),
         expiresAt
-      });
-      
+      }));
+
       // Update last login
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         lastLogin: new Date().toISOString()
-      });
+      }));
       
       const { passwordHash, ...safeTeacher } = teacher;
       
@@ -427,7 +427,7 @@ exports.handler = async (event, context) => {
       const emailLower = email.trim().toLowerCase();
       
       // Check if any teachers exist
-      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
       const isFirstTeacher = teachersSnapshot.empty;
       
       // If teachers exist, require admin authentication
@@ -460,7 +460,7 @@ exports.handler = async (event, context) => {
       }
       
       // Check if email already exists
-      const existingDoc = await db.collection('teachers').doc(emailLower).get();
+      const existingDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
       if (existingDoc.exists) {
         return {
           statusCode: 400,
@@ -481,7 +481,7 @@ exports.handler = async (event, context) => {
         createdBy: isFirstTeacher ? 'self' : (sessionToken ? 'admin' : 'unknown')
       };
       
-      await db.collection('teachers').doc(emailLower).set(newTeacher);
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).set(newTeacher));
 
       // Also create Firebase Auth user (non-blocking)
       try {
@@ -557,9 +557,9 @@ exports.handler = async (event, context) => {
       
       if (sessionToken) {
         try {
-          await db.collection('teacherSessions').doc(sessionToken).delete();
+          await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).delete());
         } catch (e) {
-          // Ignore deletion errors
+          // Ignore deletion errors (including Firestore timeouts)
         }
       }
       
@@ -603,8 +603,8 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -616,11 +616,11 @@ exports.handler = async (event, context) => {
       const newPassword = generatePassword();
       const passwordHash = await hashPassword(newPassword);
 
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         passwordHash,
         passwordResetAt: new Date().toISOString(),
         passwordResetBy: sessionCheck.email
-      });
+      }));
 
       // Also update Firebase Auth password
       try {
@@ -687,10 +687,10 @@ exports.handler = async (event, context) => {
 
       const passwordHash = await hashPassword(newPassword);
 
-      await db.collection('teachers').doc(sessionCheck.email).update({
+      await firestoreTimeout(db.collection('teachers').doc(sessionCheck.email).update({
         passwordHash,
         passwordChangedAt: new Date().toISOString()
-      });
+      }));
 
       // Also update Firebase Auth password
       try {
@@ -751,8 +751,8 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -762,7 +762,7 @@ exports.handler = async (event, context) => {
       }
 
       // Delete the teacher
-      await db.collection('teachers').doc(emailLower).delete();
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).delete());
 
       // Also delete Firebase Auth user
       try {
@@ -774,7 +774,7 @@ exports.handler = async (event, context) => {
       }
 
       // Clear teacherEmail on their classes
-      const classesSnapshot = await db.collection('classes').where('teacherEmail', '==', emailLower).get();
+      const classesSnapshot = await firestoreTimeout(db.collection('classes').where('teacherEmail', '==', emailLower).get());
       const batch = db.batch();
       
       classesSnapshot.forEach(doc => {
@@ -845,8 +845,8 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -855,11 +855,11 @@ exports.handler = async (event, context) => {
         };
       }
 
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         role: newRole,
         roleUpdatedAt: new Date().toISOString(),
         roleUpdatedBy: sessionCheck.email
-      });
+      }));
 
       return {
         statusCode: 200,
@@ -873,9 +873,9 @@ exports.handler = async (event, context) => {
     // ========================================
     if (action === 'assignClasses') {
       const { sessionToken, teacherEmail, classIds } = body;
-      
+
       const sessionCheck = await verifyTeacherSession(sessionToken, db);
-      
+
       if (!sessionCheck.valid) {
         return {
           statusCode: 401,
@@ -883,7 +883,7 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: sessionCheck.error })
         };
       }
-      
+
       if (!sessionCheck.isAdmin) {
         return {
           statusCode: 403,
@@ -901,8 +901,8 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -916,17 +916,17 @@ exports.handler = async (event, context) => {
 
       for (const classId of classIds) {
         try {
-          const classDoc = await db.collection('classes').doc(classId).get();
+          const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
           if (!classDoc.exists) {
             results.notFound.push(classId);
             continue;
           }
 
-          await db.collection('classes').doc(classId).update({
+          await firestoreTimeout(db.collection('classes').doc(classId).update({
             teacher: teacher.name,
             teacherEmail: emailLower,
             updatedAt: new Date().toISOString()
-          });
+          }));
           results.assigned.push(classId);
         } catch (e) {
           results.errors.push({ classId, error: e.message });
