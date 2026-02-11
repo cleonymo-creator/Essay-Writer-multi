@@ -113,55 +113,59 @@ exports.handler = async (event, context) => {
         };
       }
 
+      // Verify the Firebase ID token first
+      let decodedToken;
       try {
         const auth = getAuth();
-        const decodedToken = await auth.verifyIdToken(idToken);
-        const emailLower = decodedToken.email.trim().toLowerCase();
-
-        const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
-        if (!studentDoc.exists) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Account not found. Please contact your teacher if you believe this is an error.'
-            })
-          };
-        }
-
-        const studentData = studentDoc.data();
-
-        // Create session in Firestore
-        const token = generateSessionToken();
-        const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
-        await firestoreTimeout(db.collection('sessions').doc(token).set({
-          email: emailLower,
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(sessionExpiry).toISOString(),
-          authMethod: 'firebase'
-        }));
-
-        // Update last login
-        await firestoreTimeout(db.collection('students').doc(emailLower).update({
-          lastLogin: new Date().toISOString()
-        }));
-
-        const student = await buildStudentResponse(studentData, db);
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true, sessionToken: token, student })
-        };
-      } catch (firebaseError) {
-        console.error('Firebase auth error:', firebaseError);
+        decodedToken = await auth.verifyIdToken(idToken);
+      } catch (authError) {
+        console.error('Firebase auth error:', authError);
         return {
           statusCode: 401,
           headers,
           body: JSON.stringify({ success: false, error: 'Invalid Firebase token' })
         };
       }
+
+      // Token is valid - look up student and create session
+      const emailLower = decodedToken.email.trim().toLowerCase();
+
+      const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
+      if (!studentDoc.exists) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Account not found. Please contact your teacher if you believe this is an error.'
+          })
+        };
+      }
+
+      const studentData = studentDoc.data();
+
+      // Create session in Firestore
+      const token = generateSessionToken();
+      const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      await firestoreTimeout(db.collection('sessions').doc(token).set({
+        email: emailLower,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(sessionExpiry).toISOString(),
+        authMethod: 'firebase'
+      }));
+
+      // Update last login
+      await firestoreTimeout(db.collection('students').doc(emailLower).update({
+        lastLogin: new Date().toISOString()
+      }));
+
+      const student = await buildStudentResponse(studentData, db);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, sessionToken: token, student })
+      };
     }
 
     // VERIFY SESSION - Check if session token is valid

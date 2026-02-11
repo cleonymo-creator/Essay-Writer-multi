@@ -6343,13 +6343,8 @@
             }
           }
 
-          // Fall back to custom auth - try Firestore first, then Netlify function (Blobs)
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            result = await FirebaseDB.studentLogin(emailLower, password);
-          }
-
-          // If Firestore login failed or wasn't available, try Netlify function (checks Blobs)
+          // Fall back to custom auth via Netlify function (server-side admin SDK
+          // bypasses Firestore security rules that block client-side reads)
           if (!result || !result.success) {
             const response = await fetch('/.netlify/functions/student-auth', {
               method: 'POST',
@@ -6645,16 +6640,11 @@
 
       const handleLogout = async () => {
         try {
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            await FirebaseDB.studentLogout(sessionToken);
-          } else {
-            await fetch('/.netlify/functions/student-auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'logout', sessionToken })
-            });
-          }
+          await fetch('/.netlify/functions/student-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'logout', sessionToken })
+          });
         } catch (e) {
           console.log('Logout error:', e);
         }
@@ -6860,23 +6850,17 @@
         setIsLoading(true);
 
         try {
-          let result;
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            result = await FirebaseDB.changePassword(sessionToken, currentPassword, newPassword);
-          } else {
-            const response = await fetch('/.netlify/functions/student-auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'changePassword',
-                sessionToken,
-                currentPassword,
-                newPassword
-              })
-            });
-            result = await response.json();
-          }
+          const response = await fetch('/.netlify/functions/student-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'changePassword',
+              sessionToken,
+              currentPassword,
+              newPassword
+            })
+          });
+          const result = await response.json();
 
           if (result.success) {
             onSuccess();
@@ -17510,21 +17494,18 @@ ${examinerComment}
           // Check for student session
           const savedToken = localStorage.getItem('studentSession');
           const savedStudent = localStorage.getItem('studentData');
-          
+
           if (savedToken && savedStudent) {
             try {
-              let result;
-              const firebaseReady = await FirebaseDB.isReady();
-              if (firebaseReady) {
-                result = await FirebaseDB.verifySession(savedToken);
-              } else {
-                const response = await fetch('/.netlify/functions/student-auth', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'verify', sessionToken: savedToken })
-                });
-                result = await response.json();
-              }
+              // Always verify via Netlify function (server-side admin SDK
+              // bypasses Firestore security rules that block client-side
+              // reads on the sessions/students collections)
+              const response = await fetch('/.netlify/functions/student-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'verify', sessionToken: savedToken })
+              });
+              const result = await response.json();
               
               if (result.success) {
                 setCurrentStudent(result.student);
