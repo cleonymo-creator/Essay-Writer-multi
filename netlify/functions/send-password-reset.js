@@ -79,8 +79,7 @@ async function ensureFirebaseAuthUser(auth, email, displayName) {
       // Create the user with a temporary password
       const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%';
       let tempPassword = '';
-      const array = new Uint8Array(16);
-      crypto.getRandomValues(array);
+      const array = require('crypto').randomBytes(16);
       for (let i = 0; i < 16; i++) {
         tempPassword += chars[array[i] % chars.length];
       }

@@ -2,94 +2,48 @@
 // Handles login, password verification, and session management
 // Supports both custom auth and Firebase Auth
 
+const nodeCrypto = require('crypto');
 const { getStore } = require("@netlify/blobs");
 const { getAuth, initializeFirebase } = require('./firebase-helper');
 
-// Password hashing with PBKDF2 (matches manage-students.js)
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-  return saltHex + ':' + hashHex;
-}
-
-// Legacy SHA-256 hash for backward compatibility with old accounts
-async function hashPasswordLegacy(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = nodeCrypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(saltHex + ':' + derivedKey.toString('hex'));
+    });
+  });
 }
 
 // Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
-async function verifyPassword(password, storedHash) {
-  if (!storedHash) return false;
+function verifyPassword(password, storedHash) {
+  return new Promise((resolve) => {
+    if (!storedHash) return resolve(false);
 
-  // PBKDF2 hashes contain a colon separator: saltHex:hashHex
-  if (storedHash.includes(':')) {
-    const [saltHex, hashHex] = storedHash.split(':');
-    const encoder = new TextEncoder();
-    const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
+    // PBKDF2 format: saltHex:hashHex
+    if (storedHash.includes(':')) {
+      const [saltHex, hashHex] = storedHash.split(':');
+      if (!saltHex || !hashHex) return resolve(false);
+      const salt = Buffer.from(saltHex, 'hex');
+      nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+        if (err) return resolve(false);
+        resolve(derivedKey.toString('hex') === hashHex);
+      });
+      return;
+    }
 
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(password),
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-
-    const derivedBits = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: salt,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      256
-    );
-
-    const derivedHashHex = Array.from(new Uint8Array(derivedBits))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-
-    return derivedHashHex === hashHex;
-  }
-
-  // Legacy SHA-256 hash (no colon separator)
-  const inputHash = await hashPasswordLegacy(password);
-  return inputHash === storedHash;
+    // Legacy SHA-256 fallback (no colon separator)
+    const hash = nodeCrypto.createHash('sha256').update(password).digest('hex');
+    resolve(hash === storedHash);
+  });
 }
 
 // Generate a simple session token
 function generateSessionToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return nodeCrypto.randomBytes(32).toString('hex');
 }
 
 // Try to initialize Blob stores - returns null values if Blobs not configured

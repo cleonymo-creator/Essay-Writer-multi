@@ -2,92 +2,72 @@
 // Handles login, registration, session management for teachers
 // First teacher to register becomes admin
 
+const nodeCrypto = require('crypto');
 const { initializeFirebase, getAuth } = require('./firebase-helper');
 
-// Use Web Crypto for password hashing (bcrypt alternative for edge functions)
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  // Create a salt
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  // Hash password with salt using PBKDF2
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  // Return salt:hash format
-  return saltHex + ':' + hashHex;
+// Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = nodeCrypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(saltHex + ':' + derivedKey.toString('hex'));
+    });
+  });
 }
 
-async function verifyPassword(password, storedHash) {
-  const encoder = new TextEncoder();
-  const [saltHex, hashHex] = storedHash.split(':');
-  
-  if (!saltHex || !hashHex) {
+function verifyPassword(password, storedHash) {
+  return new Promise((resolve) => {
+    if (!storedHash) return resolve(false);
+
+    // PBKDF2 format: saltHex:hashHex
+    if (storedHash.includes(':')) {
+      const [saltHex, hashHex] = storedHash.split(':');
+      if (!saltHex || !hashHex) return resolve(false);
+      const salt = Buffer.from(saltHex, 'hex');
+      nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+        if (err) return resolve(false);
+        resolve(derivedKey.toString('hex') === hashHex);
+      });
+      return;
+    }
+
+    // Legacy SHA-256 fallback (no colon separator)
+    const hash = nodeCrypto.createHash('sha256').update(password).digest('hex');
+    resolve(hash === storedHash);
+  });
+}
+
+// Verify password via Firebase Auth REST API (fallback when local hash is stale)
+async function verifyPasswordViaFirebaseAuth(email, password) {
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
+  if (!apiKey) return false;
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: false })
+      }
+    );
+    return response.ok;
+  } catch {
     return false;
   }
-  
-  // Convert salt back to Uint8Array
-  const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
-  
-  // Hash the input password with the same salt
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return computedHash === hashHex;
 }
 
 // Generate secure session token
 function generateSessionToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return nodeCrypto.randomBytes(32).toString('hex');
 }
 
 // Generate random password for resets
 function generatePassword(length = 12) {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
   let password = '';
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
+  const array = nodeCrypto.randomBytes(length);
   for (let i = 0; i < length; i++) {
     password += chars[array[i] % chars.length];
   }
@@ -367,10 +347,22 @@ exports.handler = async (event, context) => {
       }
 
       const teacher = teacherDoc.data();
-      const passwordValid = await verifyPassword(password, teacher.passwordHash);
+      let passwordValid = await verifyPassword(password, teacher.passwordHash);
+
+      // If local hash fails, try Firebase Auth as fallback (handles password resets, hash migration)
+      if (!passwordValid) {
+        console.log('Local hash mismatch for', emailLower, '- trying Firebase Auth fallback');
+        passwordValid = await verifyPasswordViaFirebaseAuth(emailLower, password);
+        if (passwordValid) {
+          // Password correct via Firebase Auth — update the local hash so it works next time
+          const newHash = await hashPassword(password);
+          await db.collection('teachers').doc(emailLower).update({ passwordHash: newHash });
+          console.log('Updated stale password hash for', emailLower);
+        }
+      }
 
       if (!passwordValid) {
-        console.log('Login failed: password mismatch for', emailLower, '(hash format:', teacher.passwordHash?.includes(':') ? 'PBKDF2' : 'legacy/unknown', ')');
+        console.log('Login failed: password mismatch for', emailLower);
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
@@ -378,7 +370,7 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: 'Incorrect password' })
         };
       }
-      
+
       clearFailedAttempts(emailLower);
       
       // Create session

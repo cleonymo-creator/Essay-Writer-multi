@@ -68,8 +68,7 @@ function getSessionToken(event) {
 function generateTempPassword(length = 16) {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%';
   let password = '';
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
+  const array = require('crypto').randomBytes(length);
   for (let i = 0; i < length; i++) {
     password += chars[array[i] % chars.length];
   }
