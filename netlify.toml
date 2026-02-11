@@ -32,10 +32,6 @@
 [functions."send-password-reset"]
   external_node_modules = ["@netlify/blobs"]
 
-# Student management function (uses both Blobs and Firebase Admin)
-[functions."manage-students"]
-  external_node_modules = ["@netlify/blobs"]
-
 # Headers for all pages
 [[headers]]
   for = "/*"

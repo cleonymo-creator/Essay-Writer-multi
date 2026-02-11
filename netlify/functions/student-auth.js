@@ -471,7 +471,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: 'Server error' })
+      body: JSON.stringify({ success: false, error: 'Server error: ' + error.message, stack: error.stack })
     };
   }
 };
