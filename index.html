@@ -5021,11 +5021,39 @@
     }
     
     // Firebase Database Helper Functions
+    let firebaseConnected = null; // cached connectivity result
+    let firebaseConnectedExpiry = 0;
+
     const FirebaseDB = {
-      // Check if Firebase is available
+      // Check if Firebase is available AND responsive
       async isReady() {
         await firebaseReadyPromise;
-        return FIREBASE_ENABLED && db !== null;
+        if (!FIREBASE_ENABLED || !db) return false;
+
+        // Use cached result if fresh (cache for 30 seconds)
+        const now = Date.now();
+        if (firebaseConnected !== null && now < firebaseConnectedExpiry) {
+          return firebaseConnected;
+        }
+
+        // Do a real connectivity test with a short timeout
+        try {
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Firestore connectivity timeout')), 5000)
+          );
+          await Promise.race([
+            db.collection('teachers').limit(1).get(),
+            timeout
+          ]);
+          firebaseConnected = true;
+          firebaseConnectedExpiry = now + 30000;
+          return true;
+        } catch (e) {
+          console.warn('Firestore not responsive, falling back to Netlify:', e.message);
+          firebaseConnected = false;
+          firebaseConnectedExpiry = now + 30000; // retry after 30s
+          return false;
+        }
       },
       
       // Save student progress (in-progress essays)
