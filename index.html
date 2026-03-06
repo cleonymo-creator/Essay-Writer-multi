@@ -17650,13 +17650,18 @@ ${examinerComment}
         }
       }, [isAuthenticated]);
       
-      // Load saved state for selected essay - check Firebase first, then localStorage
+      // Load saved state for selected essay - check Firebase first, then localStorage.
+      // Only runs when arriving at the 'entry' screen (e.g. from essay picker or URL param).
+      // Skipped when handleDashboardSelectEssay already loaded progress and set screen.
       useEffect(() => {
         if (!CONFIG || !selectedEssayId) return;
-        
+        // If the screen was already set to writing/compilation by handleDashboardSelectEssay,
+        // progress is already loaded — skip to avoid a duplicate fetch and state race.
+        if (screen === 'writing' || screen === 'compilation') return;
+
         const loadSavedProgress = async () => {
           let serverProgress = null;
-          
+
           // Try to load from Firebase if user is authenticated
           if (studentEmail) {
             try {
@@ -17669,7 +17674,7 @@ ${examinerComment}
               console.log('Error loading Firebase progress:', e);
             }
           }
-          
+
           // Also check localStorage
           const localSaved = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEY);
           let localProgress = null;
@@ -17680,10 +17685,10 @@ ${examinerComment}
               console.log('Error parsing localStorage:', e);
             }
           }
-          
+
           // Determine which progress to use (prefer more recent)
           let progressToUse = null;
-          
+
           if (serverProgress && localProgress) {
             const serverTime = new Date(serverProgress.lastUpdate || 0).getTime();
             const localTime = new Date(localProgress.savedAt || 0).getTime();
@@ -17692,7 +17697,7 @@ ${examinerComment}
           } else {
             progressToUse = serverProgress || localProgress;
           }
-          
+
           if (progressToUse) {
             // Restore state
             if (progressToUse.studentName) setStudentName(progressToUse.studentName);
@@ -17701,7 +17706,7 @@ ${examinerComment}
             if (progressToUse.gradeSystem) setGradeSystem(progressToUse.gradeSystem);
             if (progressToUse.paragraphStates) setParagraphStates(progressToUse.paragraphStates);
             if (progressToUse.currentParagraphIndex !== undefined) setCurrentParagraphIndex(progressToUse.currentParagraphIndex);
-            
+
             // If has substantial progress, go directly to writing
             if (progressToUse.studentName && Object.keys(progressToUse.paragraphStates || {}).length > 0) {
               const allComplete = PARAGRAPHS.every(p => progressToUse.paragraphStates[p.id]?.completed);
@@ -17709,67 +17714,71 @@ ${examinerComment}
             }
           }
         };
-        
+
         loadSavedProgress();
       }, [selectedEssayId]);
       
-      // Auto-save to localStorage and server (skip in preview mode)
+      // Auto-save to localStorage (immediate) and server (debounced)
       useEffect(() => {
         if (!CONFIG || !studentName || screen !== 'writing' || isPreviewMode) return;
-        
+
         // Need studentEmail for Firebase save
         if (!studentEmail) {
           console.log('Auto-save skipped: no studentEmail');
           return;
         }
-        
-        // Save to localStorage
+
+        // Save to localStorage immediately (synchronous, always reliable)
         const saveData = { studentName, studentEmail, targetGrade, gradeSystem, paragraphStates, currentParagraphIndex, savedAt: new Date().toISOString() };
         localStorage.setItem(CONFIG.LOCAL_STORAGE_KEY, JSON.stringify(saveData));
-        
-        // Save to server for teacher dashboard AND cross-device resume
-        const completedCount = Object.values(paragraphStates).filter(s => s.completed).length;
-        const percentComplete = Math.round((completedCount / PARAGRAPHS.length) * 100);
-        const currentParagraph = PARAGRAPHS[currentParagraphIndex];
-        
-        const progressData = {
-          studentName,
-          studentEmail: studentEmail.toLowerCase(),
-          targetGrade,
-          gradeSystem,
-          type: 'essay',
-          essayId: selectedEssayId,
-          essayTitle: CONFIG.essayTitle,
-          currentParagraph: currentParagraph?.title || 'Starting',
-          currentParagraphIndex: currentParagraphIndex, // Actual index for resume
-          totalParagraphs: PARAGRAPHS.length,
-          completedParagraphs: completedCount,
-          percentComplete,
-          paragraphScores: Object.entries(paragraphStates)
-            .filter(([_, s]) => s.completed)
-            .map(([id, s]) => ({ id, score: s.score })),
-          // Include full paragraph states for cross-device resume
-          paragraphStates: paragraphStates,
-          lastUpdate: new Date().toISOString()
-        };
-        
-        console.log('Auto-saving progress:', { studentEmail: progressData.studentEmail, essayId: progressData.essayId, completedCount, percentComplete });
-        
-        // Save to Firebase if available, otherwise Netlify Blobs
-        (async () => {
-          const firebaseReady = await FirebaseDB.isReady();
-          if (firebaseReady) {
-            FirebaseDB.saveProgress(progressData)
-              .then(() => console.log('Firebase progress saved successfully'))
-              .catch(err => console.log('Firebase save error:', err.message));
-          } else {
-            fetch('/.netlify/functions/save-progress', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(progressData)
-            }).catch(err => console.log('Progress save note:', err.message));
-          }
-        })();
+
+        // Debounce server save — wait 3 seconds of inactivity before writing
+        const serverSaveTimer = setTimeout(() => {
+          const completedCount = Object.values(paragraphStates).filter(s => s.completed).length;
+          const percentComplete = Math.round((completedCount / PARAGRAPHS.length) * 100);
+          const currentParagraph = PARAGRAPHS[currentParagraphIndex];
+
+          const progressData = {
+            studentName,
+            studentEmail: studentEmail.toLowerCase(),
+            targetGrade,
+            gradeSystem,
+            type: 'essay',
+            essayId: selectedEssayId,
+            essayTitle: CONFIG.essayTitle,
+            currentParagraph: currentParagraph?.title || 'Starting',
+            currentParagraphIndex: currentParagraphIndex, // Actual index for resume
+            totalParagraphs: PARAGRAPHS.length,
+            completedParagraphs: completedCount,
+            percentComplete,
+            paragraphScores: Object.entries(paragraphStates)
+              .filter(([_, s]) => s.completed)
+              .map(([id, s]) => ({ id, score: s.score })),
+            // Include full paragraph states for cross-device resume
+            paragraphStates: paragraphStates,
+            lastUpdate: new Date().toISOString()
+          };
+
+          console.log('Auto-saving progress:', { studentEmail: progressData.studentEmail, essayId: progressData.essayId, completedCount, percentComplete });
+
+          // Save to Firebase if available, otherwise Netlify function
+          (async () => {
+            const firebaseReady = await FirebaseDB.isReady();
+            if (firebaseReady) {
+              FirebaseDB.saveProgress(progressData)
+                .then(() => console.log('Firebase progress saved successfully'))
+                .catch(err => console.error('Firebase save error:', err.message));
+            } else {
+              fetch('/.netlify/functions/save-progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(progressData)
+              }).catch(err => console.error('Progress save error:', err.message));
+            }
+          })();
+        }, 3000);
+
+        return () => clearTimeout(serverSaveTimer);
       }, [studentName, studentEmail, paragraphStates, currentParagraphIndex, screen, isPreviewMode, selectedEssayId]);
       
       const handleSelectEssay = (essayId) => {
