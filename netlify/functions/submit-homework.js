@@ -129,7 +129,7 @@ exports.handler = async (event, context) => {
     // Clean up progress entry
     if (submission.studentEmail) {
       const sanitizedEmail = submission.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
-      const essayId = submission.essayId ? `-${submission.essayId}` : '';
+      const essayId = submission.essayId ? `_${submission.essayId}` : '';
       const progressDocId = `${sanitizedEmail}${essayId}`;
       
       try {

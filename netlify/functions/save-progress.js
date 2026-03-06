@@ -42,7 +42,7 @@ exports.handler = async (event, context) => {
       if (params.email) {
         const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
-        const docId = `${sanitizedEmail}${essayId ? `-${essayId}` : ''}`;
+        const docId = `${sanitizedEmail}${essayId ? `_${essayId}` : ''}`;
         
         console.log('[save-progress] Looking up progress for:', docId);
         
@@ -124,7 +124,7 @@ exports.handler = async (event, context) => {
       const inProgress = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        if (!data.completed && (data.percentComplete === undefined || data.percentComplete < 100)) {
+        if (!data.completed) {
           inProgress.push({
             studentName: data.studentName,
             studentEmail: data.studentEmail,
@@ -200,25 +200,28 @@ exports.handler = async (event, context) => {
     }
 
     const sanitizedEmail = progressData.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
-    const essayId = progressData.essayId ? `-${progressData.essayId}` : '';
+    const essayId = progressData.essayId ? `_${progressData.essayId}` : '';
     const docId = `${sanitizedEmail}${essayId}`;
     
-    // If completed, delete progress entry
-    if (progressData.completed || progressData.percentComplete >= 100) {
+    // If explicitly marked completed (from submit-homework), delete progress entry.
+    // Note: percentComplete >= 100 alone is NOT enough to delete — student may still
+    // be on the compilation screen and hasn't submitted yet. Premature deletion would
+    // lose their progress if they close the browser before submitting.
+    if (progressData.completed) {
       try {
         await firestoreTimeout(db.collection('progress').doc(docId).delete());
         console.log('[save-progress] Progress cleared for completed student:', progressData.studentEmail);
       } catch (e) {
         console.log('[save-progress] Delete error (may not exist):', e.message);
       }
-      
+
       return {
         statusCode: 200,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           success: true,
           message: 'Progress cleared (student completed)'
         })
