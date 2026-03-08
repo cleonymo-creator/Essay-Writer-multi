@@ -89,6 +89,7 @@ Return a JSON object with this structure:
       "id": <number - sequential ID starting from 1>,
       "type": "<spelling|grammar|punctuation|expression>",
       "errorText": "<the exact text containing the error - keep this SHORT, just the problematic word/phrase>",
+      "correctionTarget": "<the SPECIFIC word or minimal text within errorText that needs to be changed - e.g. if errorText is 'there house' and the error is 'there' should be 'their', correctionTarget is just 'there'>",
       "errorContext": "<a slightly longer snippet showing where the error appears in context>",
       "startIndex": <approximate character position where the error starts>,
       "rule": "<brief, student-friendly explanation of the rule being broken>",
@@ -102,12 +103,13 @@ Return a JSON object with this structure:
 ## CRITICAL RULES
 1. **NEVER give the correction** - only explain the rule and give hints
 2. **Keep errorText SHORT** - just the problematic word or short phrase
-3. **Order errors by position** in the text (first to last)
-4. **Be specific** about what's wrong but let the student figure out the fix
-5. **Be encouraging** - frame errors as learning opportunities
-6. **Don't flag stylistic choices** as errors - only genuine mistakes
-7. **Maximum ${isFoundation ? '4' : isHighAchiever ? '8' : '6'} errors** - prioritise the most important ones
-8. **errorContext should be 5-15 words** surrounding the error to help locate it
+3. **correctionTarget must be the MINIMAL word(s)** the student needs to change - often just ONE word. For example, if errorText is "there house was", correctionTarget should be just "there". For a missing comma, correctionTarget is the word before where the comma should go. For spelling errors, correctionTarget is just the misspelled word.
+4. **Order errors by position** in the text (first to last)
+5. **Be specific** about what's wrong but let the student figure out the fix
+6. **Be encouraging** - frame errors as learning opportunities
+7. **Don't flag stylistic choices** as errors - only genuine mistakes
+8. **Maximum ${isFoundation ? '4' : isHighAchiever ? '8' : '6'} errors** - prioritise the most important ones
+9. **errorContext should be 5-15 words** surrounding the error to help locate it
 
 ## EXAMPLES OF GOOD HINTS
 
