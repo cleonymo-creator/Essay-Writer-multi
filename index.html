@@ -10080,21 +10080,25 @@
       const currentError = errors[currentErrorIndex];
       const isComplete = currentErrorIndex >= errors.length;
       
-      // Apply correction to the text
-      const applyCorrection = (text, errorText, correction) => {
-        // Find and replace the error text with the correction
-        // Use a simple replacement strategy
-        return text.replace(errorText, correction);
+      // Get the correction target - the minimal word(s) the student needs to fix
+      const getCorrectionTarget = (error) => {
+        return error.correctionTarget || error.errorText;
       };
-      
+
+      // Apply correction to the text
+      const applyCorrection = (text, targetText, correction) => {
+        // Find and replace the correction target with the student's correction
+        return text.replace(targetText, correction);
+      };
+
       // Check if the correction is valid (different from error and not empty)
       // CASE-SENSITIVE comparison so "dickens" -> "Dickens" is valid
-      const validateCorrection = (correction, errorText) => {
+      const validateCorrection = (correction, targetText) => {
         if (!correction.trim()) {
           return { valid: false, message: 'Please type your correction.' };
         }
         // Case-sensitive comparison - "Dickens" is different from "dickens"
-        if (correction.trim() === errorText.trim()) {
+        if (correction.trim() === targetText.trim()) {
           return { valid: false, message: 'Your correction looks exactly the same as the original. Try again!' };
         }
         return { valid: true };
@@ -10102,23 +10106,24 @@
       
       const handleSubmitCorrection = () => {
         if (!currentError) return;
-        
+
         setCorrectionStatus('checking');
-        
-        const validation = validateCorrection(correctionInput, currentError.errorText);
-        
+
+        const target = getCorrectionTarget(currentError);
+        const validation = validateCorrection(correctionInput, target);
+
         if (!validation.valid) {
           setCorrectionStatus('error');
           setCorrectionMessage(validation.message);
           return;
         }
-        
+
         // Accept the correction
         setCorrectionStatus('success');
         setCorrectionMessage('Excellent! You\'ve corrected this error.');
-        
+
         // Apply the correction to the text
-        const updatedText = applyCorrection(currentText, currentError.errorText, correctionInput);
+        const updatedText = applyCorrection(currentText, target, correctionInput);
         setCurrentText(updatedText);
         onUpdateText(updatedText);
         
@@ -10170,17 +10175,17 @@
       // Highlight the error in context
       const renderErrorContext = () => {
         if (!currentError) return null;
-        
+
         const context = currentError.errorContext || '';
-        const errorText = currentError.errorText || '';
-        
-        // Try to highlight the error within the context (case-insensitive for highlighting)
-        const parts = context.split(new RegExp(`(${errorText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'));
-        
+        const target = getCorrectionTarget(currentError);
+
+        // Try to highlight the correction target within the context (case-insensitive for highlighting)
+        const parts = context.split(new RegExp(`(${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'));
+
         return (
           <div className="error-context">
-            {parts.map((part, i) => 
-              part.toLowerCase() === errorText.toLowerCase() 
+            {parts.map((part, i) =>
+              part.toLowerCase() === target.toLowerCase()
                 ? <span key={i} className="error-highlight">{part}</span>
                 : part
             )}
@@ -10282,7 +10287,7 @@
             {/* Correction input */}
             <div className="error-correction-area">
               <div className="error-correction-label">
-                Type your correction for "<span style={{ color: 'var(--color-error)' }}>{currentError.errorText}</span>":
+                Type your correction for "<span style={{ color: 'var(--color-error)' }}>{getCorrectionTarget(currentError)}</span>":
               </div>
               <input
                 type="text"
