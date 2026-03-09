@@ -2,92 +2,72 @@
 // Handles login, registration, session management for teachers
 // First teacher to register becomes admin
 
-const { initializeFirebase } = require('./firebase-helper');
+const nodeCrypto = require('crypto');
+const { initializeFirebase, getAuth, firestoreTimeout } = require('./firebase-helper');
 
-// Use Web Crypto for password hashing (bcrypt alternative for edge functions)
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  // Create a salt
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  // Hash password with salt using PBKDF2
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  // Return salt:hash format
-  return saltHex + ':' + hashHex;
+// Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = nodeCrypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(saltHex + ':' + derivedKey.toString('hex'));
+    });
+  });
 }
 
-async function verifyPassword(password, storedHash) {
-  const encoder = new TextEncoder();
-  const [saltHex, hashHex] = storedHash.split(':');
-  
-  if (!saltHex || !hashHex) {
+function verifyPassword(password, storedHash) {
+  return new Promise((resolve) => {
+    if (!storedHash) return resolve(false);
+
+    // PBKDF2 format: saltHex:hashHex
+    if (storedHash.includes(':')) {
+      const [saltHex, hashHex] = storedHash.split(':');
+      if (!saltHex || !hashHex) return resolve(false);
+      const salt = Buffer.from(saltHex, 'hex');
+      nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+        if (err) return resolve(false);
+        resolve(derivedKey.toString('hex') === hashHex);
+      });
+      return;
+    }
+
+    // Legacy SHA-256 fallback (no colon separator)
+    const hash = nodeCrypto.createHash('sha256').update(password).digest('hex');
+    resolve(hash === storedHash);
+  });
+}
+
+// Verify password via Firebase Auth REST API (fallback when local hash is stale)
+async function verifyPasswordViaFirebaseAuth(email, password) {
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
+  if (!apiKey) return false;
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: false })
+      }
+    );
+    return response.ok;
+  } catch {
     return false;
   }
-  
-  // Convert salt back to Uint8Array
-  const salt = new Uint8Array(saltHex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
-  
-  // Hash the input password with the same salt
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-  
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(derivedBits));
-  const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return computedHash === hashHex;
 }
 
 // Generate secure session token
 function generateSessionToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return nodeCrypto.randomBytes(32).toString('hex');
 }
 
 // Generate random password for resets
 function generatePassword(length = 12) {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
   let password = '';
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
+  const array = nodeCrypto.randomBytes(length);
   for (let i = 0; i < length; i++) {
     password += chars[array[i] % chars.length];
   }
@@ -135,21 +115,21 @@ async function verifyTeacherSession(sessionToken, db) {
   }
   
   try {
-    const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-    
+    const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+
     if (!sessionDoc.exists) {
       return { valid: false, error: 'Invalid session' };
     }
-    
+
     const session = sessionDoc.data();
-    
+
     if (new Date(session.expiresAt) < new Date()) {
-      await db.collection('teacherSessions').doc(sessionToken).delete();
+      await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).delete());
       return { valid: false, error: 'Session expired' };
     }
-    
+
     // Get teacher data
-    const teacherDoc = await db.collection('teachers').doc(session.email).get();
+    const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
     if (!teacherDoc.exists) {
       return { valid: false, error: 'Teacher not found' };
     }
@@ -216,7 +196,7 @@ exports.handler = async (event, context) => {
       }
       
       // List all teachers
-      const teachersSnapshot = await db.collection('teachers').get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').get());
       const teachers = [];
       
       teachersSnapshot.forEach(doc => {
@@ -239,10 +219,79 @@ exports.handler = async (event, context) => {
     const { action } = body;
 
     // ========================================
+    // FIREBASE LOGIN (verify Firebase ID token, create custom session)
+    // ========================================
+    if (action === 'firebaseLogin') {
+      const { idToken } = body;
+      if (!idToken) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Firebase ID token required' })
+        };
+      }
+
+      try {
+        const auth = getAuth();
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const emailLower = decodedToken.email.trim().toLowerCase();
+
+        // Look up teacher in Firestore
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
+        if (!teacherDoc.exists) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Teacher account not found' })
+          };
+        }
+
+        const teacher = teacherDoc.data();
+
+        // Create session
+        const sessionToken = generateSessionToken();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+        await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).set({
+          email: emailLower,
+          createdAt: new Date().toISOString(),
+          expiresAt,
+          authMethod: 'firebase'
+        }));
+
+        // Update last login
+        await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
+          lastLogin: new Date().toISOString()
+        }));
+
+        const { passwordHash, ...safeTeacher } = teacher;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            sessionToken,
+            teacher: { ...safeTeacher, email: emailLower },
+            isAdmin: teacher.role === 'admin'
+          })
+        };
+      } catch (firebaseError) {
+        console.error('Firebase auth error:', firebaseError);
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Invalid Firebase token' })
+        };
+      }
+    }
+
+    // ========================================
     // CHECK SETUP (public - checks if any teachers exist)
     // ========================================
     if (action === 'checkSetup') {
-      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
       const teachersExist = !teachersSnapshot.empty;
       
       return {
@@ -285,45 +334,59 @@ exports.handler = async (event, context) => {
         };
       }
       
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
+        console.log('Login failed: no teacher document for', emailLower);
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ success: false, error: 'Invalid email or password' })
+          body: JSON.stringify({ success: false, error: 'No account found for this email. Please check your email or contact an administrator.' })
         };
       }
-      
+
       const teacher = teacherDoc.data();
-      const passwordValid = await verifyPassword(password, teacher.passwordHash);
-      
+      let passwordValid = await verifyPassword(password, teacher.passwordHash);
+
+      // If local hash fails, try Firebase Auth as fallback (handles password resets, hash migration)
       if (!passwordValid) {
+        console.log('Local hash mismatch for', emailLower, '- trying Firebase Auth fallback');
+        passwordValid = await verifyPasswordViaFirebaseAuth(emailLower, password);
+        if (passwordValid) {
+          // Password correct via Firebase Auth — update the local hash so it works next time
+          const newHash = await hashPassword(password);
+          await firestoreTimeout(db.collection('teachers').doc(emailLower).update({ passwordHash: newHash }));
+          console.log('Updated stale password hash for', emailLower);
+        }
+      }
+
+      if (!passwordValid) {
+        console.log('Login failed: password mismatch for', emailLower);
         recordFailedAttempt(emailLower);
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ success: false, error: 'Invalid email or password' })
+          body: JSON.stringify({ success: false, error: 'Incorrect password' })
         };
       }
-      
+
       clearFailedAttempts(emailLower);
-      
+
       // Create session
       const sessionToken = generateSessionToken();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
-      
-      await db.collection('teacherSessions').doc(sessionToken).set({
+
+      await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).set({
         email: emailLower,
         createdAt: new Date().toISOString(),
         expiresAt
-      });
-      
+      }));
+
       // Update last login
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         lastLogin: new Date().toISOString()
-      });
+      }));
       
       const { passwordHash, ...safeTeacher } = teacher;
       
@@ -364,7 +427,7 @@ exports.handler = async (event, context) => {
       const emailLower = email.trim().toLowerCase();
       
       // Check if any teachers exist
-      const teachersSnapshot = await db.collection('teachers').limit(1).get();
+      const teachersSnapshot = await firestoreTimeout(db.collection('teachers').limit(1).get());
       const isFirstTeacher = teachersSnapshot.empty;
       
       // If teachers exist, require admin authentication
@@ -397,7 +460,7 @@ exports.handler = async (event, context) => {
       }
       
       // Check if email already exists
-      const existingDoc = await db.collection('teachers').doc(emailLower).get();
+      const existingDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
       if (existingDoc.exists) {
         return {
           statusCode: 400,
@@ -418,10 +481,31 @@ exports.handler = async (event, context) => {
         createdBy: isFirstTeacher ? 'self' : (sessionToken ? 'admin' : 'unknown')
       };
       
-      await db.collection('teachers').doc(emailLower).set(newTeacher);
-      
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).set(newTeacher));
+
+      // Also create Firebase Auth user (non-blocking)
+      try {
+        const auth = getAuth();
+        try {
+          await auth.getUserByEmail(emailLower);
+          // User already exists, update password
+          const fbUser = await auth.getUserByEmail(emailLower);
+          await auth.updateUser(fbUser.uid, { password, displayName: name.trim() });
+        } catch (e) {
+          if (e.code === 'auth/user-not-found') {
+            await auth.createUser({
+              email: emailLower,
+              password: password,
+              displayName: name.trim()
+            });
+          }
+        }
+      } catch (fbErr) {
+        console.error('Failed to create Firebase Auth user for teacher:', fbErr.message);
+      }
+
       const { passwordHash: _, ...safeTeacher } = newTeacher;
-      
+
       return {
         statusCode: 200,
         headers,
@@ -429,7 +513,7 @@ exports.handler = async (event, context) => {
           success: true,
           teacher: safeTeacher,
           isFirstTeacher,
-          message: isFirstTeacher 
+          message: isFirstTeacher
             ? 'Admin account created successfully. You can now log in.'
             : 'Teacher account created successfully.'
         })
@@ -473,9 +557,9 @@ exports.handler = async (event, context) => {
       
       if (sessionToken) {
         try {
-          await db.collection('teacherSessions').doc(sessionToken).delete();
+          await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).delete());
         } catch (e) {
-          // Ignore deletion errors
+          // Ignore deletion errors (including Firestore timeouts)
         }
       }
       
@@ -519,8 +603,8 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -532,17 +616,26 @@ exports.handler = async (event, context) => {
       const newPassword = generatePassword();
       const passwordHash = await hashPassword(newPassword);
 
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         passwordHash,
         passwordResetAt: new Date().toISOString(),
         passwordResetBy: sessionCheck.email
-      });
+      }));
+
+      // Also update Firebase Auth password
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(emailLower);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password for teacher:', fbErr.message);
+      }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ 
-          success: true, 
+        body: JSON.stringify({
+          success: true,
           newPassword,
           message: 'Password reset successfully'
         })
@@ -594,10 +687,19 @@ exports.handler = async (event, context) => {
 
       const passwordHash = await hashPassword(newPassword);
 
-      await db.collection('teachers').doc(sessionCheck.email).update({
+      await firestoreTimeout(db.collection('teachers').doc(sessionCheck.email).update({
         passwordHash,
         passwordChangedAt: new Date().toISOString()
-      });
+      }));
+
+      // Also update Firebase Auth password
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(sessionCheck.email);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password:', fbErr.message);
+      }
 
       return {
         statusCode: 200,
@@ -649,8 +751,8 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -660,10 +762,19 @@ exports.handler = async (event, context) => {
       }
 
       // Delete the teacher
-      await db.collection('teachers').doc(emailLower).delete();
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).delete());
+
+      // Also delete Firebase Auth user
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(emailLower);
+        await auth.deleteUser(fbUser.uid);
+      } catch (fbErr) {
+        console.error('Failed to delete Firebase Auth user:', fbErr.message);
+      }
 
       // Clear teacherEmail on their classes
-      const classesSnapshot = await db.collection('classes').where('teacherEmail', '==', emailLower).get();
+      const classesSnapshot = await firestoreTimeout(db.collection('classes').where('teacherEmail', '==', emailLower).get());
       const batch = db.batch();
       
       classesSnapshot.forEach(doc => {
@@ -734,8 +845,8 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -744,11 +855,11 @@ exports.handler = async (event, context) => {
         };
       }
 
-      await db.collection('teachers').doc(emailLower).update({
+      await firestoreTimeout(db.collection('teachers').doc(emailLower).update({
         role: newRole,
         roleUpdatedAt: new Date().toISOString(),
         roleUpdatedBy: sessionCheck.email
-      });
+      }));
 
       return {
         statusCode: 200,
@@ -762,9 +873,9 @@ exports.handler = async (event, context) => {
     // ========================================
     if (action === 'assignClasses') {
       const { sessionToken, teacherEmail, classIds } = body;
-      
+
       const sessionCheck = await verifyTeacherSession(sessionToken, db);
-      
+
       if (!sessionCheck.valid) {
         return {
           statusCode: 401,
@@ -772,7 +883,7 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ success: false, error: sessionCheck.error })
         };
       }
-      
+
       if (!sessionCheck.isAdmin) {
         return {
           statusCode: 403,
@@ -790,8 +901,8 @@ exports.handler = async (event, context) => {
       }
 
       const emailLower = teacherEmail.trim().toLowerCase();
-      const teacherDoc = await db.collection('teachers').doc(emailLower).get();
-      
+      const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(emailLower).get());
+
       if (!teacherDoc.exists) {
         return {
           statusCode: 404,
@@ -805,17 +916,17 @@ exports.handler = async (event, context) => {
 
       for (const classId of classIds) {
         try {
-          const classDoc = await db.collection('classes').doc(classId).get();
+          const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
           if (!classDoc.exists) {
             results.notFound.push(classId);
             continue;
           }
 
-          await db.collection('classes').doc(classId).update({
+          await firestoreTimeout(db.collection('classes').doc(classId).update({
             teacher: teacher.name,
             teacherEmail: emailLower,
             updatedAt: new Date().toISOString()
-          });
+          }));
           results.assigned.push(classId);
         } catch (e) {
           results.errors.push({ classId, error: e.message });

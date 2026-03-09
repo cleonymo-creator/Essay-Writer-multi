@@ -1,4 +1,4 @@
-const { initializeFirebase } = require('./firebase-helper');
+const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -42,12 +42,12 @@ exports.handler = async (event, context) => {
       if (params.email) {
         const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
-        const docId = `${sanitizedEmail}${essayId ? `-${essayId}` : ''}`;
+        const docId = `${sanitizedEmail}${essayId ? `_${essayId}` : ''}`;
         
         console.log('[save-progress] Looking up progress for:', docId);
         
         const docRef = db.collection('progress').doc(docId);
-        const doc = await docRef.get();
+        const doc = await firestoreTimeout(docRef.get());
         
         if (doc.exists && !doc.data().completed) {
           console.log('[save-progress] Found progress for:', params.email);
@@ -80,26 +80,51 @@ exports.handler = async (event, context) => {
       }
       
       // Teacher dashboard - list all in-progress
-      if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
-        return {
-          statusCode: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          body: JSON.stringify({ error: 'Unauthorized' })
-        };
+      // Try session-based auth first (Firestore)
+      let authorized = false;
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      const sessionToken = (authHeader && authHeader.startsWith('Bearer '))
+        ? authHeader.substring(7)
+        : params.sessionToken;
+
+      if (sessionToken) {
+        try {
+          const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+          if (sessionDoc.exists) {
+            const session = sessionDoc.data();
+            const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+            if (expiresAt >= new Date()) {
+              authorized = true;
+            }
+          }
+        } catch (e) {
+          console.error('[save-progress] Session verification error:', e.message);
+        }
+      }
+
+      // Fallback to legacy password auth
+      if (!authorized) {
+        if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
+          return {
+            statusCode: 401,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ error: 'Unauthorized' })
+          };
+        }
       }
 
       // Get all progress documents
-      const snapshot = await db.collection('progress')
+      const snapshot = await firestoreTimeout(db.collection('progress')
         .orderBy('lastUpdate', 'desc')
-        .get();
+        .get(), 6000);
       
       const inProgress = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        if (!data.completed && (data.percentComplete === undefined || data.percentComplete < 100)) {
+        if (!data.completed) {
           inProgress.push({
             studentName: data.studentName,
             studentEmail: data.studentEmail,
@@ -175,25 +200,28 @@ exports.handler = async (event, context) => {
     }
 
     const sanitizedEmail = progressData.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
-    const essayId = progressData.essayId ? `-${progressData.essayId}` : '';
+    const essayId = progressData.essayId ? `_${progressData.essayId}` : '';
     const docId = `${sanitizedEmail}${essayId}`;
     
-    // If completed, delete progress entry
-    if (progressData.completed || progressData.percentComplete >= 100) {
+    // If explicitly marked completed (from submit-homework), delete progress entry.
+    // Note: percentComplete >= 100 alone is NOT enough to delete — student may still
+    // be on the compilation screen and hasn't submitted yet. Premature deletion would
+    // lose their progress if they close the browser before submitting.
+    if (progressData.completed) {
       try {
-        await db.collection('progress').doc(docId).delete();
+        await firestoreTimeout(db.collection('progress').doc(docId).delete());
         console.log('[save-progress] Progress cleared for completed student:', progressData.studentEmail);
       } catch (e) {
         console.log('[save-progress] Delete error (may not exist):', e.message);
       }
-      
+
       return {
         statusCode: 200,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           success: true,
           message: 'Progress cleared (student completed)'
         })
@@ -202,7 +230,7 @@ exports.handler = async (event, context) => {
 
     // Save progress
     progressData.lastUpdate = new Date().toISOString();
-    await db.collection('progress').doc(docId).set(progressData);
+    await firestoreTimeout(db.collection('progress').doc(docId).set(progressData));
     
     console.log('[save-progress] Progress saved:', {
       email: progressData.studentEmail,

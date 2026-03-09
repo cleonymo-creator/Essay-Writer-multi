@@ -114,6 +114,7 @@ exports.handler = async (event, context) => {
     const response = {
       status: result.status,
       config: result.config,
+      parsedEssay: result.parsedEssay || null,
       error: result.error,
       createdBy: result.createdBy,
       completedAt: result.completedAt

@@ -1,27 +1,132 @@
 // Student Authentication Function
 // Handles login, password verification, and session management
+// Uses Firestore as the primary data store, with Blobs fallback for unmigrated students
 
-const { getStore } = require("@netlify/blobs");
+const nodeCrypto = require('crypto');
+const { getStore, connectLambda } = require('@netlify/blobs');
+const { getAuth, initializeFirebase, firestoreTimeout } = require('./firebase-helper');
 
-// Simple hash function for passwords
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// Password hashing with Node.js native PBKDF2 (reliable across all runtimes)
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = nodeCrypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(saltHex + ':' + derivedKey.toString('hex'));
+    });
+  });
 }
 
-async function verifyPassword(password, hash) {
-  const inputHash = await hashPassword(password);
-  return inputHash === hash;
+// Verify password against stored hash (supports both PBKDF2 and legacy SHA-256)
+function verifyPassword(password, storedHash) {
+  return new Promise((resolve) => {
+    if (!storedHash) return resolve(false);
+
+    // PBKDF2 format: saltHex:hashHex
+    if (storedHash.includes(':')) {
+      const [saltHex, hashHex] = storedHash.split(':');
+      if (!saltHex || !hashHex) return resolve(false);
+      const salt = Buffer.from(saltHex, 'hex');
+      nodeCrypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
+        if (err) return resolve(false);
+        resolve(derivedKey.toString('hex') === hashHex);
+      });
+      return;
+    }
+
+    // Legacy SHA-256 fallback (no colon separator)
+    const hash = nodeCrypto.createHash('sha256').update(password).digest('hex');
+    resolve(hash === storedHash);
+  });
+}
+
+// Verify password via Firebase Auth REST API (fallback when local hash is stale after email reset)
+async function verifyPasswordViaFirebaseAuth(email, password) {
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
+  if (!apiKey) return false;
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: false })
+      }
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 // Generate a simple session token
 function generateSessionToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return nodeCrypto.randomBytes(32).toString('hex');
+}
+
+// Get class assignments for a student (supports both classIds array and legacy classId)
+async function getClassAssignments(studentData, db) {
+  let classAssignments = [];
+  const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
+
+  for (const classId of classIds) {
+    try {
+      const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
+      if (classDoc.exists) {
+        classAssignments.push(...(classDoc.data().assignedEssays || []));
+      }
+    } catch (err) {
+      console.warn('Class lookup failed for', classId, ':', err.message);
+    }
+  }
+  return classAssignments;
+}
+
+// Find student in Firestore, falling back to Blobs with auto-migration
+async function findStudent(emailLower, db) {
+  // Try Firestore first
+  try {
+    const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
+    if (studentDoc.exists) {
+      return studentDoc.data();
+    }
+  } catch (err) {
+    console.warn('Firestore student lookup failed:', err.message);
+  }
+
+  // Fall back to Blobs (for students not yet migrated to Firestore)
+  try {
+    const studentsStore = getStore('students');
+    const studentData = await studentsStore.get(emailLower, { type: 'json' });
+    if (studentData) {
+      // Auto-migrate to Firestore for future lookups
+      try {
+        await firestoreTimeout(db.collection('students').doc(emailLower).set(studentData));
+        console.log('Migrated student from Blobs to Firestore:', emailLower);
+      } catch (migrateErr) {
+        console.warn('Failed to migrate student to Firestore:', emailLower, migrateErr.message);
+      }
+      return studentData;
+    }
+  } catch (blobErr) {
+    console.warn('Blobs student lookup failed:', blobErr.message);
+  }
+
+  return null;
+}
+
+// Build student response with assignments
+async function buildStudentResponse(studentData, db) {
+  const classAssignments = await getClassAssignments(studentData, db);
+  const allAssignments = [
+    ...new Set([
+      ...classAssignments,
+      ...(studentData.individualAssignments || [])
+    ])
+  ];
+  const { passwordHash, ...safeStudentData } = studentData;
+  return { ...safeStudentData, assignedEssays: allAssignments };
 }
 
 exports.handler = async (event, context) => {
@@ -44,97 +149,76 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Initialize Blobs context for fallback lookups
+  try { connectLambda(event); } catch (e) { /* Blobs not available */ }
+
   try {
     const body = JSON.parse(event.body || '{}');
     const { action, email, password, sessionToken, currentPassword, newPassword } = body;
-    const studentsStore = getStore("students");
-    const sessionsStore = getStore("sessions");
-    const classesStore = getStore("classes");
 
-    // LOGIN - Verify email and password
-    if (action === 'login') {
-      if (!email || !password) {
+    const db = initializeFirebase();
+
+    // FIREBASE LOGIN - Verify Firebase ID token and create custom session
+    if (action === 'firebaseLogin') {
+      const { idToken } = body;
+      if (!idToken) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'Email and password required' })
+          body: JSON.stringify({ success: false, error: 'Firebase ID token required' })
         };
       }
 
-      const emailLower = email.trim().toLowerCase();
-      
-      // Look up student
-      const studentData = await studentsStore.get(emailLower, { type: 'json' });
-      
+      // Verify the Firebase ID token first
+      let decodedToken;
+      try {
+        const auth = getAuth();
+        decodedToken = await auth.verifyIdToken(idToken);
+      } catch (authError) {
+        console.error('Firebase auth error:', authError);
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Invalid Firebase token' })
+        };
+      }
+
+      // Token is valid - look up student and create session
+      const emailLower = decodedToken.email.trim().toLowerCase();
+
+      const studentData = await findStudent(emailLower, db);
       if (!studentData) {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ 
-            success: false, 
-            error: 'Account not found. Please contact your teacher if you believe this is an error.' 
+          body: JSON.stringify({
+            success: false,
+            error: 'Account not found. Please contact your teacher if you believe this is an error.'
           })
         };
       }
 
-      // Verify password
-      const passwordValid = await verifyPassword(password, studentData.passwordHash);
-      
-      if (!passwordValid) {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ success: false, error: 'Incorrect password' })
-        };
-      }
-
-      // Generate session token
+      // Create session in Firestore
       const token = generateSessionToken();
-      const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
-      
-      await sessionsStore.setJSON(token, {
+      const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      await firestoreTimeout(db.collection('sessions').doc(token).set({
         email: emailLower,
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(sessionExpiry).toISOString()
-      });
+        expiresAt: new Date(sessionExpiry).toISOString(),
+        authMethod: 'firebase'
+      }));
 
       // Update last login
-      await studentsStore.setJSON(emailLower, {
-        ...studentData,
+      await firestoreTimeout(db.collection('students').doc(emailLower).update({
         lastLogin: new Date().toISOString()
-      });
+      }));
 
-      // Get class info for assignments
-      let classAssignments = [];
-      if (studentData.classId) {
-        const classData = await classesStore.get(studentData.classId, { type: 'json' });
-        if (classData) {
-          classAssignments = classData.assignedEssays || [];
-        }
-      }
+      const student = await buildStudentResponse(studentData, db);
 
-      // Combine class and individual assignments
-      const allAssignments = [
-        ...new Set([
-          ...classAssignments,
-          ...(studentData.individualAssignments || [])
-        ])
-      ];
-
-      // Return student data (without password hash)
-      const { passwordHash, ...safeStudentData } = studentData;
-      
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          success: true,
-          sessionToken: token,
-          student: {
-            ...safeStudentData,
-            assignedEssays: allAssignments
-          }
-        })
+        body: JSON.stringify({ success: true, sessionToken: token, student })
       };
     }
 
@@ -148,9 +232,41 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const session = await sessionsStore.get(sessionToken, { type: 'json' });
-      
-      if (!session) {
+      // Check if this is a Firebase ID token (JWT format: xxx.xxx.xxx)
+      if (sessionToken.includes('.')) {
+        try {
+          const auth = getAuth();
+          const decodedToken = await auth.verifyIdToken(sessionToken);
+          const emailLower = decodedToken.email.trim().toLowerCase();
+
+          const verifyStudentData = await findStudent(emailLower, db);
+          if (!verifyStudentData) {
+            return {
+              statusCode: 401,
+              headers,
+              body: JSON.stringify({ success: false, error: 'Student not found' })
+            };
+          }
+
+          const student = await buildStudentResponse(verifyStudentData, db);
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ success: true, student })
+          };
+        } catch (firebaseErr) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ success: false, error: 'Invalid or expired session' })
+          };
+        }
+      }
+
+      // Standard Firestore session check
+      const sessionDoc = await firestoreTimeout(db.collection('sessions').doc(sessionToken).get());
+      if (!sessionDoc.exists) {
         return {
           statusCode: 401,
           headers,
@@ -158,9 +274,12 @@ exports.handler = async (event, context) => {
         };
       }
 
+      const session = sessionDoc.data();
+
       // Check expiry
-      if (new Date(session.expiresAt) < new Date()) {
-        await sessionsStore.delete(sessionToken);
+      const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+      if (expiresAt < new Date()) {
+        await firestoreTimeout(db.collection('sessions').doc(sessionToken).delete());
         return {
           statusCode: 401,
           headers,
@@ -169,9 +288,8 @@ exports.handler = async (event, context) => {
       }
 
       // Get student data
-      const studentData = await studentsStore.get(session.email, { type: 'json' });
-      
-      if (!studentData) {
+      const sessionStudentData = await findStudent(session.email, db);
+      if (!sessionStudentData) {
         return {
           statusCode: 401,
           headers,
@@ -179,34 +297,87 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Get class assignments
-      let classAssignments = [];
-      if (studentData.classId) {
-        const classData = await classesStore.get(studentData.classId, { type: 'json' });
-        if (classData) {
-          classAssignments = classData.assignedEssays || [];
-        }
-      }
+      const student = await buildStudentResponse(sessionStudentData, db);
 
-      const allAssignments = [
-        ...new Set([
-          ...classAssignments,
-          ...(studentData.individualAssignments || [])
-        ])
-      ];
-
-      const { passwordHash, ...safeStudentData } = studentData;
-      
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          success: true,
-          student: {
-            ...safeStudentData,
-            assignedEssays: allAssignments
-          }
-        })
+        body: JSON.stringify({ success: true, student })
+      };
+    }
+
+    // LOGIN - Verify email and password
+    if (action === 'login') {
+      if (!email || !password) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Email and password required' })
+        };
+      }
+
+      const emailLower = email.trim().toLowerCase();
+
+      const studentData = await findStudent(emailLower, db);
+      if (!studentData) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Account not found. Please contact your teacher if you believe this is an error.'
+          })
+        };
+      }
+
+      // Verify password (local hash first, then Firebase Auth REST API as fallback)
+      let passwordValid = await verifyPassword(password, studentData.passwordHash);
+      let hashNeedsSync = false;
+
+      if (!passwordValid) {
+        // Hash mismatch - password may have been reset via Firebase Auth email
+        passwordValid = await verifyPasswordViaFirebaseAuth(emailLower, password);
+        if (passwordValid) {
+          hashNeedsSync = true;
+        }
+      }
+
+      if (!passwordValid) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Incorrect password' })
+        };
+      }
+
+      // Sync password hash to Firestore if it was stale (reset via Firebase Auth email)
+      // Also upgrade legacy SHA-256 hashes to PBKDF2
+      if (hashNeedsSync || !studentData.passwordHash || !studentData.passwordHash.includes(':')) {
+        const newHash = await hashPassword(password);
+        await firestoreTimeout(db.collection('students').doc(emailLower).update({ passwordHash: newHash }));
+      }
+
+      // Generate session token
+      const token = generateSessionToken();
+      const sessionExpiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+
+      await firestoreTimeout(db.collection('sessions').doc(token).set({
+        email: emailLower,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(sessionExpiry).toISOString()
+      }));
+
+      // Update last login
+      await firestoreTimeout(db.collection('students').doc(emailLower).update({
+        lastLogin: new Date().toISOString()
+      }));
+
+      const student = await buildStudentResponse(studentData, db);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, sessionToken: token, student })
       };
     }
 
@@ -214,7 +385,7 @@ exports.handler = async (event, context) => {
     if (action === 'logout') {
       if (sessionToken) {
         try {
-          await sessionsStore.delete(sessionToken);
+          await firestoreTimeout(db.collection('sessions').doc(sessionToken).delete());
         } catch (e) {
           // Ignore deletion errors
         }
@@ -245,8 +416,8 @@ exports.handler = async (event, context) => {
       }
 
       // Verify session
-      const session = await sessionsStore.get(sessionToken, { type: 'json' });
-      if (!session || new Date(session.expiresAt) < new Date()) {
+      const sessionDoc = await firestoreTimeout(db.collection('sessions').doc(sessionToken).get());
+      if (!sessionDoc.exists) {
         return {
           statusCode: 401,
           headers,
@@ -254,9 +425,19 @@ exports.handler = async (event, context) => {
         };
       }
 
+      const session = sessionDoc.data();
+      const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+      if (expiresAt < new Date()) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Session expired' })
+        };
+      }
+
       // Get student and verify current password
-      const studentData = await studentsStore.get(session.email, { type: 'json' });
-      if (!studentData) {
+      const pwStudentData = await findStudent(session.email, db);
+      if (!pwStudentData) {
         return {
           statusCode: 404,
           headers,
@@ -264,8 +445,10 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const currentValid = await verifyPassword(currentPassword, studentData.passwordHash);
-      
+      let currentValid = await verifyPassword(currentPassword, pwStudentData.passwordHash);
+      if (!currentValid) {
+        currentValid = await verifyPasswordViaFirebaseAuth(session.email, currentPassword);
+      }
       if (!currentValid) {
         return {
           statusCode: 401,
@@ -276,11 +459,19 @@ exports.handler = async (event, context) => {
 
       // Update password
       const newHash = await hashPassword(newPassword);
-      await studentsStore.setJSON(session.email, {
-        ...studentData,
+      await firestoreTimeout(db.collection('students').doc(session.email).update({
         passwordHash: newHash,
         passwordChangedAt: new Date().toISOString()
-      });
+      }));
+
+      // Also update Firebase Auth password
+      try {
+        const auth = getAuth();
+        const fbUser = await auth.getUserByEmail(session.email);
+        await auth.updateUser(fbUser.uid, { password: newPassword });
+      } catch (fbErr) {
+        console.error('Failed to update Firebase Auth password:', fbErr.message);
+      }
 
       return {
         statusCode: 200,
@@ -300,7 +491,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: 'Server error' })
+      body: JSON.stringify({ success: false, error: 'Server error: ' + error.message })
     };
   }
 };
