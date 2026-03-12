@@ -6386,20 +6386,22 @@
 
         setIsLoading(true);
         try {
-          if (firebaseAuth) {
-            await firebaseAuth.sendPasswordResetEmail(emailLower);
+          // Use server endpoint which ensures Firebase Auth user exists before sending
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'studentResetEmail', email: emailLower })
+          });
+          const result = await response.json();
+          if (result.success) {
             setSuccessMsg('Password reset email sent! Check your inbox (and spam folder).');
             setShowForgotPassword(false);
           } else {
-            setError('Password reset is not available. Please ask your teacher to reset your password.');
+            setError(result.error || 'Failed to send reset email. Please try again or contact your teacher.');
           }
         } catch (err) {
           console.error('Password reset error:', err);
-          if (err.code === 'auth/user-not-found') {
-            setError('No account found with this email. Please contact your teacher.');
-          } else {
-            setError('Failed to send reset email. Please try again or contact your teacher.');
-          }
+          setError('Failed to send reset email. Please try again or contact your teacher.');
         } finally {
           setIsLoading(false);
         }
@@ -7850,36 +7852,36 @@
         }
       };
 
-      // Send password reset email to individual student (uses client-side Firebase Auth)
+      // Send password reset email to individual student (via server endpoint that ensures Firebase Auth user exists)
       const handleSendResetEmail = async (email, name) => {
         if (!confirm('Send password reset email to ' + (name || email) + '?\n\nThey will receive an email with a link to set a new password.')) return;
 
-        if (!firebaseAuth) {
-          alert('Firebase Auth is not available. Please ensure Firebase is configured.');
-          return;
-        }
-
         try {
-          await firebaseAuth.sendPasswordResetEmail(email.trim().toLowerCase());
-          alert('Password reset email sent to ' + email);
+          const sessionToken = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'sendResetEmail', email: email.trim().toLowerCase(), displayName: name })
+          });
+          const result = await response.json();
+          if (result.success) {
+            alert('Password reset email sent to ' + email);
+          } else {
+            alert('Failed to send email: ' + (result.error || 'Unknown error'));
+          }
         } catch (err) {
           console.error('Password reset error:', err);
-          if (err.code === 'auth/user-not-found') {
-            alert('No Firebase Auth account found for ' + email + '.\n\nPlease run "Migrate Users to Firebase Auth" first from the Teacher Management panel.');
-          } else {
-            alert('Failed to send email: ' + (err.message || 'Unknown error'));
-          }
+          alert('Failed to send email: ' + (err.message || 'Unknown error'));
         }
       };
 
-      // Send password reset emails to all students in selected class
+      // Send password reset emails to all students in selected class (via server endpoint)
       const handleBulkSendResetEmails = async () => {
         if (!selectedClass) {
           alert('Please select a class first');
-          return;
-        }
-        if (!firebaseAuth) {
-          alert('Firebase Auth is not available. Please ensure Firebase is configured.');
           return;
         }
         const classStudents = filteredStudents;
@@ -7889,30 +7891,32 @@
         }
         if (!confirm('Send password reset emails to all ' + classStudents.length + ' students in this class?\n\nEach student will receive an email with a link to set their own password.')) return;
 
-        let sent = 0;
-        let failed = 0;
-        const errors = [];
-
-        for (const student of classStudents) {
-          try {
-            await firebaseAuth.sendPasswordResetEmail(student.email.trim().toLowerCase());
-            sent++;
-          } catch (err) {
-            failed++;
-            errors.push(student.email + ': ' + (err.code || err.message));
+        try {
+          const sessionToken = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'sendBulkResetEmails', classId: selectedClass })
+          });
+          const result = await response.json();
+          if (result.success) {
+            let msg = 'Password reset emails:\n\nSent: ' + (result.summary?.sent || 0) + '\nFailed: ' + (result.summary?.failed || 0);
+            if (result.results?.failed?.length > 0 && result.results.failed.length <= 5) {
+              msg += '\n\nErrors:\n' + result.results.failed.map(f => f.email + ': ' + f.error).join('\n');
+            } else if (result.results?.failed?.length > 5) {
+              msg += '\n\nFirst 5 errors:\n' + result.results.failed.slice(0, 5).map(f => f.email + ': ' + f.error).join('\n');
+            }
+            alert(msg);
+          } else {
+            alert('Failed to send reset emails: ' + (result.error || 'Unknown error'));
           }
+        } catch (err) {
+          console.error('Bulk reset error:', err);
+          alert('Failed to send reset emails: ' + (err.message || 'Unknown error'));
         }
-
-        let msg = 'Password reset emails:\n\nSent: ' + sent + '\nFailed: ' + failed;
-        if (errors.length > 0 && errors.length <= 5) {
-          msg += '\n\nErrors:\n' + errors.join('\n');
-        } else if (errors.length > 5) {
-          msg += '\n\nFirst 5 errors:\n' + errors.slice(0, 5).join('\n');
-        }
-        if (failed > 0) {
-          msg += '\n\nNote: Failed emails may need Firebase Auth accounts. Run "Migrate Users to Firebase Auth" first.';
-        }
-        alert(msg);
       };
 
       const handleDeleteStudent = async (email, name) => {
@@ -15876,27 +15880,30 @@ ${examinerComment}
         setActionLoading(null);
       };
 
-      // Send password reset email to teacher via Firebase Auth (client-side)
+      // Send password reset email to teacher via server endpoint (ensures Firebase Auth user exists)
       const handleSendTeacherResetEmail = async (email, name) => {
         if (!confirm('Send password reset email to ' + (name || email) + '?\n\nThey will receive an email with a link to set a new password.')) return;
-
-        if (!firebaseAuth) {
-          alert('Firebase Auth is not available. Please ensure Firebase is configured.');
-          return;
-        }
 
         setActionLoading(email);
 
         try {
-          await firebaseAuth.sendPasswordResetEmail(email.trim().toLowerCase());
-          alert('Password reset email sent to ' + email);
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'sendResetEmail', email: email.trim().toLowerCase(), displayName: name })
+          });
+          const result = await response.json();
+          if (result.success) {
+            alert('Password reset email sent to ' + email);
+          } else {
+            alert('Failed to send email: ' + (result.error || 'Unknown error'));
+          }
         } catch (err) {
           console.error('Password reset error:', err);
-          if (err.code === 'auth/user-not-found') {
-            alert('No Firebase Auth account found for ' + email + '.\n\nPlease run "Migrate Users to Firebase Auth" first.');
-          } else {
-            alert('Failed to send email: ' + (err.message || 'Unknown error'));
-          }
+          alert('Failed to send email: ' + (err.message || 'Unknown error'));
         }
 
         setActionLoading(null);
@@ -16601,19 +16608,24 @@ ${examinerComment}
 
       const handleSendResetEmail = async (email, name) => {
         if (!confirm('Send password reset email to ' + (name || email) + '?')) return;
-        if (!firebaseAuth) {
-          alert('Firebase Auth is not available.');
-          return;
-        }
         try {
-          await firebaseAuth.sendPasswordResetEmail(email.trim().toLowerCase());
-          alert('Password reset email sent to ' + email);
-        } catch (err) {
-          if (err.code === 'auth/user-not-found') {
-            alert('No Firebase Auth account found for ' + email + '. Run "Migrate Users to Firebase Auth" first.');
+          const sessionToken = TeacherAuth.getSessionToken();
+          const response = await fetch('/.netlify/functions/send-password-reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + sessionToken
+            },
+            body: JSON.stringify({ action: 'sendResetEmail', email: email.trim().toLowerCase(), displayName: name })
+          });
+          const result = await response.json();
+          if (result.success) {
+            alert('Password reset email sent to ' + email);
           } else {
-            alert('Failed to send email: ' + (err.message || 'Unknown error'));
+            alert('Failed to send email: ' + (result.error || 'Unknown error'));
           }
+        } catch (err) {
+          alert('Failed to send email: ' + (err.message || 'Unknown error'));
         }
       };
 
