@@ -1,8 +1,38 @@
 // Send password reset emails via Firebase Auth
 // Supports individual and bulk (class) password reset emails
+// Also supports student self-service password reset (no auth required)
 
 const { getStore, connectLambda } = require('@netlify/blobs');
 const { initializeFirebase, getAuth } = require('./firebase-helper');
+
+// Send password reset email via Firebase Auth REST API
+// Unlike admin SDK's generatePasswordResetLink(), this actually sends the email
+async function sendResetEmailViaREST(email) {
+  const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('Firebase API key not configured');
+  }
+
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestType: 'PASSWORD_RESET',
+        email: email
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData?.error?.message || 'Failed to send reset email';
+    throw new Error(errorMessage);
+  }
+
+  return true;
+}
 
 // Verify teacher session (any teacher, not just admin)
 async function verifyTeacherSession(sessionToken) {
@@ -112,20 +142,79 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  // Verify teacher session
-  const sessionToken = getSessionToken(event);
-  const authResult = await verifyTeacherSession(sessionToken);
-  if (!authResult.valid) {
-    return {
-      statusCode: 403,
-      headers,
-      body: JSON.stringify({ success: false, error: authResult.error })
-    };
-  }
-
   try {
     const body = JSON.parse(event.body);
     const { action } = body;
+
+    // Student self-service password reset (no auth required)
+    // Ensures Firebase Auth user exists before sending email
+    if (action === 'studentResetEmail') {
+      const { email } = body;
+
+      if (!email) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Email required' })
+        };
+      }
+
+      const emailLower = email.trim().toLowerCase();
+
+      // Verify the student actually exists in our system before creating Firebase Auth account
+      const db = initializeFirebase();
+      let studentExists = false;
+      try {
+        const studentDoc = await db.collection('students').doc(emailLower).get();
+        studentExists = studentDoc.exists;
+      } catch (e) {
+        console.warn('Firestore check failed:', e.message);
+      }
+
+      if (!studentExists) {
+        // Also check Blobs fallback
+        try {
+          const studentsStore = getStore('students');
+          const blobData = await studentsStore.get(emailLower, { type: 'json' });
+          studentExists = !!blobData;
+        } catch (e) {
+          // Blobs not available
+        }
+      }
+
+      if (!studentExists) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ success: false, error: 'No account found with this email. Please contact your teacher.' })
+        };
+      }
+
+      // Ensure Firebase Auth user exists
+      const auth = getAuth();
+      await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+
+      // Send password reset email via REST API
+      await sendResetEmailViaREST(emailLower);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, message: 'Password reset email sent' })
+      };
+    }
+
+    // All other actions require teacher authentication
+    const sessionToken = getSessionToken(event);
+    const authResult = await verifyTeacherSession(sessionToken);
+    if (!authResult.valid) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ success: false, error: authResult.error })
+      };
+    }
+
     const auth = getAuth();
 
     // Send password reset email to a single student
@@ -145,8 +234,16 @@ exports.handler = async (event, context) => {
       // Ensure user exists in Firebase Auth
       await ensureFirebaseAuthUser(auth, emailLower, displayName);
 
-      // Generate password reset link
-      const resetLink = await auth.generatePasswordResetLink(emailLower);
+      // Send password reset email via REST API (actually delivers the email)
+      await sendResetEmailViaREST(emailLower);
+
+      // Also generate link so teacher can share it directly if needed
+      let resetLink = null;
+      try {
+        resetLink = await auth.generatePasswordResetLink(emailLower);
+      } catch (linkErr) {
+        console.warn('Could not generate reset link:', linkErr.message);
+      }
 
       return {
         statusCode: 200,
@@ -154,7 +251,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           message: 'Password reset email sent to ' + emailLower,
-          resetLink // Return link so teacher can also share it directly if needed
+          resetLink // Also available for teacher to share directly if needed
         })
       };
     }
@@ -220,8 +317,8 @@ exports.handler = async (event, context) => {
           // Ensure user exists in Firebase Auth
           await ensureFirebaseAuthUser(auth, emailLower, studentName);
 
-          // Generate password reset link
-          await auth.generatePasswordResetLink(emailLower);
+          // Send password reset email via REST API (actually delivers the email)
+          await sendResetEmailViaREST(emailLower);
 
           results.sent.push({ email: emailLower, name: studentName });
         } catch (err) {
@@ -269,8 +366,8 @@ exports.handler = async (event, context) => {
           // Ensure user exists
           await ensureFirebaseAuthUser(auth, email, displayName);
 
-          // Generate password reset link
-          await auth.generatePasswordResetLink(email);
+          // Send password reset email via REST API (actually delivers the email)
+          await sendResetEmailViaREST(email);
 
           results.sent.push({ email, name: displayName });
         } catch (err) {

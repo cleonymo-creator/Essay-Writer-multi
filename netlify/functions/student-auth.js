@@ -44,7 +44,10 @@ function verifyPassword(password, storedHash) {
 // Verify password via Firebase Auth REST API (fallback when local hash is stale after email reset)
 async function verifyPasswordViaFirebaseAuth(email, password) {
   const apiKey = process.env.FIREBASE_API_KEY || process.env.ENV_FIREBASE_API_KEY;
-  if (!apiKey) return false;
+  if (!apiKey) {
+    console.warn('Firebase API key not configured - cannot verify password via Firebase Auth fallback for', email);
+    return false;
+  }
   try {
     const response = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
@@ -54,8 +57,13 @@ async function verifyPasswordViaFirebaseAuth(email, password) {
         body: JSON.stringify({ email, password, returnSecureToken: false })
       }
     );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('Firebase Auth verification failed for', email, ':', errorData?.error?.message || response.status);
+    }
     return response.ok;
-  } catch {
+  } catch (err) {
+    console.error('Firebase Auth verification error for', email, ':', err.message);
     return false;
   }
 }
