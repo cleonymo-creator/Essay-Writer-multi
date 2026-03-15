@@ -8141,6 +8141,17 @@
           }
 
           if (result.success) {
+            // Create Firebase Auth account for the new student (non-blocking)
+            const sessionToken = TeacherAuth.getSessionToken();
+            fetch('/.netlify/functions/send-password-reset', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + sessionToken
+              },
+              body: JSON.stringify({ action: 'ensureAuthAccounts', emails: [{ email: email.trim().toLowerCase(), name }] })
+            }).catch(err => console.warn('Firebase Auth account creation deferred:', err.message));
+
             onSuccess(result.student, result.generatedPassword);
           } else {
             setError(result.error || 'Failed to create student');
@@ -8349,6 +8360,21 @@
 
           if (result.success) {
             setResults(result);
+
+            // Create Firebase Auth accounts for newly imported students (non-blocking)
+            // This ensures they can receive password reset emails immediately
+            if (result.results?.created?.length > 0) {
+              const sessionToken = TeacherAuth.getSessionToken();
+              const emails = result.results.created.map(s => ({ email: s.email, name: s.name }));
+              fetch('/.netlify/functions/send-password-reset', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + sessionToken
+                },
+                body: JSON.stringify({ action: 'ensureAuthAccounts', emails })
+              }).catch(err => console.warn('Firebase Auth account creation deferred:', err.message));
+            }
           } else {
             setError(result.error || 'Import failed');
           }

@@ -3,7 +3,7 @@
 // Also supports student self-service password reset (no auth required)
 
 const { getStore, connectLambda } = require('@netlify/blobs');
-const { initializeFirebase, getAuth } = require('./firebase-helper');
+const { initializeFirebase, getAuth, firestoreTimeout } = require('./firebase-helper');
 
 // Send password reset email via Firebase Auth REST API
 // Unlike admin SDK's generatePasswordResetLink(), this actually sends the email
@@ -43,14 +43,14 @@ async function verifyTeacherSession(sessionToken) {
   try {
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+      const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
       if (sessionDoc.exists) {
         const session = sessionDoc.data();
         if (new Date(session.expiresAt.toDate ? session.expiresAt.toDate() : session.expiresAt) < new Date()) {
           return { valid: false, error: 'Session expired' };
         }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
         if (!teacherDoc.exists) {
           return { valid: false, error: 'Teacher not found' };
         }
@@ -165,10 +165,10 @@ exports.handler = async (event, context) => {
       const db = initializeFirebase();
       let studentExists = false;
       try {
-        const studentDoc = await db.collection('students').doc(emailLower).get();
+        const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
         studentExists = studentDoc.exists;
       } catch (e) {
-        console.warn('Firestore check failed:', e.message);
+        console.warn('Firestore student check failed, trying Blobs:', e.message);
       }
 
       if (!studentExists) {
@@ -192,7 +192,12 @@ exports.handler = async (event, context) => {
 
       // Ensure Firebase Auth user exists
       const auth = getAuth();
-      await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+      const authResult = await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+
+      // Brief delay if account was just created to allow Firebase Auth propagation
+      if (authResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send password reset email via REST API
       await sendResetEmailViaREST(emailLower);
@@ -232,7 +237,12 @@ exports.handler = async (event, context) => {
       const emailLower = email.trim().toLowerCase();
 
       // Ensure user exists in Firebase Auth
-      await ensureFirebaseAuthUser(auth, emailLower, displayName);
+      const userResult = await ensureFirebaseAuthUser(auth, emailLower, displayName);
+
+      // Brief delay if account was just created to allow Firebase Auth propagation
+      if (userResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send password reset email via REST API (actually delivers the email)
       await sendResetEmailViaREST(emailLower);
@@ -274,14 +284,18 @@ exports.handler = async (event, context) => {
       // Get class data to find students
       let classData = null;
       try {
-        const classDoc = await db.collection('classes').doc(classId).get();
+        const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
         if (classDoc.exists) {
           classData = classDoc.data();
         }
       } catch (e) {
         // Try Netlify Blobs
-        const classesStore = getStore("classes");
-        classData = await classesStore.get(classId, { type: 'json' });
+        try {
+          const classesStore = getStore("classes");
+          classData = await classesStore.get(classId, { type: 'json' });
+        } catch (blobErr) {
+          console.warn('Both Firestore and Blobs failed for class lookup:', blobErr.message);
+        }
       }
 
       if (!classData || !classData.students || classData.students.length === 0) {
@@ -307,7 +321,7 @@ exports.handler = async (event, context) => {
             }
           } catch (e) {
             try {
-              const studentDoc = await db.collection('students').doc(emailLower).get();
+              const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
               if (studentDoc.exists) {
                 studentName = studentDoc.data().name || studentName;
               }
@@ -315,7 +329,12 @@ exports.handler = async (event, context) => {
           }
 
           // Ensure user exists in Firebase Auth
-          await ensureFirebaseAuthUser(auth, emailLower, studentName);
+          const userResult = await ensureFirebaseAuthUser(auth, emailLower, studentName);
+
+          // Brief delay if account was just created to allow Firebase Auth propagation
+          if (userResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send password reset email via REST API (actually delivers the email)
           await sendResetEmailViaREST(emailLower);
@@ -364,7 +383,12 @@ exports.handler = async (event, context) => {
           const displayName = typeof emailEntry === 'object' ? emailEntry.name : email.split('@')[0];
 
           // Ensure user exists
-          await ensureFirebaseAuthUser(auth, email, displayName);
+          const userResult = await ensureFirebaseAuthUser(auth, email, displayName);
+
+          // Brief delay if account was just created to allow Firebase Auth propagation
+          if (userResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send password reset email via REST API (actually delivers the email)
           await sendResetEmailViaREST(email);
@@ -386,6 +410,54 @@ exports.handler = async (event, context) => {
           summary: {
             total: emails.length,
             sent: results.sent.length,
+            failed: results.failed.length
+          }
+        })
+      };
+    }
+
+    // Create Firebase Auth accounts without sending reset emails
+    // Used after frontend CSV import to ensure accounts exist
+    if (action === 'ensureAuthAccounts') {
+      const { emails } = body;
+
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Email list required' })
+        };
+      }
+
+      const results = { created: [], existing: [], failed: [] };
+
+      for (const emailEntry of emails) {
+        try {
+          const email = (typeof emailEntry === 'string' ? emailEntry : emailEntry.email).trim().toLowerCase();
+          const displayName = typeof emailEntry === 'object' ? emailEntry.name : email.split('@')[0];
+
+          const result = await ensureFirebaseAuthUser(auth, email, displayName);
+          if (result.created) {
+            results.created.push(email);
+          } else {
+            results.existing.push(email);
+          }
+        } catch (err) {
+          const email = typeof emailEntry === 'string' ? emailEntry : emailEntry.email;
+          results.failed.push({ email, error: err.message });
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          results,
+          summary: {
+            total: emails.length,
+            created: results.created.length,
+            existing: results.existing.length,
             failed: results.failed.length
           }
         })
