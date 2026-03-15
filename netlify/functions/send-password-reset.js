@@ -192,7 +192,12 @@ exports.handler = async (event, context) => {
 
       // Ensure Firebase Auth user exists
       const auth = getAuth();
-      await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+      const authResult = await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+
+      // Brief delay if account was just created to allow Firebase Auth propagation
+      if (authResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send password reset email via REST API
       await sendResetEmailViaREST(emailLower);
@@ -232,7 +237,12 @@ exports.handler = async (event, context) => {
       const emailLower = email.trim().toLowerCase();
 
       // Ensure user exists in Firebase Auth
-      await ensureFirebaseAuthUser(auth, emailLower, displayName);
+      const userResult = await ensureFirebaseAuthUser(auth, emailLower, displayName);
+
+      // Brief delay if account was just created to allow Firebase Auth propagation
+      if (userResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send password reset email via REST API (actually delivers the email)
       await sendResetEmailViaREST(emailLower);
@@ -319,7 +329,12 @@ exports.handler = async (event, context) => {
           }
 
           // Ensure user exists in Firebase Auth
-          await ensureFirebaseAuthUser(auth, emailLower, studentName);
+          const userResult = await ensureFirebaseAuthUser(auth, emailLower, studentName);
+
+          // Brief delay if account was just created to allow Firebase Auth propagation
+          if (userResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send password reset email via REST API (actually delivers the email)
           await sendResetEmailViaREST(emailLower);
@@ -368,7 +383,12 @@ exports.handler = async (event, context) => {
           const displayName = typeof emailEntry === 'object' ? emailEntry.name : email.split('@')[0];
 
           // Ensure user exists
-          await ensureFirebaseAuthUser(auth, email, displayName);
+          const userResult = await ensureFirebaseAuthUser(auth, email, displayName);
+
+          // Brief delay if account was just created to allow Firebase Auth propagation
+          if (userResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send password reset email via REST API (actually delivers the email)
           await sendResetEmailViaREST(email);
@@ -390,6 +410,54 @@ exports.handler = async (event, context) => {
           summary: {
             total: emails.length,
             sent: results.sent.length,
+            failed: results.failed.length
+          }
+        })
+      };
+    }
+
+    // Create Firebase Auth accounts without sending reset emails
+    // Used after frontend CSV import to ensure accounts exist
+    if (action === 'ensureAuthAccounts') {
+      const { emails } = body;
+
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Email list required' })
+        };
+      }
+
+      const results = { created: [], existing: [], failed: [] };
+
+      for (const emailEntry of emails) {
+        try {
+          const email = (typeof emailEntry === 'string' ? emailEntry : emailEntry.email).trim().toLowerCase();
+          const displayName = typeof emailEntry === 'object' ? emailEntry.name : email.split('@')[0];
+
+          const result = await ensureFirebaseAuthUser(auth, email, displayName);
+          if (result.created) {
+            results.created.push(email);
+          } else {
+            results.existing.push(email);
+          }
+        } catch (err) {
+          const email = typeof emailEntry === 'string' ? emailEntry : emailEntry.email;
+          results.failed.push({ email, error: err.message });
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          results,
+          summary: {
+            total: emails.length,
+            created: results.created.length,
+            existing: results.existing.length,
             failed: results.failed.length
           }
         })
