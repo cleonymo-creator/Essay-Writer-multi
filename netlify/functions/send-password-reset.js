@@ -3,7 +3,7 @@
 // Also supports student self-service password reset (no auth required)
 
 const { getStore, connectLambda } = require('@netlify/blobs');
-const { initializeFirebase, getAuth } = require('./firebase-helper');
+const { initializeFirebase, getAuth, firestoreTimeout } = require('./firebase-helper');
 
 // Send password reset email via Firebase Auth REST API
 // Unlike admin SDK's generatePasswordResetLink(), this actually sends the email
@@ -43,14 +43,14 @@ async function verifyTeacherSession(sessionToken) {
   try {
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+      const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
       if (sessionDoc.exists) {
         const session = sessionDoc.data();
         if (new Date(session.expiresAt.toDate ? session.expiresAt.toDate() : session.expiresAt) < new Date()) {
           return { valid: false, error: 'Session expired' };
         }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
         if (!teacherDoc.exists) {
           return { valid: false, error: 'Teacher not found' };
         }
@@ -165,10 +165,10 @@ exports.handler = async (event, context) => {
       const db = initializeFirebase();
       let studentExists = false;
       try {
-        const studentDoc = await db.collection('students').doc(emailLower).get();
+        const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
         studentExists = studentDoc.exists;
       } catch (e) {
-        console.warn('Firestore check failed:', e.message);
+        console.warn('Firestore student check failed, trying Blobs:', e.message);
       }
 
       if (!studentExists) {
@@ -274,14 +274,18 @@ exports.handler = async (event, context) => {
       // Get class data to find students
       let classData = null;
       try {
-        const classDoc = await db.collection('classes').doc(classId).get();
+        const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
         if (classDoc.exists) {
           classData = classDoc.data();
         }
       } catch (e) {
         // Try Netlify Blobs
-        const classesStore = getStore("classes");
-        classData = await classesStore.get(classId, { type: 'json' });
+        try {
+          const classesStore = getStore("classes");
+          classData = await classesStore.get(classId, { type: 'json' });
+        } catch (blobErr) {
+          console.warn('Both Firestore and Blobs failed for class lookup:', blobErr.message);
+        }
       }
 
       if (!classData || !classData.students || classData.students.length === 0) {
@@ -307,7 +311,7 @@ exports.handler = async (event, context) => {
             }
           } catch (e) {
             try {
-              const studentDoc = await db.collection('students').doc(emailLower).get();
+              const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
               if (studentDoc.exists) {
                 studentName = studentDoc.data().name || studentName;
               }
