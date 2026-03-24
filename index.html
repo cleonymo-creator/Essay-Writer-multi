@@ -5080,7 +5080,9 @@
         try {
           const docRef = await db.collection('submissions').add({
             ...submissionData,
-            submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+            studentEmail: (submissionData.studentEmail || '').toLowerCase(),
+            submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            serverTimestamp: new Date().toISOString()
           });
           // Remove from progress collection
           const progressDocId = `${submissionData.studentEmail}_${submissionData.essayId}`;
@@ -5109,6 +5111,25 @@
         } catch (error) {
           console.error('Firebase getSubmissions error:', error);
           return null;
+        }
+      },
+
+      // Get submissions for a specific student (no limit issues)
+      async getStudentSubmissions(studentEmail) {
+        await firebaseReadyPromise;
+        if (!db || !studentEmail) return [];
+        try {
+          const snapshot = await db.collection('submissions')
+            .where('studentEmail', '==', studentEmail.toLowerCase())
+            .get();
+          return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
+          }));
+        } catch (error) {
+          console.error('Firebase getStudentSubmissions error:', error);
+          return [];
         }
       },
       
@@ -6607,19 +6628,25 @@
             }
             setProgressData(progressMap);
 
-            // Load submissions
+            // Load submissions for this student
             let submissions = [];
             if (firebaseReady) {
-              submissions = await FirebaseDB.getSubmissions() || [];
+              submissions = await FirebaseDB.getStudentSubmissions(student.email) || [];
             } else {
-              const response = await fetch('/.netlify/functions/get-submissions');
-              const data = await response.json();
-              if (data.success) submissions = data.submissions || [];
+              // Fallback: use Netlify function with student email filter
+              try {
+                const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&submissions=true');
+                const data = await response.json();
+                if (data.success) submissions = data.submissions || [];
+              } catch (e) {
+                console.log('Submissions fallback error:', e);
+              }
             }
-            
+
             const studentSubmissions = {};
+            const studentEmailLower = student.email.toLowerCase();
             submissions.forEach(sub => {
-              if (sub.studentEmail === student.email) {
+              if ((sub.studentEmail || '').toLowerCase() === studentEmailLower) {
                 studentSubmissions[sub.essayId] = sub;
               }
             });
@@ -17608,24 +17635,37 @@ ${examinerComment}
         if (studentEmail) {
           try {
             const firebaseReady = await FirebaseDB.isReady();
+            let serverProgress = null;
             if (firebaseReady) {
-              const serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, essayId);
-              if (serverProgress && serverProgress.paragraphStates && Object.keys(serverProgress.paragraphStates).length > 0) {
-                console.log('Loading progress from Firebase:', serverProgress);
-                setStudentName(serverProgress.studentName || studentName);
-                if (serverProgress.targetGrade) setTargetGrade(serverProgress.targetGrade);
-                if (serverProgress.gradeSystem) setGradeSystem(serverProgress.gradeSystem);
-                setParagraphStates(serverProgress.paragraphStates);
-                setCurrentParagraphIndex(serverProgress.currentParagraphIndex || 0);
-                
-                const paragraphs = essayConfig?.paragraphs || [];
-                const allComplete = paragraphs.every(p => serverProgress.paragraphStates[p.id]?.completed);
-                setScreen(allComplete ? 'compilation' : 'writing');
-                hasProgress = true;
+              serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, essayId);
+            }
+            // Fallback to Netlify function if Firebase didn't return progress
+            if (!serverProgress && studentEmail) {
+              try {
+                const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(studentEmail) + '&essayId=' + encodeURIComponent(essayId));
+                const data = await response.json();
+                if (data.success && data.found && data.progress) {
+                  serverProgress = data.progress;
+                }
+              } catch (fetchErr) {
+                console.log('Netlify progress fallback error:', fetchErr);
               }
             }
+            if (serverProgress && serverProgress.paragraphStates && Object.keys(serverProgress.paragraphStates).length > 0) {
+              console.log('Loading progress from server:', serverProgress);
+              setStudentName(serverProgress.studentName || studentName);
+              if (serverProgress.targetGrade) setTargetGrade(serverProgress.targetGrade);
+              if (serverProgress.gradeSystem) setGradeSystem(serverProgress.gradeSystem);
+              setParagraphStates(serverProgress.paragraphStates);
+              setCurrentParagraphIndex(serverProgress.currentParagraphIndex || 0);
+
+              const paragraphs = essayConfig?.paragraphs || [];
+              const allComplete = paragraphs.every(p => serverProgress.paragraphStates[p.id]?.completed);
+              setScreen(allComplete ? 'compilation' : 'writing');
+              hasProgress = true;
+            }
           } catch (e) {
-            console.log('Error loading Firebase progress:', e);
+            console.log('Error loading progress:', e);
           }
         }
         
@@ -18058,23 +18098,34 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         submittedAt: new Date().toISOString()
       };
 
+      let submissionSaved = false;
       try {
-        // Save to Firebase if available, otherwise Netlify Blobs
+        // Save to Firebase if available, with Netlify function fallback
         const firebaseReady = await FirebaseDB.isReady();
         if (firebaseReady) {
-          await FirebaseDB.submitEssay(submissionData);
-        } else {
-          await fetch('/.netlify/functions/submit-homework', {
+          const result = await FirebaseDB.submitEssay(submissionData);
+          submissionSaved = !!result;
+        }
+        // Fallback to Netlify function if Firebase failed or wasn't ready
+        if (!submissionSaved) {
+          const resp = await fetch('/.netlify/functions/submit-homework', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(submissionData)
           });
+          const respData = await resp.json();
+          submissionSaved = resp.ok && respData.success;
         }
       } catch (submitError) {
         console.error('Failed to save submission:', submitError);
       }
-      
-      localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+
+      // Only clear localStorage if submission was actually saved
+      if (submissionSaved) {
+        localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+      } else {
+        console.error('Submission was not saved - keeping localStorage as backup');
+      }
     } else {
       throw new Error(data.error || 'Failed to grade essay');
     }
@@ -18190,23 +18241,34 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               submittedAt: new Date().toISOString()
             };
             
+            let submissionSaved = false;
             try {
-              // Save to Firebase if available, otherwise Netlify Blobs
+              // Save to Firebase if available, with Netlify function fallback
               const firebaseReady = await FirebaseDB.isReady();
               if (firebaseReady) {
-                await FirebaseDB.submitEssay(submissionData);
-              } else {
-                await fetch('/.netlify/functions/submit-homework', {
+                const result = await FirebaseDB.submitEssay(submissionData);
+                submissionSaved = !!result;
+              }
+              // Fallback to Netlify function if Firebase failed or wasn't ready
+              if (!submissionSaved) {
+                const resp = await fetch('/.netlify/functions/submit-homework', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(submissionData)
                 });
+                const respData = await resp.json();
+                submissionSaved = resp.ok && respData.success;
               }
             } catch (submitError) {
               console.error('Failed to save submission:', submitError);
             }
-            
-            localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+
+            // Only clear localStorage if submission was actually saved
+            if (submissionSaved) {
+              localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+            } else {
+              console.error('Submission was not saved - keeping localStorage as backup');
+            }
           } else {
             throw new Error(data.error || 'Failed to grade essay');
           }

@@ -38,17 +38,58 @@ exports.handler = async (event, context) => {
       const params = event.queryStringParameters || {};
       const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
       
+      // Student submissions retrieval by email (no auth needed for own submissions)
+      if (params.email && params.submissions === 'true') {
+        const emailLower = params.email.toLowerCase();
+        try {
+          const snapshot = await firestoreTimeout(
+            db.collection('submissions')
+              .where('studentEmail', '==', emailLower)
+              .get(),
+            6000
+          );
+          const submissions = [];
+          snapshot.forEach(doc => submissions.push(doc.data()));
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ success: true, submissions })
+          };
+        } catch (e) {
+          console.error('[save-progress] Submissions lookup error:', e.message);
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ success: true, submissions: [] })
+          };
+        }
+      }
+
       // Student progress retrieval by email
       if (params.email) {
-        const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
+        const emailLower = params.email.toLowerCase();
+        const sanitizedEmail = emailLower.replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
         const docId = `${sanitizedEmail}${essayId ? `_${essayId}` : ''}`;
-        
+        // Also try unsanitized doc ID (used by client-side Firebase SDK)
+        const altDocId = `${emailLower}${essayId ? `_${essayId}` : ''}`;
+
         console.log('[save-progress] Looking up progress for:', docId);
-        
-        const docRef = db.collection('progress').doc(docId);
-        const doc = await firestoreTimeout(docRef.get());
-        
+
+        let doc = await firestoreTimeout(db.collection('progress').doc(docId).get());
+
+        // If not found with sanitized ID, try unsanitized ID (client-side saves)
+        if ((!doc.exists || doc.data().completed) && altDocId !== docId) {
+          console.log('[save-progress] Trying alternate doc ID:', altDocId);
+          doc = await firestoreTimeout(db.collection('progress').doc(altDocId).get());
+        }
+
         if (doc.exists && !doc.data().completed) {
           console.log('[save-progress] Found progress for:', params.email);
           return {
@@ -64,6 +105,41 @@ exports.handler = async (event, context) => {
             })
           };
         } else {
+          // Final fallback: query by field (catches any doc ID format)
+          let foundProgress = null;
+          if (essayId) {
+            try {
+              const snapshot = await firestoreTimeout(
+                db.collection('progress')
+                  .where('studentEmail', '==', emailLower)
+                  .where('essayId', '==', essayId)
+                  .limit(1)
+                  .get()
+              );
+              if (!snapshot.empty && !snapshot.docs[0].data().completed) {
+                foundProgress = snapshot.docs[0].data();
+              }
+            } catch (queryErr) {
+              console.log('[save-progress] Field query fallback error:', queryErr.message);
+            }
+          }
+
+          if (foundProgress) {
+            console.log('[save-progress] Found progress via field query for:', params.email);
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+              },
+              body: JSON.stringify({
+                success: true,
+                found: true,
+                progress: foundProgress
+              })
+            };
+          }
+
           console.log('[save-progress] No active progress found for:', params.email);
           return {
             statusCode: 200,
