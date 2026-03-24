@@ -117,6 +117,11 @@ exports.handler = async (event, context) => {
     submission.serverTimestamp = new Date().toISOString();
     submission.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Normalize email for consistent querying
+    if (submission.studentEmail) {
+      submission.studentEmail = submission.studentEmail.toLowerCase();
+    }
+
     // Save to Firestore
     await db.collection('submissions').doc(submission.id).set(submission);
 
