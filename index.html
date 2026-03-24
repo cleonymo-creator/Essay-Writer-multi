@@ -5101,7 +5101,7 @@
         try {
           const snapshot = await db.collection('submissions')
             .orderBy('submittedAt', 'desc')
-            .limit(100)
+            .limit(500)
             .get();
           return snapshot.docs.map(doc => ({
             id: doc.id,
@@ -5197,7 +5197,7 @@
         if (!db) return () => {};
         return db.collection('submissions')
           .orderBy('submittedAt', 'desc')
-          .limit(100)
+          .limit(500)
           .onSnapshot(snapshot => {
             const submissions = snapshot.docs.map(doc => ({
               id: doc.id,
@@ -11779,6 +11779,33 @@ ${examinerComment}
         .filter(matchesClassFilter)
         .filter(matchesStudentSearch);
 
+      // Group submissions by student+essay, keeping only the latest per group
+      const [groupedSubmissions, submissionGroups] = useMemo(() => {
+        const groups = {};
+        filteredSubmissions.forEach(sub => {
+          const key = `${(sub.studentEmail || '').toLowerCase()}_${sub.essayId || ''}`;
+          if (!groups[key]) {
+            groups[key] = [];
+          }
+          groups[key].push(sub);
+        });
+        // Sort each group by date descending, pick the latest as the display entry
+        const latest = [];
+        Object.entries(groups).forEach(([key, subs]) => {
+          subs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+          latest.push({ ...subs[0], _groupKey: key, _attemptCount: subs.length });
+        });
+        // Sort grouped results by date descending
+        latest.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+        return [latest, groups];
+      }, [filteredSubmissions]);
+
+      const [expandedGroups, setExpandedGroups] = useState({});
+
+      const toggleGroup = (groupKey) => {
+        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+      };
+
       const filteredInProgress = inProgress
         .filter(p => filterEssayId === 'all' || p.essayId === filterEssayId)
         .filter(matchesSubjectFilter)
@@ -12074,7 +12101,7 @@ ${examinerComment}
             {/* Active filter summary */}
             {hasActiveFilters && (
               <div style={parseStyle("margin-top: var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted);")}>
-                Showing {filteredInProgress.length} in progress, {filteredSubmissions.length} completed
+                Showing {filteredInProgress.length} in progress, {groupedSubmissions.length} completed ({filteredSubmissions.length} total submissions)
                 {filterSubject !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterSubject}</span>}
                 {filterYearGroup !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterYearGroup}</span>}
                 {filterClass !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{classMap[filterClass]?.name || filterClass}</span>}
@@ -12298,11 +12325,11 @@ ${examinerComment}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowCompleted(!showCompleted)}
             >
-              <span>Completed Essays ({filteredSubmissions.length})</span>
+              <span>Completed Essays ({groupedSubmissions.length})</span>
               <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
             </h3>
 
-            {!showCompleted ? null : filteredSubmissions.length === 0 ? (
+            {!showCompleted ? null : groupedSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl); margin-top: var(--space-md);")}>
                 No essays submitted yet.
               </p>
@@ -12316,36 +12343,94 @@ ${examinerComment}
                       {filterEssayId === 'all' && <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
                       <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
                       <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
+                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Improvement</th>
                       <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
                       <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
                       <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSubmissions.map((sub, index) => {
+                    {groupedSubmissions.map((sub, index) => {
                       const essayInfo = getEssayList().find(e => e.id === sub.essayId);
                       const hasFeedback = !!sub.feedback;
                       const hasOfficial = !!sub.officialGrading;
+                      const hasMultiple = sub._attemptCount > 1;
+                      const isExpanded = expandedGroups[sub._groupKey];
+                      const olderAttempts = hasMultiple ? submissionGroups[sub._groupKey].slice(1) : [];
+                      // Show improvement: first draft score vs final score
+                      const showImprovement = sub.firstDraftScore != null && sub.firstDraftScore !== sub.score;
+                      const improvementDiff = showImprovement ? sub.score - sub.firstDraftScore : 0;
                       return (
-                        <tr key={index} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                          <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
-                          {filterEssayId === 'all' && (
-                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                              {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                        <React.Fragment key={sub._groupKey}>
+                          <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                            <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
+                            {filterEssayId === 'all' && (
+                              <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                                {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                              </td>
+                            )}
+                            <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center; font-size: 0.85rem;")}>
+                              {showImprovement ? (
+                                <span title={`First draft: ${sub.firstDraftScore}% → Final: ${sub.score}%`}>
+                                  <span style={parseStyle("color: var(--color-text-muted);")}>{sub.firstDraftScore}%</span>
+                                  <span style={parseStyle("margin: 0 4px;")}>&rarr;</span>
+                                  <span style={parseStyle("font-weight: 600; color: var(--color-success);")}>{sub.score}%</span>
+                                  <span style={parseStyle(`margin-left: 4px; font-size: 0.8rem; color: ${improvementDiff > 0 ? 'var(--color-success)' : 'var(--color-error)'};`)}>
+                                    ({improvementDiff > 0 ? '+' : ''}{improvementDiff})
+                                  </span>
+                                </span>
+                              ) : (
+                                <span style={parseStyle("color: var(--color-text-muted);")}>{sub.essaysAreDifferent ? 'Edited' : '-'}</span>
+                              )}
                             </td>
-                          )}
-                          <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}> Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}> Official Grading</span>
-                          </td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
-                          </td>
-                        </tr>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}> Feedback</span>
+                              <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}> Official Grading</span>
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <div style={parseStyle("display: flex; gap: 4px; justify-content: center; align-items: center;")}>
+                                <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
+                                {hasMultiple && (
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.75rem;")}
+                                    onClick={() => toggleGroup(sub._groupKey)}
+                                    title={`${sub._attemptCount} submissions for this essay`}
+                                  >
+                                    {isExpanded ? '\u25B2' : '\u25BC'} {sub._attemptCount}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {/* Older attempts (expanded) */}
+                          {hasMultiple && isExpanded && olderAttempts.map((older, oi) => {
+                            const olderHasFeedback = !!older.feedback;
+                            const olderHasOfficial = !!older.officialGrading;
+                            return (
+                              <tr key={`${sub._groupKey}_older_${oi}`} style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: var(--color-bg-secondary);")}>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); padding-left: var(--space-xl); font-size: 0.85rem; color: var(--color-text-muted);")}>&rdsh; Previous attempt</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); font-size: 0.8rem; color: var(--color-text-muted);")}>{older.studentEmail || '-'}</td>
+                                {filterEssayId === 'all' && <td></td>}
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.score}%</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.grade || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.firstDraftScore != null ? `${older.firstDraftScore}%` : '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <span style={{ opacity: olderHasFeedback ? 0.6 : 0.2, fontSize: '0.85rem' }}> Feedback</span>
+                                  <span style={{ opacity: olderHasOfficial ? 0.6 : 0.2, fontSize: '0.85rem', marginLeft: '4px' }}> Official</span>
+                                </td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{formatDateTime(older.submittedAt)}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <button className="btn btn-secondary" style={parseStyle("padding: 2px var(--space-sm); font-size: 0.8rem;")} onClick={() => setSelectedSubmission(older)}>View</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
