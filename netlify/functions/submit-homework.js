@@ -126,17 +126,28 @@ exports.handler = async (event, context) => {
       score: submission.score
     });
 
-    // Clean up progress entry
+    // Clean up progress entry (try both sanitized and unsanitized doc ID formats)
     if (submission.studentEmail) {
-      const sanitizedEmail = submission.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
+      const emailLower = submission.studentEmail.toLowerCase();
+      const sanitizedEmail = emailLower.replace(/[^a-zA-Z0-9@._-]/g, '_');
       const essayId = submission.essayId ? `_${submission.essayId}` : '';
       const progressDocId = `${sanitizedEmail}${essayId}`;
-      
+      const altProgressDocId = `${emailLower}${essayId}`;
+
       try {
         await db.collection('progress').doc(progressDocId).delete();
-        console.log('[submit-homework] Progress entry cleaned up');
+        console.log('[submit-homework] Progress entry cleaned up:', progressDocId);
       } catch (e) {
         // Ignore cleanup errors
+      }
+      // Also try unsanitized format (used by client-side Firebase SDK)
+      if (altProgressDocId !== progressDocId) {
+        try {
+          await db.collection('progress').doc(altProgressDocId).delete();
+          console.log('[submit-homework] Alt progress entry cleaned up:', altProgressDocId);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
       }
     }
 
