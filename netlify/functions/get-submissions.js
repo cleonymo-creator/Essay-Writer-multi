@@ -169,6 +169,11 @@ exports.handler = async (event, context) => {
     let sessionCheck = { valid: false, isAdmin: false };
     let teacherStudentEmails = null;
 
+    // Support student self-service: if studentEmail param is provided with a valid
+    // student session token, return only that student's submissions.
+    let studentSelfService = false;
+    let studentSelfEmail = null;
+
     if (hasTeachers) {
       // Get session token from header or query param
       const authHeader = event.headers.authorization || event.headers.Authorization;
@@ -182,6 +187,27 @@ exports.handler = async (event, context) => {
 
       if (sessionToken) {
         sessionCheck = await verifyTeacherSession(sessionToken);
+      }
+
+      // If teacher auth failed, check if this is a student session requesting own submissions
+      if (!sessionCheck.valid && sessionToken && params.studentEmail) {
+        try {
+          const db = initializeFirebase();
+          if (db) {
+            const studentSessionDoc = await firestoreTimeout(db.collection('sessions').doc(sessionToken).get());
+            if (studentSessionDoc.exists) {
+              const session = studentSessionDoc.data();
+              const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+              if (expiresAt >= new Date() && session.email?.toLowerCase() === params.studentEmail.toLowerCase()) {
+                studentSelfService = true;
+                studentSelfEmail = session.email.toLowerCase();
+                sessionCheck = { valid: true, isAdmin: false };
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[get-submissions] Student session check error:', e.message);
+        }
       }
 
       // If session auth failed or no token, try legacy password fallback
@@ -213,8 +239,11 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // If not admin, get list of student emails for filtering
-      if (!sessionCheck.isAdmin) {
+      // If student self-service, restrict to their own email only
+      if (studentSelfService) {
+        teacherStudentEmails = [studentSelfEmail];
+      } else if (!sessionCheck.isAdmin) {
+        // If not admin, get list of student emails for filtering
         teacherStudentEmails = await getTeacherStudentEmails(sessionCheck.email);
       }
     } else {
