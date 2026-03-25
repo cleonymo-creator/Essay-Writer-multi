@@ -313,14 +313,15 @@ exports.handler = async (event, context) => {
     }
 
     // Filter by teacher's students if not admin
+    let totalBeforeFilter = submissions.length;
     if (teacherStudentEmails !== null) {
       submissions = submissions.filter(sub => {
         // Match by email or student name
         const studentEmail = (sub.studentEmail || '').toLowerCase();
         const studentName = (sub.studentName || '').toLowerCase();
-        
-        return teacherStudentEmails.some(email => 
-          email === studentEmail || 
+
+        return teacherStudentEmails.some(email =>
+          email === studentEmail ||
           email === studentName ||
           studentEmail.includes(email) ||
           studentName.includes(email)
@@ -328,18 +329,64 @@ exports.handler = async (event, context) => {
       });
     }
 
-    console.log('[get-submissions] Retrieved ' + submissions.length + ' submissions' + 
-      (sessionCheck.valid ? ' for teacher ' + sessionCheck.email : ''));
+    console.log('[get-submissions] Retrieved ' + submissions.length + ' submissions' +
+      (sessionCheck.valid ? ' for teacher ' + sessionCheck.email : '') +
+      (teacherStudentEmails !== null ? ` (filtered from ${totalBeforeFilter} total)` : ''));
+
+    // Diagnostics mode: show what's being filtered and why
+    const diagnostics = params.diagnostics === 'true' ? {
+      totalInFirestore: totalBeforeFilter,
+      afterTeacherFilter: submissions.length,
+      filteredOut: totalBeforeFilter - submissions.length,
+      teacherEmail: sessionCheck.email || null,
+      isAdmin: sessionCheck.isAdmin || false,
+      teacherStudentList: teacherStudentEmails,
+      // Show unique students in submissions that were filtered OUT
+      missingStudents: teacherStudentEmails !== null ? (() => {
+        const shown = new Set(submissions.map(s => (s.studentEmail || '').toLowerCase()));
+        const allStudents = new Set();
+        // We need to re-read from full list - get unique students from the pre-filter count
+        return null; // filled below
+      })() : null
+    } : undefined;
+
+    // If diagnostics, re-scan to find which students were filtered out
+    if (diagnostics && teacherStudentEmails !== null) {
+      try {
+        const snapshot = await firestoreTimeout(db.collection('submissions').get(), 8000);
+        const allSubmissionStudents = new Set();
+        const filteredOutStudents = new Set();
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const email = (data.studentEmail || '').toLowerCase();
+          const name = (data.studentName || '').toLowerCase();
+          allSubmissionStudents.add(email || name);
+          // Check if this student passes the filter
+          const passes = teacherStudentEmails.some(te =>
+            te === email || te === name || email.includes(te) || name.includes(te)
+          );
+          if (!passes) {
+            filteredOutStudents.add(`${data.studentName || '?'} <${data.studentEmail || '?'}>`);
+          }
+        });
+        diagnostics.allUniqueStudentsInSubmissions = [...allSubmissionStudents];
+        diagnostics.studentsFilteredOut = [...filteredOutStudents];
+        diagnostics.missingStudents = diagnostics.studentsFilteredOut;
+      } catch (e) {
+        diagnostics.diagnosticError = e.message;
+      }
+    }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         success: true,
         count: submissions.length,
         submissions: submissions,
         teacherEmail: sessionCheck.valid ? sessionCheck.email : undefined,
-        isAdmin: sessionCheck.isAdmin || undefined
+        isAdmin: sessionCheck.isAdmin || undefined,
+        diagnostics: diagnostics
       })
     };
 
