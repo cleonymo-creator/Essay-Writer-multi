@@ -268,15 +268,31 @@ exports.handler = async (event, context) => {
 
     const db = initializeFirebase();
 
-    // Get all submissions, ordered by newest first
+    // Get all submissions without orderBy to avoid missing documents that lack
+    // the ordered field (e.g. older submissions created before serverTimestamp
+    // was added). Sort in JS after retrieval instead.
     let submissions = [];
     try {
       const snapshot = await firestoreTimeout(
-        db.collection('submissions').orderBy('serverTimestamp', 'desc').get(),
-        6000  // slightly longer timeout for potentially large result set
+        db.collection('submissions').get(),
+        8000  // slightly longer timeout for potentially large result set
       );
       snapshot.forEach(doc => {
-        submissions.push(doc.data());
+        const data = doc.data();
+        // Normalize submittedAt: Firestore Timestamps → ISO string
+        if (data.submittedAt?.toDate) {
+          data.submittedAt = data.submittedAt.toDate().toISOString();
+        }
+        if (data.serverTimestamp?.toDate) {
+          data.serverTimestamp = data.serverTimestamp.toDate().toISOString();
+        }
+        submissions.push(data);
+      });
+      // Sort by most recent first, using whichever timestamp field is available
+      submissions.sort((a, b) => {
+        const dateA = new Date(a.serverTimestamp || a.submittedAt || 0);
+        const dateB = new Date(b.serverTimestamp || b.submittedAt || 0);
+        return dateB - dateA;
       });
     } catch (firestoreErr) {
       console.warn('Firestore submissions query failed:', firestoreErr.message);

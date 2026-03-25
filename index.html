@@ -5095,19 +5095,22 @@
       },
       
       // Get all submissions (for teacher dashboard)
+      // No orderBy to avoid missing docs with mixed types or missing fields
       async getSubmissions() {
         await firebaseReadyPromise;
         if (!db) return null;
         try {
-          const snapshot = await db.collection('submissions')
-            .orderBy('submittedAt', 'desc')
-            .limit(500)
-            .get();
-          return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
-          }));
+          const snapshot = await db.collection('submissions').get();
+          const submissions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
+            };
+          });
+          submissions.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+          return submissions;
         } catch (error) {
           console.error('Firebase getSubmissions error:', error);
           return null;
@@ -5193,17 +5196,22 @@
       },
       
       // Subscribe to real-time submissions updates
+      // Avoids orderBy to prevent missing documents with mixed field types
+      // (Firestore Timestamp vs string) or missing fields entirely
       subscribeToSubmissions(callback, errorCallback) {
         if (!db) return () => {};
         return db.collection('submissions')
-          .orderBy('submittedAt', 'desc')
-          .limit(500)
           .onSnapshot(snapshot => {
-            const submissions = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
-            }));
+            const submissions = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                ...data,
+                submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
+              };
+            });
+            // Sort by date descending in JS to handle mixed types consistently
+            submissions.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
             callback(submissions);
           }, error => {
             console.error('Submissions subscription error:', error);
