@@ -5141,9 +5141,8 @@
         await firebaseReadyPromise;
         if (!db) return null;
         try {
-          // Get all in-progress essays (no time limit - keep until completed)
+          // Get all in-progress essays (no orderBy to avoid missing docs with mixed types)
           const snapshot = await db.collection('progress')
-            .orderBy('updatedAt', 'desc')
             .get();
           return snapshot.docs.map(doc => ({
             id: doc.id,
@@ -5156,6 +5155,17 @@
         }
       },
       
+      // Delete a progress document by ID
+      async deleteProgress(docId) {
+        await firebaseReadyPromise;
+        if (!db || !docId) return;
+        try {
+          await db.collection('progress').doc(docId).delete();
+        } catch (e) {
+          // Ignore - progress cleanup is best-effort
+        }
+      },
+
       // Get progress for a specific student (all essays)
       async getStudentProgress(studentEmail) {
         await firebaseReadyPromise;
@@ -11752,6 +11762,24 @@ ${examinerComment}
           fetchFromNetlify();
         }
       };
+
+      // Run diagnostics to check for missing submissions
+      const [diagnosticResult, setDiagnosticResult] = useState(null);
+      const handleDiagnostics = async () => {
+        try {
+          const sessionToken = TeacherAuth.getSessionToken();
+          const fetchOpts = sessionToken
+            ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
+            : {};
+          const authParam = sessionToken ? '' : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
+          const separator = authParam ? '&' : '?';
+          const res = await fetch('/.netlify/functions/get-submissions' + authParam + separator + 'diagnostics=true', fetchOpts);
+          const data = await res.json();
+          setDiagnosticResult(data.diagnostics || { error: 'No diagnostics returned' });
+        } catch (e) {
+          setDiagnosticResult({ error: e.message });
+        }
+      };
       
       // Filter submissions and progress by selected filters
       const matchesStudentSearch = (item) => {
@@ -11966,6 +11994,10 @@ ${examinerComment}
                     <span className="sidebar-item-icon"><Icon name={ICONS.key} size={18} /></span>
                     <span>Change Password</span>
                   </div>
+                  <div className="sidebar-item" onClick={() => { handleDiagnostics(); setSidebarOpen(false); }}>
+                    <span className="sidebar-item-icon"><Icon name={ICONS.info} size={18} /></span>
+                    <span>Check Missing Essays</span>
+                  </div>
                   <div className="sidebar-item" onClick={onLogout}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.logout} size={18} /></span>
                     <span>Logout</span>
@@ -12015,6 +12047,49 @@ ${examinerComment}
 
               {activeTab === 'submissions' && (
           <>
+          {/* Diagnostics Panel */}
+          {diagnosticResult && (
+            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); border: 1px solid var(--color-info); background: var(--color-bg-secondary);")}>
+              <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);")}>
+                <h4 style={parseStyle("margin: 0;")}>Submission Diagnostics</h4>
+                <button className="btn btn-secondary" style={parseStyle("padding: 4px 12px; font-size: 0.8rem;")} onClick={() => setDiagnosticResult(null)}>Close</button>
+              </div>
+              {diagnosticResult.error ? (
+                <p style={parseStyle("color: var(--color-error);")}>{diagnosticResult.error}</p>
+              ) : (
+                <div style={parseStyle("font-size: 0.85rem; line-height: 1.6;")}>
+                  <p><strong>Total submissions in database:</strong> {diagnosticResult.totalInFirestore}</p>
+                  <p><strong>Shown after teacher filter:</strong> {diagnosticResult.afterTeacherFilter}</p>
+                  <p><strong>Filtered out:</strong> {diagnosticResult.filteredOut}</p>
+                  <p><strong>Your account:</strong> {diagnosticResult.teacherEmail || 'N/A'} {diagnosticResult.isAdmin ? '(Admin - no filter applied)' : '(Teacher - filtered by your students)'}</p>
+                  {diagnosticResult.teacherStudentList && (
+                    <details style={parseStyle("margin-top: var(--space-sm);")}>
+                      <summary style={parseStyle("cursor: pointer; font-weight: 600;")}>Your linked students ({diagnosticResult.teacherStudentList.length})</summary>
+                      <pre style={parseStyle("font-size: 0.8rem; max-height: 150px; overflow: auto; background: var(--color-bg); padding: var(--space-sm); border-radius: var(--radius-sm); margin-top: var(--space-xs);")}>
+                        {diagnosticResult.teacherStudentList.join('\n')}
+                      </pre>
+                    </details>
+                  )}
+                  {diagnosticResult.studentsFilteredOut && diagnosticResult.studentsFilteredOut.length > 0 && (
+                    <details open style={parseStyle("margin-top: var(--space-sm);")}>
+                      <summary style={parseStyle("cursor: pointer; font-weight: 600; color: var(--color-warning);")}>Students with submissions NOT linked to you ({diagnosticResult.studentsFilteredOut.length})</summary>
+                      <pre style={parseStyle("font-size: 0.8rem; max-height: 150px; overflow: auto; background: var(--color-bg); padding: var(--space-sm); border-radius: var(--radius-sm); margin-top: var(--space-xs);")}>
+                        {diagnosticResult.studentsFilteredOut.join('\n')}
+                      </pre>
+                      <p style={parseStyle("color: var(--color-text-muted); font-size: 0.8rem; margin-top: var(--space-xs);")}>
+                        These students have submitted essays but are not in your classes or student list. Add them to a class to see their submissions.
+                      </p>
+                    </details>
+                  )}
+                  {diagnosticResult.filteredOut === 0 && diagnosticResult.totalInFirestore === diagnosticResult.afterTeacherFilter && (
+                    <p style={parseStyle("color: var(--color-success); margin-top: var(--space-sm);")}>
+                      All submissions in the database are visible to you. If essays are still missing, they may not have been saved successfully when the student submitted.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {/* Filters Card */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filter Submissions</h4>
@@ -18107,21 +18182,15 @@ ${examinerComment}
 
 // Save submission with retry logic and user notification on failure
 const saveSubmissionWithRetry = async (submissionData, config) => {
+  // IMPORTANT: Use the Netlify function (server-side Admin SDK) as the PRIMARY
+  // save path. The Firebase client SDK has offline persistence which makes .add()
+  // appear to succeed even when the write never reaches the server (e.g. security
+  // rules block it, or the browser closes before sync). The Netlify function uses
+  // the Admin SDK which gives a real server confirmation.
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Try Firebase first
-      const firebaseReady = await FirebaseDB.isReady();
-      if (firebaseReady) {
-        const result = await FirebaseDB.submitEssay(submissionData);
-        if (result) {
-          if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
-          // Clear any pending retry data
-          localStorage.removeItem('pendingSubmission');
-          return true;
-        }
-      }
-      // Fallback to Netlify function
+      // Primary: Netlify function (Admin SDK - guaranteed server-side write)
       const resp = await fetch('/.netlify/functions/submit-homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -18129,10 +18198,20 @@ const saveSubmissionWithRetry = async (submissionData, config) => {
       });
       const respData = await resp.json();
       if (resp.ok && respData.success) {
+        console.log('Submission saved via server function (confirmed)');
         if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
         localStorage.removeItem('pendingSubmission');
+        // Also clean up progress via Firebase client (best effort)
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady && submissionData.studentEmail && submissionData.essayId) {
+            const progressDocId = `${submissionData.studentEmail.toLowerCase()}_${submissionData.essayId}`;
+            await FirebaseDB.deleteProgress(progressDocId).catch(() => {});
+          }
+        } catch (e) { /* progress cleanup is best-effort */ }
         return true;
       }
+      console.warn(`Server function save attempt ${attempt} failed:`, respData.error || resp.status);
     } catch (err) {
       console.error(`Submission save attempt ${attempt}/${maxRetries} failed:`, err);
     }
@@ -18141,7 +18220,27 @@ const saveSubmissionWithRetry = async (submissionData, config) => {
       await new Promise(r => setTimeout(r, attempt * 1000));
     }
   }
-  // All retries failed - store in localStorage for retry on next page load
+
+  // Server function failed after retries - try Firebase client SDK as last resort
+  // (may only persist locally with offline cache, but better than nothing)
+  try {
+    const firebaseReady = await FirebaseDB.isReady();
+    if (firebaseReady) {
+      const result = await FirebaseDB.submitEssay(submissionData);
+      if (result) {
+        console.warn('Submission saved via Firebase client SDK (may be offline-only)');
+        if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
+        localStorage.removeItem('pendingSubmission');
+        // Show a softer warning since the write may not have reached the server
+        alert('Your submission has been saved locally but may not have reached the server. Please check with your teacher that it appears in their dashboard.');
+        return true;
+      }
+    }
+  } catch (fbErr) {
+    console.error('Firebase client SDK fallback also failed:', fbErr);
+  }
+
+  // All paths failed - store in localStorage for retry on next page load
   try {
     localStorage.setItem('pendingSubmission', JSON.stringify(submissionData));
   } catch (e) { /* localStorage might be full */ }
