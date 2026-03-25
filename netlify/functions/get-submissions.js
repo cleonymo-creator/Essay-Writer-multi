@@ -99,22 +99,61 @@ async function teachersExist() {
 }
 
 // Get list of student emails that belong to a teacher (Firestore first, Blobs fallback)
+// Checks both the legacy teacherEmail field AND class membership
 async function getTeacherStudentEmails(teacherEmail) {
-  const emails = [];
+  const emailSet = new Set();
+
+  const addStudent = (student) => {
+    if (student.email) emailSet.add(student.email.toLowerCase());
+    if (student.name) emailSet.add(student.name.toLowerCase());
+  };
 
   try {
     const db = initializeFirebase();
     if (db) {
-      const snapshot = await firestoreTimeout(db.collection('students')
+      // 1. Get students with legacy teacherEmail field
+      const studentSnapshot = await firestoreTimeout(db.collection('students')
         .where('teacherEmail', '==', teacherEmail)
         .get());
-      if (!snapshot.empty) {
-        snapshot.forEach(doc => {
-          const student = doc.data();
-          if (student.email) emails.push(student.email);
-          if (student.name) emails.push(student.name.toLowerCase());
+      if (!studentSnapshot.empty) {
+        studentSnapshot.forEach(doc => addStudent(doc.data()));
+      }
+
+      // 2. Get all classes owned by this teacher and include their students
+      const classSnapshot = await firestoreTimeout(db.collection('classes')
+        .where('teacherEmail', '==', teacherEmail)
+        .get());
+      if (!classSnapshot.empty) {
+        const classStudentEmails = [];
+        classSnapshot.forEach(doc => {
+          const classData = doc.data();
+          if (classData.students && Array.isArray(classData.students)) {
+            classStudentEmails.push(...classData.students);
+          }
         });
-        return emails;
+
+        // Look up each class student to get their name for matching
+        for (const studentEmail of [...new Set(classStudentEmails)]) {
+          if (emailSet.has(studentEmail.toLowerCase())) continue; // already added
+          try {
+            const studentDoc = await firestoreTimeout(
+              db.collection('students').doc(studentEmail.toLowerCase()).get()
+            );
+            if (studentDoc.exists) {
+              addStudent(studentDoc.data());
+            } else {
+              // Student doc not found by email, still add the email
+              emailSet.add(studentEmail.toLowerCase());
+            }
+          } catch (e) {
+            // If individual lookup fails, still add the email
+            emailSet.add(studentEmail.toLowerCase());
+          }
+        }
+      }
+
+      if (emailSet.size > 0) {
+        return [...emailSet];
       }
     }
   } catch (e) {
@@ -127,17 +166,14 @@ async function getTeacherStudentEmails(teacherEmail) {
     for (const blob of blobs) {
       const student = await studentsStore.get(blob.key, { type: 'json' });
       if (student && student.teacherEmail === teacherEmail) {
-        emails.push(student.email);
-        if (student.name) {
-          emails.push(student.name.toLowerCase());
-        }
+        addStudent(student);
       }
     }
   } catch (e) {
     console.error('Error getting teacher students:', e);
   }
 
-  return emails;
+  return [...emailSet];
 }
 
 exports.handler = async (event, context) => {

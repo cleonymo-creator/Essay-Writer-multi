@@ -217,11 +217,43 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Get class IDs owned by this teacher (for multi-class student access)
+    let teacherClassIds = null;
+    let teacherClassStudentEmails = null;
+    if (sessionCheck.valid && !sessionCheck.isAdmin) {
+      try {
+        const classSnapshot = await db.collection('classes')
+          .where('teacherEmail', '==', sessionCheck.email)
+          .get();
+        teacherClassIds = new Set();
+        teacherClassStudentEmails = new Set();
+        classSnapshot.forEach(doc => {
+          teacherClassIds.add(doc.id);
+          const classData = doc.data();
+          if (classData.students && Array.isArray(classData.students)) {
+            classData.students.forEach(email => teacherClassStudentEmails.add(email.toLowerCase()));
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to load teacher classes for access check:', e.message);
+      }
+    }
+
     // Helper to check if teacher can access a student
     const canAccessStudent = (studentData) => {
       if (!sessionCheck.valid) return true;
       if (sessionCheck.isAdmin) return true;
-      return studentData.teacherEmail === sessionCheck.email;
+      // Check legacy teacherEmail field
+      if (studentData.teacherEmail === sessionCheck.email) return true;
+      // Check if student is in any of teacher's classes
+      if (teacherClassStudentEmails && studentData.email) {
+        if (teacherClassStudentEmails.has(studentData.email.toLowerCase())) return true;
+      }
+      // Check if student's classIds overlap with teacher's classes
+      if (teacherClassIds && studentData.classIds && Array.isArray(studentData.classIds)) {
+        if (studentData.classIds.some(cid => teacherClassIds.has(cid))) return true;
+      }
+      return false;
     };
 
     // GET - List all students or get a specific student
