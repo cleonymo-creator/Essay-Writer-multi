@@ -5223,9 +5223,9 @@
       subscribeToProgress(callback) {
         if (!db) return () => {};
 
-        // Get all in-progress essays (no time limit - keep until completed)
+        // Get all in-progress essays without orderBy to avoid missing docs
+        // with different timestamp field types or missing fields
         return db.collection('progress')
-          .orderBy('updatedAt', 'desc')
           .onSnapshot(snapshot => {
             const progress = snapshot.docs.map(doc => ({
               id: doc.id,

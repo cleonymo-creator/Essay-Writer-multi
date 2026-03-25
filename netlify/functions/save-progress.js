@@ -198,15 +198,19 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // Get all progress documents
+      // Get all progress documents (no orderBy to avoid excluding docs
+      // that lack the ordered field or have mixed types)
       const snapshot = await firestoreTimeout(db.collection('progress')
-        .orderBy('lastUpdate', 'desc')
         .get(), 6000);
       
       const inProgress = [];
       snapshot.forEach(doc => {
         const data = doc.data();
         if (!data.completed) {
+          // Normalize timestamps for consistent serialization
+          const lastUpdate = data.updatedAt?.toDate
+            ? data.updatedAt.toDate().toISOString()
+            : (data.lastUpdate || data.updatedAt);
           inProgress.push({
             studentName: data.studentName,
             studentEmail: data.studentEmail,
@@ -220,10 +224,13 @@ exports.handler = async (event, context) => {
             completedParagraphs: data.completedParagraphs,
             percentComplete: data.percentComplete,
             paragraphScores: data.paragraphScores,
-            lastUpdate: data.lastUpdate
+            lastUpdate: lastUpdate
           });
         }
       });
+
+      // Sort by most recent first (was previously done by Firestore orderBy)
+      inProgress.sort((a, b) => new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0));
 
       console.log(`[save-progress] Retrieved ${inProgress.length} in-progress students`);
 
