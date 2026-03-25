@@ -113,8 +113,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Add server metadata
-    submission.serverTimestamp = new Date().toISOString();
+    // Add server metadata - ensure both timestamp fields are always present
+    const now = new Date().toISOString();
+    submission.serverTimestamp = now;
+    if (!submission.submittedAt) {
+      submission.submittedAt = now;
+    }
     submission.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Save to Firestore

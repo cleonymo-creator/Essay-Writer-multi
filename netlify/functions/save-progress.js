@@ -49,7 +49,13 @@ exports.handler = async (event, context) => {
             6000
           );
           const submissions = [];
-          snapshot.forEach(doc => submissions.push(doc.data()));
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            // Normalize Firestore Timestamps to ISO strings for JSON serialization
+            if (data.submittedAt?.toDate) data.submittedAt = data.submittedAt.toDate().toISOString();
+            if (data.serverTimestamp?.toDate) data.serverTimestamp = data.serverTimestamp.toDate().toISOString();
+            submissions.push(data);
+          });
           return {
             statusCode: 200,
             headers: {
