@@ -17815,6 +17815,23 @@ ${examinerComment}
         }
       }, [CONFIG, selectedEssayId]);
       
+      // Retry any pending submission that failed to save previously
+      useEffect(() => {
+        const pending = localStorage.getItem('pendingSubmission');
+        if (!pending) return;
+        try {
+          const submissionData = JSON.parse(pending);
+          console.log('Found pending submission, attempting to save...');
+          saveSubmissionWithRetry(submissionData, null).then(saved => {
+            if (saved) {
+              console.log('Pending submission saved successfully on retry');
+            }
+          });
+        } catch (e) {
+          localStorage.removeItem('pendingSubmission');
+        }
+      }, []);
+
       // Check URL for direct essay link (skip if not authenticated)
       useEffect(() => {
         if (!isAuthenticated) return;
@@ -18088,6 +18105,50 @@ ${examinerComment}
   }
 };
 
+// Save submission with retry logic and user notification on failure
+const saveSubmissionWithRetry = async (submissionData, config) => {
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Try Firebase first
+      const firebaseReady = await FirebaseDB.isReady();
+      if (firebaseReady) {
+        const result = await FirebaseDB.submitEssay(submissionData);
+        if (result) {
+          if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
+          // Clear any pending retry data
+          localStorage.removeItem('pendingSubmission');
+          return true;
+        }
+      }
+      // Fallback to Netlify function
+      const resp = await fetch('/.netlify/functions/submit-homework', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submissionData)
+      });
+      const respData = await resp.json();
+      if (resp.ok && respData.success) {
+        if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
+        localStorage.removeItem('pendingSubmission');
+        return true;
+      }
+    } catch (err) {
+      console.error(`Submission save attempt ${attempt}/${maxRetries} failed:`, err);
+    }
+    // Wait before retrying (1s, 2s)
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, attempt * 1000));
+    }
+  }
+  // All retries failed - store in localStorage for retry on next page load
+  try {
+    localStorage.setItem('pendingSubmission', JSON.stringify(submissionData));
+  } catch (e) { /* localStorage might be full */ }
+  alert('Your essay feedback is shown below, but there was a problem saving your submission to the server. Your work is saved locally and will be re-submitted automatically next time you open this page. Please do not clear your browser data.');
+  return false;
+};
+
 // Separate function to request feedback with specific paragraph states
 // (needed because setState is async and we need the updated states immediately)
 const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
@@ -18191,33 +18252,9 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         submittedAt: new Date().toISOString()
       };
 
-      let submissionSaved = false;
-      try {
-        // Save to Firebase if available, with Netlify function fallback
-        const firebaseReady = await FirebaseDB.isReady();
-        if (firebaseReady) {
-          const result = await FirebaseDB.submitEssay(submissionData);
-          submissionSaved = !!result;
-        }
-        // Fallback to Netlify function if Firebase failed or wasn't ready
-        if (!submissionSaved) {
-          const resp = await fetch('/.netlify/functions/submit-homework', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(submissionData)
-          });
-          const respData = await resp.json();
-          submissionSaved = resp.ok && respData.success;
-        }
-      } catch (submitError) {
-        console.error('Failed to save submission:', submitError);
-      }
-
-      // Only clear localStorage if submission was actually saved
-      if (submissionSaved) {
-        localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
-      } else {
-        console.error('Submission was not saved - keeping localStorage as backup');
+      const submissionSaved = await saveSubmissionWithRetry(submissionData, CONFIG);
+      if (!submissionSaved) {
+        console.error('Submission was not saved after retries - keeping localStorage as backup');
       }
     } else {
       throw new Error(data.error || 'Failed to grade essay');
@@ -18334,33 +18371,9 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               submittedAt: new Date().toISOString()
             };
             
-            let submissionSaved = false;
-            try {
-              // Save to Firebase if available, with Netlify function fallback
-              const firebaseReady = await FirebaseDB.isReady();
-              if (firebaseReady) {
-                const result = await FirebaseDB.submitEssay(submissionData);
-                submissionSaved = !!result;
-              }
-              // Fallback to Netlify function if Firebase failed or wasn't ready
-              if (!submissionSaved) {
-                const resp = await fetch('/.netlify/functions/submit-homework', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(submissionData)
-                });
-                const respData = await resp.json();
-                submissionSaved = resp.ok && respData.success;
-              }
-            } catch (submitError) {
-              console.error('Failed to save submission:', submitError);
-            }
-
-            // Only clear localStorage if submission was actually saved
-            if (submissionSaved) {
-              localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
-            } else {
-              console.error('Submission was not saved - keeping localStorage as backup');
+            const submissionSaved = await saveSubmissionWithRetry(submissionData, CONFIG);
+            if (!submissionSaved) {
+              console.error('Submission was not saved after retries - keeping localStorage as backup');
             }
           } else {
             throw new Error(data.error || 'Failed to grade essay');
