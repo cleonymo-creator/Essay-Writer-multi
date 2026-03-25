@@ -5141,9 +5141,8 @@
         await firebaseReadyPromise;
         if (!db) return null;
         try {
-          // Get all in-progress essays (no time limit - keep until completed)
+          // Get all in-progress essays (no orderBy to avoid missing docs with mixed types)
           const snapshot = await db.collection('progress')
-            .orderBy('updatedAt', 'desc')
             .get();
           return snapshot.docs.map(doc => ({
             id: doc.id,
@@ -5156,6 +5155,17 @@
         }
       },
       
+      // Delete a progress document by ID
+      async deleteProgress(docId) {
+        await firebaseReadyPromise;
+        if (!db || !docId) return;
+        try {
+          await db.collection('progress').doc(docId).delete();
+        } catch (e) {
+          // Ignore - progress cleanup is best-effort
+        }
+      },
+
       // Get progress for a specific student (all essays)
       async getStudentProgress(studentEmail) {
         await firebaseReadyPromise;
@@ -18172,21 +18182,15 @@ ${examinerComment}
 
 // Save submission with retry logic and user notification on failure
 const saveSubmissionWithRetry = async (submissionData, config) => {
+  // IMPORTANT: Use the Netlify function (server-side Admin SDK) as the PRIMARY
+  // save path. The Firebase client SDK has offline persistence which makes .add()
+  // appear to succeed even when the write never reaches the server (e.g. security
+  // rules block it, or the browser closes before sync). The Netlify function uses
+  // the Admin SDK which gives a real server confirmation.
   const maxRetries = 3;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Try Firebase first
-      const firebaseReady = await FirebaseDB.isReady();
-      if (firebaseReady) {
-        const result = await FirebaseDB.submitEssay(submissionData);
-        if (result) {
-          if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
-          // Clear any pending retry data
-          localStorage.removeItem('pendingSubmission');
-          return true;
-        }
-      }
-      // Fallback to Netlify function
+      // Primary: Netlify function (Admin SDK - guaranteed server-side write)
       const resp = await fetch('/.netlify/functions/submit-homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -18194,10 +18198,20 @@ const saveSubmissionWithRetry = async (submissionData, config) => {
       });
       const respData = await resp.json();
       if (resp.ok && respData.success) {
+        console.log('Submission saved via server function (confirmed)');
         if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
         localStorage.removeItem('pendingSubmission');
+        // Also clean up progress via Firebase client (best effort)
+        try {
+          const firebaseReady = await FirebaseDB.isReady();
+          if (firebaseReady && submissionData.studentEmail && submissionData.essayId) {
+            const progressDocId = `${submissionData.studentEmail.toLowerCase()}_${submissionData.essayId}`;
+            await FirebaseDB.deleteProgress(progressDocId).catch(() => {});
+          }
+        } catch (e) { /* progress cleanup is best-effort */ }
         return true;
       }
+      console.warn(`Server function save attempt ${attempt} failed:`, respData.error || resp.status);
     } catch (err) {
       console.error(`Submission save attempt ${attempt}/${maxRetries} failed:`, err);
     }
@@ -18206,7 +18220,27 @@ const saveSubmissionWithRetry = async (submissionData, config) => {
       await new Promise(r => setTimeout(r, attempt * 1000));
     }
   }
-  // All retries failed - store in localStorage for retry on next page load
+
+  // Server function failed after retries - try Firebase client SDK as last resort
+  // (may only persist locally with offline cache, but better than nothing)
+  try {
+    const firebaseReady = await FirebaseDB.isReady();
+    if (firebaseReady) {
+      const result = await FirebaseDB.submitEssay(submissionData);
+      if (result) {
+        console.warn('Submission saved via Firebase client SDK (may be offline-only)');
+        if (config?.LOCAL_STORAGE_KEY) localStorage.removeItem(config.LOCAL_STORAGE_KEY);
+        localStorage.removeItem('pendingSubmission');
+        // Show a softer warning since the write may not have reached the server
+        alert('Your submission has been saved locally but may not have reached the server. Please check with your teacher that it appears in their dashboard.');
+        return true;
+      }
+    }
+  } catch (fbErr) {
+    console.error('Firebase client SDK fallback also failed:', fbErr);
+  }
+
+  // All paths failed - store in localStorage for retry on next page load
   try {
     localStorage.setItem('pendingSubmission', JSON.stringify(submissionData));
   } catch (e) { /* localStorage might be full */ }
