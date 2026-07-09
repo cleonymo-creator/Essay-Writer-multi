@@ -2,6 +2,7 @@
 const Anthropic = require("@anthropic-ai/sdk").default;
 
 const client = new Anthropic();
+const { verifyAnySession } = require("./_lib/session");
 
 exports.handler = async (event) => {
   // Handle CORS preflight
@@ -18,10 +19,19 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod !== "POST") {
-    return { 
-      statusCode: 405, 
+    return {
+      statusCode: 405,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: "Method not allowed" 
+      body: "Method not allowed"
+    };
+  }
+
+  const auth = await verifyAnySession(event);
+  if (!auth.valid) {
+    return {
+      statusCode: 401,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ success: false, error: "Authentication required" })
     };
   }
 

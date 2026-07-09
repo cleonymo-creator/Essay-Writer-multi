@@ -1,4 +1,5 @@
 const { initializeFirebase, firestoreTimeout } = require('./firebase-helper');
+const { verifyAnySession } = require('./_lib/session');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -39,6 +40,22 @@ exports.handler = async (event, context) => {
 
       // Student progress retrieval by email
       if (params.email) {
+        // Require a session; a student may only read their own progress.
+        const getAuth = await verifyAnySession(event);
+        if (!getAuth.valid) {
+          return {
+            statusCode: 401,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ success: false, error: 'Authentication required' })
+          };
+        }
+        if (getAuth.role === 'student' && getAuth.email !== params.email.toLowerCase()) {
+          return {
+            statusCode: 403,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ success: false, error: 'Forbidden' })
+          };
+        }
         const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
         const docId = `${sanitizedEmail}${essayId ? `_${essayId}` : ''}`;
@@ -182,9 +199,27 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Require a valid session; bind the write to the student's own identity
+  const postAuth = await verifyAnySession(event);
+  if (!postAuth.valid) {
+    return {
+      statusCode: 401,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ success: false, error: 'Authentication required' })
+    };
+  }
+
   try {
     const progressData = JSON.parse(event.body);
-    
+
+    // A student may only save their own progress, never another student's.
+    if (postAuth.role === 'student') {
+      progressData.studentEmail = postAuth.email;
+    }
+
     if (!progressData.studentEmail) {
       return {
         statusCode: 400,

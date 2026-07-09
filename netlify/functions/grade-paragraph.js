@@ -1,6 +1,7 @@
 // Grade a single paragraph with detailed feedback for revision
 // Supports authentic exam grade descriptors when available, with fallback to generic criteria
 const Anthropic = require("@anthropic-ai/sdk").default;
+const { verifyAnySession } = require("./_lib/session");
 
 const client = new Anthropic();
 
@@ -204,6 +205,15 @@ function getDifferentiatedApproach(tier, targetGrade, gradeSystem) {
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
+  }
+
+  const auth = await verifyAnySession(event);
+  if (!auth.valid) {
+    return {
+      statusCode: 401,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ success: false, error: "Authentication required" })
+    };
   }
 
   try {

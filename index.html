@@ -6135,7 +6135,20 @@
       }
       return sanitizeHtml(html);
     };
-    
+
+    // Auth headers for calls to authenticated backend endpoints (AI grading,
+    // submissions). Sends the student session token if present, otherwise the
+    // teacher session token. The backend accepts either.
+    const apiAuthHeaders = () => {
+      const studentToken = localStorage.getItem('studentSession');
+      if (studentToken) return { 'Authorization': 'Bearer ' + studentToken };
+      try {
+        const teacherToken = TeacherAuth.getSessionToken();
+        if (teacherToken) return { 'Authorization': 'Bearer ' + teacherToken };
+      } catch (e) { /* TeacherAuth not ready */ }
+      return {};
+    };
+
     // =====================================================
     // TEXT-TO-SPEECH COMPONENT
     // =====================================================
@@ -6636,7 +6649,7 @@
               // Fallback to Netlify function
               for (const essay of assignedEssays) {
                 try {
-                  const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id);
+                  const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id, { headers: apiAuthHeaders() });
                   const data = await response.json();
                   if (data.success && data.found) {
                     progressMap[essay.id] = data.progress;
@@ -9597,7 +9610,7 @@
         
         setCheckingProgress(true);
         try {
-          const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(emailLower)}&essayId=${config.id || ''}`);
+          const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(emailLower)}&essayId=${config.id || ''}`, { headers: apiAuthHeaders() });
           const data = await response.json();
           
           if (data.success && data.found && data.progress) {
@@ -9989,7 +10002,7 @@
         try {
           const response = await fetch('/.netlify/functions/expand-hint', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               hint: hintText,
               context: essayContext,
@@ -10483,7 +10496,7 @@
         try {
           const response = await fetch('/.netlify/functions/check-technical', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               paragraphText: text,
               paragraphTitle: paragraph.title,
@@ -10591,7 +10604,7 @@
           
           const response = await fetch('/.netlify/functions/grade-paragraph', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify(requestBody)
           });
           
@@ -10863,7 +10876,7 @@
           
           const response = await fetch('/.netlify/functions/compare-essays', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: config?.essayTitle,
@@ -17687,7 +17700,7 @@ ${examinerComment}
         // Fallback to Netlify function if Firebase and localStorage both failed (cross-device)
         if (!hasProgress && studentEmail) {
           try {
-            const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(studentEmail.toLowerCase())}&essayId=${essayId}`);
+            const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(studentEmail.toLowerCase())}&essayId=${essayId}`, { headers: apiAuthHeaders() });
             const data = await response.json();
             if (data.success && data.found && data.progress?.paragraphStates && Object.keys(data.progress.paragraphStates).length > 0) {
               console.log('Loading progress from Netlify function:', data.progress);
@@ -17866,7 +17879,7 @@ ${examinerComment}
             } else {
               fetch('/.netlify/functions/save-progress', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                 body: JSON.stringify(progressData)
               }).catch(err => console.error('Progress save error:', err.message));
             }
@@ -18061,7 +18074,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
 
     const response = await fetch('/.netlify/functions/grade-essay', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
       body: JSON.stringify({
         studentName,
         essayTitle: CONFIG.essayTitle,
@@ -18122,7 +18135,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         if (!saved) {
           const resp = await fetch('/.netlify/functions/submit-homework', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify(submissionData)
           });
           if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
@@ -18198,7 +18211,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
 
           const response = await fetch('/.netlify/functions/grade-essay', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: CONFIG.essayTitle,
@@ -18259,7 +18272,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               if (!saved) {
                 const resp = await fetch('/.netlify/functions/submit-homework', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                   body: JSON.stringify(submissionData)
                 });
                 if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
@@ -18304,7 +18317,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           
           const response = await fetch('/.netlify/functions/grade-official', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: CONFIG.essayTitle,
@@ -18335,7 +18348,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                   body: JSON.stringify({ ...updateData, updateOnly: true })
                 });
               }
