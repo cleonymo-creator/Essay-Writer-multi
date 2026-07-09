@@ -12598,20 +12598,25 @@ ${examinerComment}
             this.clearSession();
             return { valid: false };
           } else {
-            // Server error (500, 502, etc.) - keep session, use cached data
-            console.log('Session verify server error, using cached session');
+            // Server error (500, 502, etc.) - keep session for UI continuity so a
+            // transient outage doesn't log the teacher out. This is PRESENTATION
+            // ONLY: the cached role is not a security decision. Every privileged
+            // operation goes through a Netlify function that re-verifies the
+            // session token and role server-side, so a tampered localStorage
+            // entry cannot grant real access (its calls will 401). The
+            // `unverified` flag lets the UI degrade destructive controls if desired.
             const cached = this.getTeacher();
             if (cached) {
-              return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+              return { valid: true, teacher: cached, isAdmin: cached.role === 'admin', unverified: true };
             }
             return { valid: false };
           }
         } catch (e) {
-          // Network error - keep session, use cached data
-          console.log('Session verify network error, using cached session');
+          // Network error - keep session for UI continuity (see note above).
+          // Presentation only; the server remains the authority on every call.
           const cached = this.getTeacher();
           if (cached) {
-            return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+            return { valid: true, teacher: cached, isAdmin: cached.role === 'admin', unverified: true, error: e.message };
           }
           return { valid: false, error: e.message };
         }
