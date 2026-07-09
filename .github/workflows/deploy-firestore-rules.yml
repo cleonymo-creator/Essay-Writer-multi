@@ -6,12 +6,12 @@ name: Deploy Firestore Rules
 # in the repo but never reach the live Firebase project.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# ⚠️  IMPORTANT: the committed firestore.rules is a deny-all TARGET state that
-# will break the live app until the client's remaining direct Firestore reads
-# are migrated to the Netlify functions (see IMPROVEMENT_PLAN.md task 0.4 /
-# Phase 3). This workflow runs in the `production` environment so you can add a
-# required reviewer and approve each deploy manually. Do NOT approve a deploy of
-# the deny-all rules until that migration is done.
+# ⚠️  IMPORTANT: this deploys FULLY AUTOMATICALLY, with no approval step, every
+# time firestore.rules changes on main. The committed firestore.rules is a
+# deny-all TARGET state that will break the live app until the client's
+# remaining direct Firestore reads are migrated to the Netlify functions (see
+# IMPROVEMENT_PLAN.md task 0.4 / Phase 3). Do NOT merge the deny-all rules to
+# main until that migration is done, or the app will break the moment this runs.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # ONE-TIME SETUP
@@ -23,9 +23,6 @@ name: Deploy Firestore Rules
 #      Paste the entire JSON file contents as the value.
 # 3. (Optional) Add secret FIREBASE_PROJECT_ID to override the project id;
 #      otherwise it defaults to the one in .firebaserc (student-essay-assistant).
-# 4. (Recommended) Settings → Environments → New environment → "production",
-#      then add yourself as a Required reviewer so each deploy waits for your
-#      approval. If you skip this, deploys run automatically with no gate.
 #
 # To switch to a Firebase CI token instead of a service account, replace the
 # "Authenticate" and "Deploy" steps with a single step:
@@ -47,9 +44,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Runs in the `production` environment. Add a Required reviewer to this
-    # environment in repo settings to turn every deploy into a manual approval.
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
