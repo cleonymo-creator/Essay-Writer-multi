@@ -7919,7 +7919,7 @@
         if (!confirm('Send password reset email to ' + (name || email) + '?\n\nThey will receive an email with a link to set a new password.')) return;
 
         try {
-          const sessionToken = localStorage.getItem('teacherSession');
+          const sessionToken = TeacherAuth.getSessionToken();
           const response = await fetch('/.netlify/functions/send-password-reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
@@ -7958,7 +7958,7 @@
         let failed = 0;
         const errors = [];
 
-        const sessionToken = localStorage.getItem('teacherSession');
+        const sessionToken = TeacherAuth.getSessionToken();
         for (const student of classStudents) {
           try {
             const response = await fetch('/.netlify/functions/send-password-reset', {
@@ -15957,7 +15957,7 @@ ${examinerComment}
         setActionLoading(email);
 
         try {
-          const sessionToken = localStorage.getItem('teacherSession');
+          const sessionToken = TeacherAuth.getSessionToken();
           const response = await fetch('/.netlify/functions/send-password-reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
@@ -16681,7 +16681,7 @@ ${examinerComment}
       const handleSendResetEmail = async (email, name) => {
         if (!confirm('Send password reset email to ' + (name || email) + '?')) return;
         try {
-          const sessionToken = localStorage.getItem('teacherSession');
+          const sessionToken = TeacherAuth.getSessionToken();
           const response = await fetch('/.netlify/functions/send-password-reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
