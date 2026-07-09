@@ -8,6 +8,12 @@ import * as ReactDOM from 'react-dom/client';
 
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
+    // Dev-only logger: real console.log during `vite` dev, a no-op in the
+    // production build (Vite statically replaces import.meta.env.DEV). This
+    // keeps debugging output out of production — where several logs leaked
+    // student emails and progress — without the risk of deleting statements.
+    const debug = (import.meta.env && import.meta.env.DEV) ? console.log.bind(console) : () => {};
+
     // Helper: allow writing inline styles as CSS strings in JSX.
     // Converts "margin-top: 8px; background: var(--color-bg);" -> { marginTop: "8px", background: "var(--color-bg)" }
     const parseStyle = (input) => {
@@ -187,13 +193,13 @@ import * as ReactDOM from 'react-dom/client';
       }
 
       // Debug Firebase configuration
-      console.log('Firebase Config Check:');
-      console.log('  window.FIREBASE_ENABLED:', window.FIREBASE_ENABLED);
-      console.log('  window.FIREBASE_CONFIG:', window.FIREBASE_CONFIG);
-      console.log('  apiKey present:', !!window.FIREBASE_CONFIG?.apiKey);
+      debug('Firebase Config Check:');
+      debug('  window.FIREBASE_ENABLED:', window.FIREBASE_ENABLED);
+      debug('  window.FIREBASE_CONFIG:', window.FIREBASE_CONFIG);
+      debug('  apiKey present:', !!window.FIREBASE_CONFIG?.apiKey);
 
       FIREBASE_ENABLED = window.FIREBASE_ENABLED && window.FIREBASE_CONFIG?.apiKey;
-      console.log('  FIREBASE_ENABLED result:', FIREBASE_ENABLED);
+      debug('  FIREBASE_ENABLED result:', FIREBASE_ENABLED);
 
       if (FIREBASE_ENABLED) {
         try {
@@ -205,9 +211,9 @@ import * as ReactDOM from 'react-dom/client';
           // Initialize Firebase Auth
           if (typeof firebase.auth === 'function') {
             firebaseAuth = firebase.auth();
-            console.log('Firebase Auth initialized successfully');
+            debug('Firebase Auth initialized successfully');
           }
-          console.log('Firebase initialized successfully');
+          debug('Firebase initialized successfully');
           return true;
         } catch (error) {
           console.error('Firebase initialization failed:', error);
@@ -215,7 +221,7 @@ import * as ReactDOM from 'react-dom/client';
           return false;
         }
       } else {
-        console.log('Firebase not configured - using Netlify Blobs fallback');
+        debug('Firebase not configured - using Netlify Blobs fallback');
         return false;
       }
     }
@@ -564,179 +570,6 @@ import * as ReactDOM from 'react-dom/client';
         return password;
       },
       
-      // Student login
-      async studentLogin(email, password) {
-        await firebaseReadyPromise;
-        if (!db) return { success: false, error: 'Database not available' };
-        try {
-          const emailLower = email.trim().toLowerCase();
-          const doc = await db.collection('students').doc(emailLower).get();
-          
-          if (!doc.exists) {
-            return { success: false, error: 'Account not found. Please contact your teacher.' };
-          }
-          
-          const studentData = doc.data();
-          const passwordValid = await this.verifyPassword(password, studentData.passwordHash);
-
-          if (!passwordValid) {
-            return { success: false, error: 'Incorrect password' };
-          }
-
-          // Upgrade legacy SHA-256 hash to PBKDF2 on successful login
-          if (!studentData.passwordHash.includes(':')) {
-            const upgradedHash = await this.hashPassword(password);
-            await db.collection('students').doc(emailLower).update({
-              passwordHash: upgradedHash
-            });
-          }
-
-          // Generate session token
-          const tokenArray = new Uint8Array(32);
-          crypto.getRandomValues(tokenArray);
-          const sessionToken = Array.from(tokenArray).map(b => b.toString(16).padStart(2, '0')).join('');
-
-          // Save session
-          const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          await db.collection('sessions').doc(sessionToken).set({
-            email: emailLower,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            expiresAt: sessionExpiry
-          });
-
-          // Update last login
-          await db.collection('students').doc(emailLower).update({
-            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          
-          // Get assignments from ALL classes (support multiple classes)
-          let classAssignments = [];
-          const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
-          
-          for (const cid of classIds) {
-            try {
-              const classDoc = await db.collection('classes').doc(cid).get();
-              if (classDoc.exists) {
-                const classEssays = classDoc.data().assignedEssays || [];
-                classAssignments.push(...classEssays);
-              }
-            } catch (e) {
-              console.log('Error fetching class:', cid, e);
-            }
-          }
-          
-          const allAssignments = [...new Set([
-            ...classAssignments,
-            ...(studentData.individualAssignments || [])
-          ])];
-          
-          const { passwordHash, ...safeData } = studentData;
-          return {
-            success: true,
-            sessionToken,
-            student: { ...safeData, assignedEssays: allAssignments }
-          };
-        } catch (error) {
-          console.error('Login error:', error);
-          return { success: false, error: 'Login failed. Please try again.' };
-        }
-      },
-      
-      // Verify session
-      async verifySession(sessionToken) {
-        if (!db || !sessionToken) return { success: false };
-        try {
-          const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
-          if (!sessionDoc.exists) return { success: false };
-          
-          const session = sessionDoc.data();
-          const expiresAt = session.expiresAt?.toDate?.() || new Date(session.expiresAt);
-          
-          if (expiresAt < new Date()) {
-            await db.collection('sessions').doc(sessionToken).delete();
-            return { success: false, error: 'Session expired' };
-          }
-          
-          const studentDoc = await db.collection('students').doc(session.email).get();
-          if (!studentDoc.exists) return { success: false };
-          
-          const studentData = studentDoc.data();
-          
-          // Get assignments from ALL classes (support multiple classes)
-          let classAssignments = [];
-          const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
-          
-          for (const cid of classIds) {
-            try {
-              const classDoc = await db.collection('classes').doc(cid).get();
-              if (classDoc.exists) {
-                const classEssays = classDoc.data().assignedEssays || [];
-                classAssignments.push(...classEssays);
-              }
-            } catch (e) {
-              console.log('Error fetching class:', cid, e);
-            }
-          }
-          
-          const allAssignments = [...new Set([
-            ...classAssignments,
-            ...(studentData.individualAssignments || [])
-          ])];
-          
-          const { passwordHash, ...safeData } = studentData;
-          return {
-            success: true,
-            student: { ...safeData, assignedEssays: allAssignments }
-          };
-        } catch (error) {
-          console.error('Session verify error:', error);
-          return { success: false };
-        }
-      },
-      
-      // Logout
-      async studentLogout(sessionToken) {
-        if (!db || !sessionToken) return;
-        try {
-          await db.collection('sessions').doc(sessionToken).delete();
-        } catch (error) {
-          console.error('Logout error:', error);
-        }
-      },
-      
-      // Change password
-      async changePassword(sessionToken, currentPassword, newPassword) {
-        await firebaseReadyPromise;
-        await firebaseReadyPromise;
-        if (!db) return { success: false, error: 'Database not available' };
-        try {
-          const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
-          if (!sessionDoc.exists) return { success: false, error: 'Invalid session' };
-          
-          const email = sessionDoc.data().email;
-          const studentDoc = await db.collection('students').doc(email).get();
-          if (!studentDoc.exists) return { success: false, error: 'Student not found' };
-          
-          const studentData = studentDoc.data();
-          const currentValid = await this.verifyPassword(currentPassword, studentData.passwordHash);
-
-          if (!currentValid) {
-            return { success: false, error: 'Current password is incorrect' };
-          }
-          
-          const newHash = await this.hashPassword(newPassword);
-          await db.collection('students').doc(email).update({
-            passwordHash: newHash,
-            passwordChangedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          
-          return { success: true };
-        } catch (error) {
-          console.error('Change password error:', error);
-          return { success: false, error: 'Failed to change password' };
-        }
-      },
-      
       // =====================================================
       // STUDENT MANAGEMENT METHODS
       // =====================================================
@@ -799,7 +632,7 @@ import * as ReactDOM from 'react-dom/client';
                 }
               }
             } catch (e) {
-              console.log('Error fetching class:', cid, e);
+              debug('Error fetching class:', cid, e);
             }
           }
           
@@ -825,7 +658,7 @@ import * as ReactDOM from 'react-dom/client';
                 students: firebase.firestore.FieldValue.arrayUnion(emailLower)
               });
             } catch (e) {
-              console.log('Error adding to class roster:', cid, e);
+              debug('Error adding to class roster:', cid, e);
             }
           }
           
@@ -1600,7 +1433,7 @@ import * as ReactDOM from 'react-dom/client';
                 return;
               }
             } catch (firebaseErr) {
-              console.log('Firebase Auth login failed, trying custom auth:', firebaseErr.code);
+              debug('Firebase Auth login failed, trying custom auth:', firebaseErr.code);
               // Fall through to custom auth
             }
           }
@@ -1863,7 +1696,7 @@ import * as ReactDOM from 'react-dom/client';
                     progressMap[essay.id] = data.progress;
                   }
                 } catch (e) {
-                  console.log('Progress load error:', e);
+                  debug('Progress load error:', e);
                 }
               }
             }
@@ -1918,7 +1751,7 @@ import * as ReactDOM from 'react-dom/client';
             body: JSON.stringify({ action: 'logout', sessionToken })
           });
         } catch (e) {
-          console.log('Logout error:', e);
+          debug('Logout error:', e);
         }
         localStorage.removeItem('studentSession');
         localStorage.removeItem('studentData');
@@ -3543,14 +3376,14 @@ import * as ReactDOM from 'react-dom/client';
       const parseCSV = (content) => {
         // Split on newlines (handle Windows \r\n and Unix \n)
         const lines = content.trim().split(/\r?\n/);
-        console.log('CSV parsing - lines found:', lines.length);
+        debug('CSV parsing - lines found:', lines.length);
         if (lines.length < 2) return [];
         
         // Parse headers - normalize to lowercase, remove quotes and spaces
         const headers = lines[0].split(',').map(h => 
           h.trim().toLowerCase().replace(/['"]/g, '').replace(/\s+/g, '')
         );
-        console.log('CSV headers:', headers);
+        debug('CSV headers:', headers);
         
         const students = [];
         for (let i = 1; i < lines.length; i++) {
@@ -3562,7 +3395,7 @@ import * as ReactDOM from 'react-dom/client';
             if (values[idx]) student[header] = values[idx];
           });
           
-          console.log('Parsed student row:', student);
+          debug('Parsed student row:', student);
           
           if (student.email && (student.name || student.fullname || student.studentname)) {
             student.name = student.name || student.fullname || student.studentname;
@@ -3572,7 +3405,7 @@ import * as ReactDOM from 'react-dom/client';
             students.push(student);
           }
         }
-        console.log('Valid students found:', students.length);
+        debug('Valid students found:', students.length);
         return students;
       };
 
@@ -4830,7 +4663,7 @@ import * as ReactDOM from 'react-dom/client';
             setExistingProgress(null);
           }
         } catch (err) {
-          console.log('Progress check error:', err.message);
+          debug('Progress check error:', err.message);
           setExistingProgress(null);
         } finally {
           setCheckingProgress(false);
@@ -5714,7 +5547,7 @@ import * as ReactDOM from 'react-dom/client';
           });
           
           const data = await response.json();
-          console.log('[ParagraphScreen] Technical check:', {
+          debug('[ParagraphScreen] Technical check:', {
             success: data.success,
             hasErrors: data.hasErrors,
             errorCount: data.errorCount
@@ -5787,7 +5620,7 @@ import * as ReactDOM from 'react-dom/client';
           })) || [];
         
         // Log what we're sending to help debug
-        console.log('[ParagraphScreen] Cumulative grading:', {
+        debug('[ParagraphScreen] Cumulative grading:', {
           completedCount: completedParagraphs.length,
           currentParagraph: paragraph.title,
           hasGradeBoundaries: !!gradeBoundaries,
@@ -5817,7 +5650,7 @@ import * as ReactDOM from 'react-dom/client';
           });
           
           const data = await response.json();
-          console.log('[ParagraphScreen] API response:', {
+          debug('[ParagraphScreen] API response:', {
             success: data.success,
             usedAuthenticDescriptors: data.usedAuthenticDescriptors,
             estimatedGrade: data.feedback?.estimatedGrade,
@@ -6050,7 +5883,7 @@ import * as ReactDOM from 'react-dom/client';
       // Auto-request feedback when compilation screen loads (if not already done)
       useEffect(() => {
         if (!essayFeedback && !isLoadingFeedback && !autoRequestedFeedback) {
-          console.log('[EssayCompilationScreen] Auto-requesting essay feedback');
+          debug('[EssayCompilationScreen] Auto-requesting essay feedback');
           setAutoRequestedFeedback(true);
           onRequestFeedback();
         }
@@ -6059,7 +5892,7 @@ import * as ReactDOM from 'react-dom/client';
       // Auto-request comparison after feedback loads (if originals exist)
       useEffect(() => {
         if (essayFeedback && hasOriginalVersions && !essayComparison && !isLoadingComparison && !autoRequestedComparison) {
-          console.log('[EssayCompilationScreen] Auto-requesting essay comparison');
+          debug('[EssayCompilationScreen] Auto-requesting essay comparison');
           setAutoRequestedComparison(true);
           fetchEssayComparison();
         }
@@ -6100,7 +5933,7 @@ import * as ReactDOM from 'react-dom/client';
           const data = await response.json();
           if (data.success) {
             setEssayComparison(data.comparison);
-            console.log('[EssayCompilationScreen] Comparison loaded:', data.comparison);
+            debug('[EssayCompilationScreen] Comparison loaded:', data.comparison);
           }
         } catch (error) {
           console.error('Failed to fetch essay comparison:', error);
@@ -7835,7 +7668,7 @@ ${examinerComment}
         // Try Firebase Auth first (with timeout so we fall back quickly)
         if (firebaseAuth) {
           try {
-            console.log('Attempting Firebase Auth login...');
+            debug('Attempting Firebase Auth login...');
             const firebaseTimeout = new Promise((_, reject) =>
               setTimeout(() => reject(new Error('timeout')), 8000)
             );
@@ -7843,7 +7676,7 @@ ${examinerComment}
               firebaseAuth.signInWithEmailAndPassword(email.trim().toLowerCase(), password),
               firebaseTimeout
             ]);
-            console.log('Firebase Auth succeeded, exchanging token...');
+            debug('Firebase Auth succeeded, exchanging token...');
             const idToken = await userCredential.user.getIdToken();
 
             const response = await fetch('/.netlify/functions/teacher-auth', {
@@ -7857,12 +7690,12 @@ ${examinerComment}
               this.setSession(result.sessionToken, result.teacher);
               return { success: true, teacher: result.teacher };
             }
-            console.log('Firebase token exchange failed:', result.error);
+            debug('Firebase token exchange failed:', result.error);
           } catch (firebaseErr) {
-            console.log('Firebase Auth login failed:', firebaseErr.code || firebaseErr.message, '- trying custom auth');
+            debug('Firebase Auth login failed:', firebaseErr.code || firebaseErr.message, '- trying custom auth');
           }
         } else {
-          console.log('Firebase Auth not initialized, using custom auth only');
+          debug('Firebase Auth not initialized, using custom auth only');
         }
 
         // Fall back to custom auth
@@ -8281,7 +8114,7 @@ ${examinerComment}
               const data = await response.json();
               if (data.success && data.essays) {
                 allEssays = data.essays;
-                console.log('Loaded essays from database:', allEssays.length);
+                debug('Loaded essays from database:', allEssays.length);
               }
             }
           } catch (fetchErr) {
@@ -8557,7 +8390,7 @@ ${examinerComment}
                 if (parsed && (parsed.id || parsed.title)) {
                   essayData = parsed;
                   strategyUsed = i;
-                  console.log('Successfully parsed using strategy:', strategyNames[i]);
+                  debug('Successfully parsed using strategy:', strategyNames[i]);
                   break;
                 }
               } catch (strategyError) {
@@ -9966,10 +9799,10 @@ ${examinerComment}
               return;
             }
             essayData = editableEssay;
-            console.log('Using user-edited essay data');
+            debug('Using user-edited essay data');
           } else if (serverParsedEssay && serverParsedEssay.paragraphs) {
             essayData = serverParsedEssay;
-            console.log('Using server-parsed essay data');
+            debug('Using server-parsed essay data');
           }
 
           // Fall back to client-side parsing if server didn't parse
@@ -10219,7 +10052,7 @@ ${examinerComment}
                 if (essayData && essayData.paragraphs) {
                   essayData.id = essayId;
                   strategyUsed = i;
-                  console.log('Successfully parsed essay config using strategy:', strategyNames[i]);
+                  debug('Successfully parsed essay config using strategy:', strategyNames[i]);
                   break;
                 }
               } catch (e) {
@@ -11228,7 +11061,7 @@ ${examinerComment}
 
             msg += '\n\nNote: All new accounts have temporary passwords. Use "Email Reset" or "Email Reset to Class" to let users set their own passwords.';
             alert(msg);
-            console.log('Migration result:', result);
+            debug('Migration result:', result);
           } else {
             alert('Migration failed: ' + (result.error || 'Unknown error'));
           }
@@ -11593,195 +11426,6 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      );
-    }
-    
-    // =====================================================
-    // MIGRATION WIZARD (For existing classes)
-    // =====================================================
-    
-    function MigrationWizard({ onComplete }) {
-      const [status, setStatus] = React.useState(null);
-      const [loading, setLoading] = React.useState(true);
-      const [assigning, setAssigning] = React.useState(false);
-      const [selectedAssignments, setSelectedAssignments] = React.useState({});
-      const [error, setError] = React.useState('');
-      
-      const sessionToken = TeacherAuth.getSessionToken();
-
-      const loadStatus = async () => {
-        setLoading(true);
-        
-        try {
-          const response = await fetch('/.netlify/functions/migrate-classes?sessionToken=' + encodeURIComponent(sessionToken));
-          const result = await response.json();
-          
-          if (result.success) {
-            setStatus(result);
-          } else {
-            setError(result.error);
-          }
-        } catch (e) {
-          setError('Failed to load migration status');
-        }
-        
-        setLoading(false);
-      };
-
-      React.useEffect(() => {
-        loadStatus();
-      }, []);
-
-      const handleClaimAll = async () => {
-        if (!confirm('Assign all unassigned classes to yourself?')) return;
-        
-        setAssigning(true);
-        
-        try {
-          const response = await fetch('/.netlify/functions/migrate-classes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'claimUnassigned',
-              sessionToken
-            })
-          });
-          
-          const result = await response.json();
-          
-          if (result.success) {
-            loadStatus();
-          } else {
-            setError(result.error);
-          }
-        } catch (e) {
-          setError('Failed to claim classes');
-        }
-        
-        setAssigning(false);
-      };
-
-      const handleAssignClass = async (classId, teacherEmail) => {
-        setAssigning(true);
-        
-        try {
-          const response = await fetch('/.netlify/functions/migrate-classes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'assignClass',
-              sessionToken,
-              classId,
-              teacherEmail
-            })
-          });
-          
-          const result = await response.json();
-          
-          if (result.success) {
-            loadStatus();
-          } else {
-            setError(result.error);
-          }
-        } catch (e) {
-          setError('Failed to assign class');
-        }
-        
-        setAssigning(false);
-      };
-
-      if (loading) {
-        return (
-          <div className="card">
-            <div className="loading-spinner"></div>
-            <p style={parseStyle("text-align: center; margin-top: var(--space-md);")}>Loading migration status...</p>
-          </div>
-        );
-      }
-
-      if (!status || status.status.unassignedClasses === 0) {
-        return (
-          <div className="card" style={parseStyle("text-align: center;")}>
-            <div style={parseStyle("font-size: 3rem; margin-bottom: var(--space-md);")}>&#10003;</div>
-            <h3 style={parseStyle("color: var(--color-success); margin-bottom: var(--space-md);")}>All Classes Assigned</h3>
-            <p style={parseStyle("color: var(--color-text-muted); margin-bottom: var(--space-lg);")}>
-              All {status?.status.totalClasses || 0} classes have been assigned to teachers.
-            </p>
-            <button className="btn btn-primary" onClick={onComplete}>
-              Continue to Dashboard
-            </button>
-          </div>
-        );
-      }
-
-      return (
-        <div className="card">
-          <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>Class Migration</h3>
-          
-          <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-warning-bg); border: 1px solid var(--color-warning); border-radius: var(--radius-md);")}>
-            <p style={parseStyle("color: var(--color-warning); margin: 0;")}>
-              <strong>{status.status.unassignedClasses}</strong> classes need to be assigned to teachers.
-            </p>
-          </div>
-          
-          {error && (
-            <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
-              {error}
-            </div>
-          )}
-          
-          <div style={parseStyle("margin-bottom: var(--space-xl);")}>
-            <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Quick Actions</h4>
-            <button 
-              className="btn btn-primary" 
-              onClick={handleClaimAll}
-              disabled={assigning}
-            >
-              {assigning ? 'Assigning...' : 'Assign All to Me'}
-            </button>
-          </div>
-          
-          <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Unassigned Classes</h4>
-          
-          <div style={parseStyle("display: flex; flex-direction: column; gap: var(--space-md);")}>
-            {status.unassignedClasses.map(cls => (
-              <div key={cls.id} style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-md); background: var(--glass-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); flex-wrap: wrap; gap: var(--space-md);")}>
-                <div>
-                  <strong>{cls.name}</strong>
-                  <span style={parseStyle("margin-left: var(--space-sm); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                    ({cls.studentCount} students)
-                  </span>
-                </div>
-                <div style={parseStyle("display: flex; gap: var(--space-sm); align-items: center;")}>
-                  <select
-                    value={selectedAssignments[cls.id] || ''}
-                    onChange={(e) => setSelectedAssignments({...selectedAssignments, [cls.id]: e.target.value})}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-xs) var(--space-sm); min-width: 200px;")}
-                  >
-                    <option value="">Select teacher...</option>
-                    {status.teachers.map(t => (
-                      <option key={t.email} value={t.email}>{t.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => handleAssignClass(cls.id, selectedAssignments[cls.id])}
-                    disabled={!selectedAssignments[cls.id] || assigning}
-                  >
-                    Assign
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div style={parseStyle("margin-top: var(--space-xl); display: flex; justify-content: flex-end;")}>
-            <button className="btn btn-secondary" onClick={onComplete}>
-              Skip for Now
-            </button>
           </div>
         </div>
       );
@@ -12774,7 +12418,7 @@ ${examinerComment}
             try {
               await loadCustomEssays();
             } catch (e) {
-              console.log('Custom essays load skipped:', e.message);
+              debug('Custom essays load skipped:', e.message);
             }
           }
 
@@ -12866,7 +12510,7 @@ ${examinerComment}
             if (firebaseReady) {
               const serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, essayId);
               if (serverProgress && serverProgress.paragraphStates && Object.keys(serverProgress.paragraphStates).length > 0) {
-                console.log('Loading progress from Firebase:', serverProgress);
+                debug('Loading progress from Firebase:', serverProgress);
                 setStudentName(serverProgress.studentName || studentName);
                 if (serverProgress.targetGrade) setTargetGrade(serverProgress.targetGrade);
                 if (serverProgress.gradeSystem) setGradeSystem(serverProgress.gradeSystem);
@@ -12880,7 +12524,7 @@ ${examinerComment}
               }
             }
           } catch (e) {
-            console.log('Error loading Firebase progress:', e);
+            debug('Error loading Firebase progress:', e);
           }
         }
         
@@ -12891,7 +12535,7 @@ ${examinerComment}
             try {
               const data = JSON.parse(localSaved);
               if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
-                console.log('Loading progress from localStorage:', data);
+                debug('Loading progress from localStorage:', data);
                 setStudentName(data.studentName);
                 if (data.studentEmail) setStudentEmail(data.studentEmail);
                 if (data.targetGrade) setTargetGrade(data.targetGrade);
@@ -12905,7 +12549,7 @@ ${examinerComment}
                 hasProgress = true;
               }
             } catch (e) {
-              console.log('Error loading localStorage:', e);
+              debug('Error loading localStorage:', e);
             }
           }
         }
@@ -12916,7 +12560,7 @@ ${examinerComment}
             const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(studentEmail.toLowerCase())}&essayId=${essayId}`, { headers: apiAuthHeaders() });
             const data = await response.json();
             if (data.success && data.found && data.progress?.paragraphStates && Object.keys(data.progress.paragraphStates).length > 0) {
-              console.log('Loading progress from Netlify function:', data.progress);
+              debug('Loading progress from Netlify function:', data.progress);
               setStudentName(data.progress.studentName || studentName);
               if (data.progress.targetGrade) setTargetGrade(data.progress.targetGrade);
               if (data.progress.gradeSystem) setGradeSystem(data.progress.gradeSystem);
@@ -12929,7 +12573,7 @@ ${examinerComment}
               hasProgress = true;
             }
           } catch (e) {
-            console.log('Netlify progress fallback error:', e);
+            debug('Netlify progress fallback error:', e);
           }
         }
 
@@ -12948,7 +12592,7 @@ ${examinerComment}
       // Debug: log CONFIG and gradeBoundaries when essay is selected
       React.useEffect(() => {
         if (CONFIG && selectedEssayId) {
-          console.log('[App] Essay config loaded:', {
+          debug('[App] Essay config loaded:', {
             essayId: selectedEssayId,
             title: CONFIG.title,
             hasGradeBoundaries: !!CONFIG.gradeBoundaries,
@@ -12989,10 +12633,10 @@ ${examinerComment}
               const firebaseReady = await FirebaseDB.isReady();
               if (firebaseReady) {
                 serverProgress = await FirebaseDB.getStudentEssayProgress(studentEmail, selectedEssayId);
-                console.log('Firebase progress loaded:', serverProgress);
+                debug('Firebase progress loaded:', serverProgress);
               }
             } catch (e) {
-              console.log('Error loading Firebase progress:', e);
+              debug('Error loading Firebase progress:', e);
             }
           }
 
@@ -13003,7 +12647,7 @@ ${examinerComment}
             try {
               localProgress = JSON.parse(localSaved);
             } catch (e) {
-              console.log('Error parsing localStorage:', e);
+              debug('Error parsing localStorage:', e);
             }
           }
 
@@ -13014,7 +12658,7 @@ ${examinerComment}
             const serverTime = new Date(serverProgress.lastUpdate || 0).getTime();
             const localTime = new Date(localProgress.savedAt || 0).getTime();
             progressToUse = serverTime > localTime ? serverProgress : localProgress;
-            console.log('Using', serverTime > localTime ? 'server' : 'local', 'progress');
+            debug('Using', serverTime > localTime ? 'server' : 'local', 'progress');
           } else {
             progressToUse = serverProgress || localProgress;
           }
@@ -13045,7 +12689,7 @@ ${examinerComment}
 
         // Need studentEmail for Firebase save
         if (!studentEmail) {
-          console.log('Auto-save skipped: no studentEmail');
+          debug('Auto-save skipped: no studentEmail');
           return;
         }
 
@@ -13080,14 +12724,14 @@ ${examinerComment}
             lastUpdate: new Date().toISOString()
           };
 
-          console.log('Auto-saving progress:', { studentEmail: progressData.studentEmail, essayId: progressData.essayId, completedCount, percentComplete });
+          debug('Auto-saving progress:', { studentEmail: progressData.studentEmail, essayId: progressData.essayId, completedCount, percentComplete });
 
           // Save to Firebase if available, otherwise Netlify function
           (async () => {
             const firebaseReady = await FirebaseDB.isReady();
             if (firebaseReady) {
               FirebaseDB.saveProgress(progressData)
-                .then(() => console.log('Firebase progress saved successfully'))
+                .then(() => debug('Firebase progress saved successfully'))
                 .catch(err => console.error('Firebase save error:', err.message));
             } else {
               fetch('/.netlify/functions/save-progress', {
@@ -13154,7 +12798,7 @@ ${examinerComment}
           if (resumeData.currentParagraphIndex !== undefined) {
             setCurrentParagraphIndex(resumeData.currentParagraphIndex);
           }
-          console.log('Restored progress from server:', {
+          debug('Restored progress from server:', {
             paragraphs: Object.keys(resumeData.paragraphStates).length,
             currentIndex: resumeData.currentParagraphIndex
           });
