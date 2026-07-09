@@ -1,36 +1,54 @@
 rules_version = '2';
 
 // ============================================================================
-// Firestore security rules — SECURE TARGET STATE
+// Firestore security rules — INTERIM (authentication-required)
 // ============================================================================
 //
-// ⚠️  DO NOT DEPLOY THESE RULES AS-IS YET. ⚠️
+// This REPLACES the catastrophic `allow read, write: if true` that left the
+// entire database world-readable and -writable via the public web config.
 //
-// This app currently performs some Firestore reads/writes DIRECTLY from the
-// browser (the client-side FirebaseDB object in index.html — teacher dashboard
-// real-time subscriptions, essay/submission/progress reads, and student CRUD).
-// These deny-all rules will break that path until those reads are routed
-// through the authenticated Netlify functions (see IMPROVEMENT_PLAN.md tasks
-// 0.4 and Phase 3). Deploy this file only AFTER that migration is complete.
+// It is safe to deploy to the live app: students and teachers sign into
+// Firebase Auth on login (index.html signInWithEmailAndPassword), so their
+// browser holds a Firebase Auth session and `request.auth != null` is true for
+// every path the client legitimately uses.
 //
-// Rationale: all privileged access runs server-side through the Firebase Admin
-// SDK (netlify/functions/*), which bypasses these rules entirely. Once the
-// client no longer touches Firestore directly, clients need NO direct access,
-// so the correct rule is deny-all. This closes the catastrophic
-// `allow read, write: if true` documented in the old FIREBASE_SETUP.md, which
-// left submissions, progress, and student data world-readable and -writable.
+// All privileged/server logic runs through Netlify functions using the Firebase
+// Admin SDK, which bypasses these rules entirely — so tightening them here does
+// not affect the functions.
 //
-// To deploy (after the client migration):
-//   firebase deploy --only firestore:rules
-//
+// ── RESIDUAL (to be closed in Phase 3 / IMPROVEMENT_PLAN.md) ────────────────
+// Any authenticated user can still read/write ANY document in the
+// client-accessible collections below (e.g. one student could read another
+// student's submission directly from the browser console). Also, `students`
+// docs carry a passwordHash field and Firestore rules cannot hide a single
+// field on read, so an authed user could read other users' PBKDF2 hashes.
+// The end state is per-document ownership rules once the remaining direct
+// client reads are migrated to the authenticated functions, after which these
+// collections can move to deny-all (server-only) like the ones below.
 // ============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deny all direct client access. Server-side Admin SDK access is unaffected.
-    // Collections in use: teachers, teacherSessions, sessions, students,
-    // classes, essays, submissions, progress, rateLimits.
+    // ── Server-only collections ───────────────────────────────────────────
+    // Only the Netlify functions (Admin SDK) touch these. The browser must
+    // never read them: exposing session tokens would enable session hijacking,
+    // and the rate-limit counters are internal. Deny all client access.
+    match /sessions/{doc}        { allow read, write: if false; }
+    match /teacherSessions/{doc} { allow read, write: if false; }
+    match /teachers/{doc}        { allow read, write: if false; }
+    match /rateLimits/{doc}      { allow read, write: if false; }
+
+    // ── Client-accessible collections (require authentication) ─────────────
+    // The app reads/writes these directly from the browser for logged-in
+    // users. Require a Firebase Auth session; deny anonymous access.
+    match /students/{doc}    { allow read, write: if request.auth != null; }
+    match /classes/{doc}     { allow read, write: if request.auth != null; }
+    match /essays/{doc}      { allow read, write: if request.auth != null; }
+    match /submissions/{doc} { allow read, write: if request.auth != null; }
+    match /progress/{doc}    { allow read, write: if request.auth != null; }
+
+    // Default: deny anything not explicitly matched above.
     match /{document=**} {
       allow read, write: if false;
     }

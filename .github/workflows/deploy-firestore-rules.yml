@@ -6,12 +6,11 @@ name: Deploy Firestore Rules
 # in the repo but never reach the live Firebase project.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# ⚠️  IMPORTANT: this deploys FULLY AUTOMATICALLY, with no approval step, every
-# time firestore.rules changes on main. The committed firestore.rules is a
-# deny-all TARGET state that will break the live app until the client's
-# remaining direct Firestore reads are migrated to the Netlify functions (see
-# IMPROVEMENT_PLAN.md task 0.4 / Phase 3). Do NOT merge the deny-all rules to
-# main until that migration is done, or the app will break the moment this runs.
+# This deploys FULLY AUTOMATICALLY, with no approval step, every time
+# firestore.rules changes on main. The committed firestore.rules is the INTERIM
+# authentication-required rule set, which is app-safe (logged-in users hold a
+# Firebase Auth session), so automatic deploy is fine. When Phase 3 tightens the
+# rules to per-document ownership, review those changes before merging as usual.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # ONE-TIME SETUP
