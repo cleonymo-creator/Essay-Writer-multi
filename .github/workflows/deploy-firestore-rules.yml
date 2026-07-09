@@ -1,0 +1,81 @@
+name: Deploy Firestore Rules
+
+# Auto-deploys Firestore security rules (and index config) whenever they change
+# on the default branch. Netlify does NOT deploy Firestore rules — only this
+# workflow does — so this closes the gap where firestore.rules could be edited
+# in the repo but never reach the live Firebase project.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠️  IMPORTANT: this deploys FULLY AUTOMATICALLY, with no approval step, every
+# time firestore.rules changes on main. The committed firestore.rules is a
+# deny-all TARGET state that will break the live app until the client's
+# remaining direct Firestore reads are migrated to the Netlify functions (see
+# IMPROVEMENT_PLAN.md task 0.4 / Phase 3). Do NOT merge the deny-all rules to
+# main until that migration is done, or the app will break the moment this runs.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ONE-TIME SETUP
+# 1. Create a Firebase service account key:
+#      Firebase console → Project settings → Service accounts → Generate new
+#      private key. (Or reuse the one already powering your Netlify functions.)
+# 2. Add it as a GitHub repository secret named FIREBASE_SERVICE_ACCOUNT
+#      (Settings → Secrets and variables → Actions → New repository secret).
+#      Paste the entire JSON file contents as the value.
+# 3. (Optional) Add secret FIREBASE_PROJECT_ID to override the project id;
+#      otherwise it defaults to the one in .firebaserc (student-essay-assistant).
+#
+# To switch to a Firebase CI token instead of a service account, replace the
+# "Authenticate" and "Deploy" steps with a single step:
+#      run: firebase deploy --only firestore:rules --token "$FIREBASE_TOKEN" --non-interactive
+#      env: { FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }} }
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'firestore.indexes.json'
+      - 'firebase.json'
+      - '.firebaserc'
+      - '.github/workflows/deploy-firestore-rules.yml'
+  # Lets you run it on demand from the Actions tab at any time.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authenticate with service account
+        run: |
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT}" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set. See the setup notes at the top of this workflow."
+            exit 1
+          fi
+          printf '%s' "${FIREBASE_SERVICE_ACCOUNT}" > "${RUNNER_TEMP}/service-account.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy Firestore rules
+        run: |
+          firebase deploy \
+            --only firestore:rules \
+            --project "${FIREBASE_PROJECT_ID:-student-essay-assistant}" \
+            --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/service-account.json"

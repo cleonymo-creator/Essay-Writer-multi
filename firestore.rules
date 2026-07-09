@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// ============================================================================
+// Firestore security rules — SECURE TARGET STATE
+// ============================================================================
+//
+// ⚠️  DO NOT DEPLOY THESE RULES AS-IS YET. ⚠️
+//
+// This app currently performs some Firestore reads/writes DIRECTLY from the
+// browser (the client-side FirebaseDB object in index.html — teacher dashboard
+// real-time subscriptions, essay/submission/progress reads, and student CRUD).
+// These deny-all rules will break that path until those reads are routed
+// through the authenticated Netlify functions (see IMPROVEMENT_PLAN.md tasks
+// 0.4 and Phase 3). Deploy this file only AFTER that migration is complete.
+//
+// Rationale: all privileged access runs server-side through the Firebase Admin
+// SDK (netlify/functions/*), which bypasses these rules entirely. Once the
+// client no longer touches Firestore directly, clients need NO direct access,
+// so the correct rule is deny-all. This closes the catastrophic
+// `allow read, write: if true` documented in the old FIREBASE_SETUP.md, which
+// left submissions, progress, and student data world-readable and -writable.
+//
+// To deploy (after the client migration):
+//   firebase deploy --only firestore:rules
+//
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Deny all direct client access. Server-side Admin SDK access is unaffected.
+    // Collections in use: teachers, teacherSessions, sessions, students,
+    // classes, essays, submissions, progress, rateLimits.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

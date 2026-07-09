@@ -1,4 +1,5 @@
 const { initializeFirebase } = require('./firebase-helper');
+const { verifyAnySession } = require('./_lib/session');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -25,6 +26,19 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Require a valid student or teacher session
+  const auth = await verifyAnySession(event);
+  if (!auth.valid) {
+    return {
+      statusCode: 401,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ success: false, error: 'Authentication required' })
+    };
+  }
+
   let db;
   try {
     db = initializeFirebase();
@@ -45,7 +59,13 @@ exports.handler = async (event, context) => {
 
   try {
     const submission = JSON.parse(event.body);
-    
+
+    // Bind the submission to the authenticated identity: a student may only
+    // submit as themselves, never forge another student's email.
+    if (auth.role === 'student') {
+      submission.studentEmail = auth.email;
+    }
+
     // Validate required fields
     if (!submission.studentName) {
       return {
@@ -58,13 +78,16 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Handle update to existing submission
+    // Handle update to existing submission. Prefer matching on the
+    // authenticated email (unique) over the display name (can collide).
     if (submission.updateOnly) {
-      const snapshot = await db.collection('submissions')
-        .where('studentName', '==', submission.studentName)
-        .where('essayId', '==', submission.essayId)
-        .limit(1)
-        .get();
+      let query = db.collection('submissions').where('essayId', '==', submission.essayId);
+      if (submission.studentEmail) {
+        query = query.where('studentEmail', '==', submission.studentEmail.toLowerCase());
+      } else {
+        query = query.where('studentName', '==', submission.studentName);
+      }
+      const snapshot = await query.limit(1).get();
       
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];

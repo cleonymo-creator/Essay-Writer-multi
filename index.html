@@ -17,6 +17,7 @@
   
   <!-- Marked for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 
   
   <!-- Firebase SDK -->
@@ -6023,7 +6024,6 @@
       const essay = getEssays()[essayId];
       if (!essay) return null;
       return {
-        TEACHER_PASSWORD: 'teacher123',
         LOCAL_STORAGE_KEY: `essay_app_${essayId}`,
         AUTO_SAVE_INTERVAL: 30000,
         DASHBOARD_REFRESH_INTERVAL: 15000,
@@ -6105,20 +6105,50 @@
       return 'needs-improvement';
     };
     
+    // Sanitize HTML before it is injected via dangerouslySetInnerHTML.
+    // Content can include AI-generated feedback and teacher-authored source
+    // material, so it must never be trusted raw.
+    const sanitizeHtml = (html) => {
+      if (typeof DOMPurify !== 'undefined') {
+        return DOMPurify.sanitize(html);
+      }
+      // Fail closed: if the sanitizer failed to load, strip tags entirely
+      // rather than render untrusted markup.
+      const div = document.createElement('div');
+      div.textContent = html;
+      return div.innerHTML;
+    };
+
     const renderMarkdown = (text) => {
       if (!text) return '';
+      let html;
       if (typeof marked !== 'undefined') {
-        return marked.parse(text);
+        html = marked.parse(text);
+      } else {
+        html = text
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+          .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+          .replace(/^# (.*$)/gm, '<h2>$1</h2>')
+          .replace(/\n/g, '<br>');
       }
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/^### (.*$)/gm, '<h4>$1</h4>')
-        .replace(/^## (.*$)/gm, '<h3>$1</h3>')
-        .replace(/^# (.*$)/gm, '<h2>$1</h2>')
-        .replace(/\n/g, '<br>');
+      return sanitizeHtml(html);
     };
-    
+
+    // Auth headers for calls to authenticated backend endpoints (AI grading,
+    // submissions). Sends the student session token if present, otherwise the
+    // teacher session token. The backend accepts either.
+    const apiAuthHeaders = () => {
+      const studentToken = localStorage.getItem('studentSession');
+      if (studentToken) return { 'Authorization': 'Bearer ' + studentToken };
+      try {
+        const teacherToken = TeacherAuth.getSessionToken();
+        if (teacherToken) return { 'Authorization': 'Bearer ' + teacherToken };
+      } catch (e) { /* TeacherAuth not ready */ }
+      return {};
+    };
+
     // =====================================================
     // TEXT-TO-SPEECH COMPONENT
     // =====================================================
@@ -6619,7 +6649,7 @@
               // Fallback to Netlify function
               for (const essay of assignedEssays) {
                 try {
-                  const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id);
+                  const response = await fetch('/.netlify/functions/save-progress?email=' + encodeURIComponent(student.email) + '&essayId=' + essay.id, { headers: apiAuthHeaders() });
                   const data = await response.json();
                   if (data.success && data.found) {
                     progressMap[essay.id] = data.progress;
@@ -9580,7 +9610,7 @@
         
         setCheckingProgress(true);
         try {
-          const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(emailLower)}&essayId=${config.id || ''}`);
+          const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(emailLower)}&essayId=${config.id || ''}`, { headers: apiAuthHeaders() });
           const data = await response.json();
           
           if (data.success && data.found && data.progress) {
@@ -9972,7 +10002,7 @@
         try {
           const response = await fetch('/.netlify/functions/expand-hint', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               hint: hintText,
               context: essayContext,
@@ -10466,7 +10496,7 @@
         try {
           const response = await fetch('/.netlify/functions/check-technical', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               paragraphText: text,
               paragraphTitle: paragraph.title,
@@ -10574,7 +10604,7 @@
           
           const response = await fetch('/.netlify/functions/grade-paragraph', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify(requestBody)
           });
           
@@ -10846,7 +10876,7 @@
           
           const response = await fetch('/.netlify/functions/compare-essays', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: config?.essayTitle,
@@ -11568,13 +11598,10 @@ ${examinerComment}
           const fetchOpts = sessionToken
             ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
             : {};
-          const authParam = sessionToken
-            ? ''
-            : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
 
           const [submissionsRes, progressRes] = await Promise.all([
-            fetch('/.netlify/functions/get-submissions' + authParam, fetchOpts),
-            fetch('/.netlify/functions/save-progress' + authParam, fetchOpts)
+            fetch('/.netlify/functions/get-submissions', fetchOpts),
+            fetch('/.netlify/functions/save-progress', fetchOpts)
           ]);
           
           const submissionsData = await submissionsRes.json();
@@ -11676,12 +11703,9 @@ ${examinerComment}
               const fetchOpts = sessionToken
                 ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
                 : {};
-              const authParam = sessionToken
-                ? ''
-                : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
               const [classesRes, studentsRes] = await Promise.all([
-                fetch('/.netlify/functions/manage-classes' + authParam, fetchOpts),
-                fetch('/.netlify/functions/manage-students' + authParam, fetchOpts)
+                fetch('/.netlify/functions/manage-classes', fetchOpts),
+                fetch('/.netlify/functions/manage-students', fetchOpts)
               ]);
               const classesData = await classesRes.json();
               const studentsData = await studentsRes.json();
@@ -12574,20 +12598,25 @@ ${examinerComment}
             this.clearSession();
             return { valid: false };
           } else {
-            // Server error (500, 502, etc.) - keep session, use cached data
-            console.log('Session verify server error, using cached session');
+            // Server error (500, 502, etc.) - keep session for UI continuity so a
+            // transient outage doesn't log the teacher out. This is PRESENTATION
+            // ONLY: the cached role is not a security decision. Every privileged
+            // operation goes through a Netlify function that re-verifies the
+            // session token and role server-side, so a tampered localStorage
+            // entry cannot grant real access (its calls will 401). The
+            // `unverified` flag lets the UI degrade destructive controls if desired.
             const cached = this.getTeacher();
             if (cached) {
-              return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+              return { valid: true, teacher: cached, isAdmin: cached.role === 'admin', unverified: true };
             }
             return { valid: false };
           }
         } catch (e) {
-          // Network error - keep session, use cached data
-          console.log('Session verify network error, using cached session');
+          // Network error - keep session for UI continuity (see note above).
+          // Presentation only; the server remains the authority on every call.
           const cached = this.getTeacher();
           if (cached) {
-            return { valid: true, teacher: cached, isAdmin: cached.role === 'admin' };
+            return { valid: true, teacher: cached, isAdmin: cached.role === 'admin', unverified: true, error: e.message };
           }
           return { valid: false, error: e.message };
         }
@@ -17676,7 +17705,7 @@ ${examinerComment}
         // Fallback to Netlify function if Firebase and localStorage both failed (cross-device)
         if (!hasProgress && studentEmail) {
           try {
-            const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(studentEmail.toLowerCase())}&essayId=${essayId}`);
+            const response = await fetch(`/.netlify/functions/save-progress?email=${encodeURIComponent(studentEmail.toLowerCase())}&essayId=${essayId}`, { headers: apiAuthHeaders() });
             const data = await response.json();
             if (data.success && data.found && data.progress?.paragraphStates && Object.keys(data.progress.paragraphStates).length > 0) {
               console.log('Loading progress from Netlify function:', data.progress);
@@ -17855,7 +17884,7 @@ ${examinerComment}
             } else {
               fetch('/.netlify/functions/save-progress', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                 body: JSON.stringify(progressData)
               }).catch(err => console.error('Progress save error:', err.message));
             }
@@ -18050,7 +18079,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
 
     const response = await fetch('/.netlify/functions/grade-essay', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
       body: JSON.stringify({
         studentName,
         essayTitle: CONFIG.essayTitle,
@@ -18111,7 +18140,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         if (!saved) {
           const resp = await fetch('/.netlify/functions/submit-homework', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify(submissionData)
           });
           if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
@@ -18187,7 +18216,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
 
           const response = await fetch('/.netlify/functions/grade-essay', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: CONFIG.essayTitle,
@@ -18248,7 +18277,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               if (!saved) {
                 const resp = await fetch('/.netlify/functions/submit-homework', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                   body: JSON.stringify(submissionData)
                 });
                 if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
@@ -18293,7 +18322,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           
           const response = await fetch('/.netlify/functions/grade-official', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
             body: JSON.stringify({
               studentName,
               essayTitle: CONFIG.essayTitle,
@@ -18324,7 +18353,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               } else {
                 await fetch('/.netlify/functions/submit-homework', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
                   body: JSON.stringify({ ...updateData, updateOnly: true })
                 });
               }

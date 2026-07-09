@@ -2,6 +2,8 @@
 const Anthropic = require("@anthropic-ai/sdk").default;
 
 const client = new Anthropic();
+const { verifyAnySession } = require("./_lib/session");
+const { checkRateLimit, getClientIp } = require("./_lib/rate-limit");
 
 exports.handler = async (event) => {
   // Handle CORS preflight
@@ -18,10 +20,28 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod !== "POST") {
-    return { 
-      statusCode: 405, 
+    return {
+      statusCode: 405,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: "Method not allowed" 
+      body: "Method not allowed"
+    };
+  }
+
+  const auth = await verifyAnySession(event);
+  if (!auth.valid) {
+    return {
+      statusCode: 401,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ success: false, error: "Authentication required" })
+    };
+  }
+
+  const rl = await checkRateLimit(auth.email || getClientIp(event), "expand-hint", { limit: 40, windowSeconds: 60 });
+  if (!rl.allowed) {
+    return {
+      statusCode: 429,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Retry-After': String(rl.retryAfterSeconds || 60) },
+      body: JSON.stringify({ success: false, error: "Too many requests. Please wait a moment and try again." })
     };
   }
 
