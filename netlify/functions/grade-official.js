@@ -3,6 +3,7 @@ const Anthropic = require("@anthropic-ai/sdk").default;
 
 const client = new Anthropic();
 const { verifyAnySession } = require("./_lib/session");
+const { checkRateLimit, getClientIp } = require("./_lib/rate-limit");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -15,6 +16,15 @@ exports.handler = async (event) => {
       statusCode: 401,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ success: false, error: "Authentication required" })
+    };
+  }
+
+  const rl = await checkRateLimit(auth.email || getClientIp(event), "grade-official", { limit: 15, windowSeconds: 60 });
+  if (!rl.allowed) {
+    return {
+      statusCode: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": String(rl.retryAfterSeconds || 60) },
+      body: JSON.stringify({ success: false, error: "Too many requests. Please wait a moment and try again." })
     };
   }
 
