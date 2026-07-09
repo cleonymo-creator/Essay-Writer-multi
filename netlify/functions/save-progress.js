@@ -36,8 +36,7 @@ exports.handler = async (event, context) => {
   if (event.httpMethod === 'GET') {
     try {
       const params = event.queryStringParameters || {};
-      const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
-      
+
       // Student progress retrieval by email
       if (params.email) {
         const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
@@ -102,18 +101,16 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // Fallback to legacy password auth
+      // Require a valid teacher session (no password fallback)
       if (!authorized) {
-        if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
-          return {
-            statusCode: 401,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*'
-            },
-            body: JSON.stringify({ error: 'Unauthorized' })
-          };
-        }
+        return {
+          statusCode: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ error: 'Unauthorized' })
+        };
       }
 
       // Get all progress documents

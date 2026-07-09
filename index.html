@@ -6023,7 +6023,6 @@
       const essay = getEssays()[essayId];
       if (!essay) return null;
       return {
-        TEACHER_PASSWORD: 'teacher123',
         LOCAL_STORAGE_KEY: `essay_app_${essayId}`,
         AUTO_SAVE_INTERVAL: 30000,
         DASHBOARD_REFRESH_INTERVAL: 15000,
@@ -11568,13 +11567,10 @@ ${examinerComment}
           const fetchOpts = sessionToken
             ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
             : {};
-          const authParam = sessionToken
-            ? ''
-            : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
 
           const [submissionsRes, progressRes] = await Promise.all([
-            fetch('/.netlify/functions/get-submissions' + authParam, fetchOpts),
-            fetch('/.netlify/functions/save-progress' + authParam, fetchOpts)
+            fetch('/.netlify/functions/get-submissions', fetchOpts),
+            fetch('/.netlify/functions/save-progress', fetchOpts)
           ]);
           
           const submissionsData = await submissionsRes.json();
@@ -11676,12 +11672,9 @@ ${examinerComment}
               const fetchOpts = sessionToken
                 ? { headers: { 'Authorization': 'Bearer ' + sessionToken } }
                 : {};
-              const authParam = sessionToken
-                ? ''
-                : '?auth=' + encodeURIComponent(GLOBAL.teacherPassword || 'teacher123');
               const [classesRes, studentsRes] = await Promise.all([
-                fetch('/.netlify/functions/manage-classes' + authParam, fetchOpts),
-                fetch('/.netlify/functions/manage-students' + authParam, fetchOpts)
+                fetch('/.netlify/functions/manage-classes', fetchOpts),
+                fetch('/.netlify/functions/manage-students', fetchOpts)
               ]);
               const classesData = await classesRes.json();
               const studentsData = await studentsRes.json();

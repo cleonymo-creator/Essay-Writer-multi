@@ -210,33 +210,17 @@ exports.handler = async (event, context) => {
         }
       }
 
-      // If session auth failed or no token, try legacy password fallback
+      // Require a valid teacher or student-self session (no password fallback)
       if (!sessionCheck.valid) {
-        const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
-        if (params.auth === expectedPassword || params.auth === 'teacher123') {
-          // Legacy password accepted - treat as admin
-          sessionCheck = { valid: true, isAdmin: true };
-        } else if (!sessionToken) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Authentication required',
-              requiresAuth: true
-            })
-          };
-        } else {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: sessionCheck.error || 'Invalid session',
-              requiresAuth: true
-            })
-          };
-        }
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: sessionToken ? (sessionCheck.error || 'Invalid session') : 'Authentication required',
+            requiresAuth: true
+          })
+        };
       }
 
       // If student self-service, restrict to their own email only
@@ -247,16 +231,17 @@ exports.handler = async (event, context) => {
         teacherStudentEmails = await getTeacherStudentEmails(sessionCheck.email);
       }
     } else {
-      // Legacy authentication - use old password system
-      const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
-
-      if (params.auth !== expectedPassword && params.auth !== 'teacher123') {
-        return {
-          statusCode: 401,
-          headers,
-          body: JSON.stringify({ error: 'Unauthorized - Invalid teacher password' })
-        };
-      }
+      // No teacher accounts exist yet — no one is authorized to read submissions.
+      // A teacher/admin account must be created before the dashboard is accessible.
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'No teacher account configured. Create an admin account first.',
+          requiresAuth: true
+        })
+      };
     }
 
     const db = initializeFirebase();

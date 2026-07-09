@@ -90,32 +90,17 @@ exports.handler = async (event, context) => {
         sessionCheck = await verifyTeacherSession(sessionToken, db);
       }
 
-      // Fallback to legacy password auth
+      // Require a valid teacher session (no password fallback)
       if (!sessionCheck.valid) {
-        const expectedPassword = process.env.TEACHER_PASSWORD || 'teacher123';
-        if (params.auth === expectedPassword || params.auth === 'teacher123') {
-          sessionCheck = { valid: true, isAdmin: true };
-        } else if (!sessionToken) {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Authentication required',
-              requiresAuth: true
-            })
-          };
-        } else {
-          return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: sessionCheck.error || 'Invalid session',
-              requiresAuth: true
-            })
-          };
-        }
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: sessionToken ? (sessionCheck.error || 'Invalid session') : 'Authentication required',
+            requiresAuth: true
+          })
+        };
       }
     }
 
