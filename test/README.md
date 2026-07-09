@@ -2,9 +2,10 @@
 
 ## Smoke test (`smoke.mjs`)
 
-A headless-browser boot check for `index.html`. It serves the real page, loads
-it in headless Chromium (Playwright), and asserts the app **boots without
-uncaught/console errors and renders an interactive screen** (the login form).
+A headless-browser boot check for the app. It runs `vite build`, serves the
+built `dist/` output, loads it in headless Chromium (Playwright), and asserts
+the app **boots without uncaught/console errors and renders an interactive
+screen** (the login form).
 This catches the "white screen" class of failure — syntax errors, bad
 references, broken JSX — which is the main risk when refactoring the large
 single-file frontend (see `IMPROVEMENT_PLAN.md`, Phase 3).
@@ -24,9 +25,9 @@ SMOKE PASS — app booted and rendered 6 controls (text: "Essay Writing Assistan
 
 ### How it stays hermetic
 
-- The app's CDN `<script>` tags (React, ReactDOM, Babel, marked, DOMPurify,
-  Firebase compat, pdf.js) are mapped to npm-installed copies of the same
-  libraries via Playwright request interception — no CDN access needed.
+- React/ReactDOM are bundled into `dist` by Vite. The remaining CDN `<script>`
+  tags (marked, DOMPurify, Firebase compat, pdf.js) are mapped to npm-installed
+  copies via Playwright request interception — no CDN access needed.
 - The two functions the app calls on boot (`firebase-config`, `manage-essays`)
   are stubbed by a tiny local server. Firebase is left disabled (the stub omits
   the API key), so no real backend is contacted. This is a **boot** smoke test,

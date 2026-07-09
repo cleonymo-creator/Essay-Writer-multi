@@ -45,11 +45,10 @@ function findChrome() {
   return candidates.find(p => fs.existsSync(p)); // undefined -> playwright default
 }
 
-// CDN URL substring -> local vendored file (order matters: more specific first).
+// CDN URL substring -> local vendored file for the libraries still loaded via
+// <script> in index.html (React/Babel are now bundled by Vite, so they are not
+// requested from a CDN and not listed here). Order: more specific first.
 const VENDOR = [
-  ['react-dom.production.min.js', 'node_modules/react-dom/umd/react-dom.production.min.js'],
-  ['react.production.min.js', 'node_modules/react/umd/react.production.min.js'],
-  ['babel.min.js', 'node_modules/@babel/standalone/babel.min.js'],
   ['marked.min.js', 'node_modules/marked/marked.min.js'],
   ['purify.min.js', 'node_modules/dompurify/dist/purify.min.js'],
   ['firebase-app-compat.js', 'node_modules/firebase/firebase-app-compat.js'],
@@ -66,14 +65,17 @@ function vendorFor(url) {
   return null;
 }
 
-// Minimal server: real index.html + stubs for the two functions called on boot.
+// Serve the built app from dist/ (run `vite build` first) plus stubs for the
+// two functions the app calls on boot.
+const SERVE_DIR = path.join(ROOT, 'dist');
+const CTYPES = {
+  '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript',
+  '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.map': 'application/json',
+};
+
 const server = http.createServer((req, res) => {
-  const u = (req.url || '/').split('?')[0];
-  if (u === '/' || u === '/index.html') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    fs.createReadStream(path.join(ROOT, 'index.html')).pipe(res);
-    return;
-  }
+  const u = decodeURIComponent((req.url || '/').split('?')[0]);
   if (u === '/.netlify/functions/firebase-config') {
     // No apiKey -> the app leaves Firebase disabled and takes the functions
     // path, so no real Firebase connection is attempted.
@@ -86,8 +88,21 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ success: true, essays: [] }));
     return;
   }
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end('{"error":"not found (smoke stub)"}');
+  // Static file from dist/
+  const rel = u === '/' ? '/index.html' : u;
+  const filePath = path.join(SERVE_DIR, rel);
+  if (!filePath.startsWith(SERVE_DIR)) {
+    res.writeHead(403); res.end('forbidden'); return;
+  }
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end('{"error":"not found (smoke server)"}');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': CTYPES[path.extname(filePath)] || 'application/octet-stream' });
+    res.end(data);
+  });
 });
 
 // console.error lines that are expected in the stubbed environment (backend

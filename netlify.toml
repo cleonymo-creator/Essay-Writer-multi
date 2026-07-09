@@ -2,8 +2,9 @@
 # =====================
 
 [build]
-  # No build command needed - static HTML
-  publish = "."
+  # The frontend is now built by Vite (index.html -> src/main.jsx) into dist/.
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
