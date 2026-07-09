@@ -159,10 +159,14 @@
       
       /* Text on Dark */
       --color-text: #e8e8e8;
-      --color-text-secondary: #e8e8e8;
+      --color-text-secondary: #c9c9d6;
       --color-text-muted: #c0c0c0;
       --color-text-inverse: #1a1a2e;
       --color-text-gold: #daa520;
+      --color-gold: #daa520;
+
+      /* Secondary surface (panels, collapsed headers) */
+      --color-bg-secondary: rgba(30, 30, 50, 0.6);
       
       /* Semantic Colors */
       --color-success: #22c55e;
@@ -247,6 +251,26 @@
     #root {
       position: relative;
       z-index: 1;
+    }
+
+    /* Visible keyboard focus everywhere (mouse clicks stay ring-free).
+       !important so the ring appears instantly even on components that
+       declare `transition: all` (which would otherwise fade it in). */
+    :focus-visible {
+      outline: 2px solid var(--color-accent) !important;
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+      transition: none !important;
+    }
+
+    /* Respect users who opt out of motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
     
     /* =====================================================

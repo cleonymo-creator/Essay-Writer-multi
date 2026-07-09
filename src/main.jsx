@@ -1361,7 +1361,63 @@ import * as ReactDOM from 'react-dom/client';
         </div>
       );
     }
-    
+
+    // Shows one-time credentials (e.g. a reset password) in a copyable
+    // dialog instead of a native alert(), which loses the value forever
+    // the moment it's dismissed.
+    function CredentialDialog({ title, message, credentials, onClose }) {
+      const [copied, setCopied] = useState(false);
+      const credText = credentials.map(c => `${c.label}: ${c.value}`).join('\n');
+
+      const handleCopy = async () => {
+        try {
+          await navigator.clipboard.writeText(credText);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (e) {
+          debug('Clipboard copy failed:', e);
+        }
+      };
+
+      useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [onClose]);
+
+      return (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+        >
+          <div className="card" style={parseStyle("max-width: 440px; width: 100%; padding: var(--space-xl);")}>
+            <h3 style={parseStyle("margin-bottom: var(--space-md);")}>{title}</h3>
+            {message && <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>{message}</p>}
+            <div style={parseStyle("background: rgba(0, 0, 0, 0.3); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md);")}>
+              {credentials.map((c, i) => (
+                <div key={i} style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); padding: var(--space-xs) 0;")}>
+                  <span style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>{c.label}</span>
+                  <code style={parseStyle("font-family: var(--font-mono); font-size: 1rem; color: var(--color-primary-light); user-select: all;")}>{c.value}</code>
+                </div>
+              ))}
+            </div>
+            <p style={parseStyle("margin-bottom: var(--space-lg); font-size: 0.85rem; color: var(--color-warning);")}>
+              <Icon name={ICONS.alertTriangle} size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Save this now — it will not be shown again.
+            </p>
+            <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: flex-end;")}>
+              <button className="btn btn-secondary" onClick={handleCopy}>
+                {copied ? 'Copied ✓' : 'Copy'}
+              </button>
+              <button className="btn btn-primary" autoFocus onClick={onClose}>Done</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // =====================================================
     // STUDENT LOGIN SCREEN
     // =====================================================
@@ -2197,10 +2253,11 @@ import * as ReactDOM from 'react-dom/client';
       // Get grade color
       const getGradeColor = (grade) => {
         if (!grade) return 'var(--color-text-muted)';
-        const g = grade.toUpperCase();
-        if (g.includes('A') || g === '9' || g === '8') return 'var(--color-success)';
-        if (g.includes('B') || g === '7' || g === '6') return '#22d3ee';
-        if (g.includes('C') || g === '5' || g === '4') return 'var(--color-warning)';
+        const g = String(grade).trim().toUpperCase();
+        if (g === 'UNGRADED' || g === 'N/A' || g === 'NA' || g === '-' || g === 'PENDING') return 'var(--color-text-muted)';
+        if (g.startsWith('A') || g === '9' || g === '8') return 'var(--color-success)';
+        if (g.startsWith('B') || g === '7' || g === '6') return 'var(--color-info)';
+        if (g.startsWith('C') || g === '5' || g === '4') return 'var(--color-warning)';
         return 'var(--color-error)';
       };
 
@@ -2208,7 +2265,7 @@ import * as ReactDOM from 'react-dom/client';
       const getScoreColor = (score) => {
         if (score === null || score === undefined) return 'var(--color-text-muted)';
         if (score >= 80) return 'var(--color-success)';
-        if (score >= 60) return '#22d3ee';
+        if (score >= 60) return 'var(--color-info)';
         if (score >= 40) return 'var(--color-warning)';
         return 'var(--color-error)';
       };
@@ -2473,7 +2530,7 @@ import * as ReactDOM from 'react-dom/client';
                                                         const isCurrentPara = pIdx === (prog.currentParagraphIndex || 0);
                                                         const hasScore = para.score !== undefined && para.score !== null;
                                                         const scoreColor = hasScore
-                                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-error)')
                                                           : 'var(--color-text-muted)';
                                                         return (
                                                           <div
@@ -2482,7 +2539,7 @@ import * as ReactDOM from 'react-dom/client';
                                                               padding: var(--space-xs) var(--space-sm);
                                                               border-radius: var(--radius-sm);
                                                               background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
-                                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                                              color: ${isCurrentPara ? 'var(--color-text-inverse)' : scoreColor};
                                                               border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
                                                               min-width: 65px;
                                                               text-align: center;
@@ -2511,7 +2568,7 @@ import * as ReactDOM from 'react-dom/client';
                                                               padding: var(--space-xs) var(--space-sm);
                                                               border-radius: var(--radius-sm);
                                                               background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
-                                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                                              color: ${isCurrentPara || isCompleted ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'};
                                                               min-width: 65px;
                                                               text-align: center;
                                                               font-size: 0.8rem;
@@ -2739,7 +2796,7 @@ import * as ReactDOM from 'react-dom/client';
                                   background: noActivity ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
                                 }}
                               >
-                                <td style={parseStyle("padding: var(--space-sm); position: sticky; left: 0; background: inherit;")}>
+                                <td style={parseStyle(`padding: var(--space-sm); position: sticky; left: 0; background: ${noActivity ? '#3a2438' : 'var(--color-bg-alt)'};`)}>
                                   <div style={parseStyle("font-weight: 500;")}>{student.name || '-'}</div>
                                   <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{student.email || '-'}</div>
                                   {noActivity && (
@@ -2848,7 +2905,7 @@ import * as ReactDOM from 'react-dom/client';
                           <span style={parseStyle("color: var(--color-success);")}>■</span> 80%+ (Excellent)
                         </div>
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
-                          <span style={{ color: '#22d3ee' }}>■</span> 60-79% (Good)
+                          <span style={parseStyle("color: var(--color-info);")}>■</span> 60-79% (Good)
                         </div>
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
                           <span style={parseStyle("color: var(--color-warning);")}>■</span> 40-59% (Developing)
@@ -2879,6 +2936,7 @@ import * as ReactDOM from 'react-dom/client';
     function StudentManagementPanel() {
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
+      const [credentialDialog, setCredentialDialog] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [showAddStudent, setShowAddStudent] = useState(false);
@@ -2946,7 +3004,14 @@ import * as ReactDOM from 'react-dom/client';
           result = await response.json();
 
           if (result.success) {
-            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Give this new password to the student.',
+              credentials: [
+                { label: 'Student', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -3058,7 +3123,7 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       if (loading) {
-        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}> Loading students...</p></div>;
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}>Loading students...</p></div>;
       }
 
       return (
@@ -3175,7 +3240,14 @@ import * as ReactDOM from 'react-dom/client';
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
+                setCredentialDialog({
+                  title: 'Student Created',
+                  message: 'Give this password to the student.',
+                  credentials: [
+                    { label: 'Email', value: newStudent.email },
+                    { label: 'Password', value: password }
+                  ]
+                });
               }}
             />
           )}
@@ -3200,10 +3272,14 @@ import * as ReactDOM from 'react-dom/client';
               }}
             />
           )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
+          )}
         </div>
       );
     }
-    
+
     // =====================================================
     // ADD STUDENT MODAL
     // =====================================================
@@ -3580,6 +3656,26 @@ import * as ReactDOM from 'react-dom/client';
                     <p style={parseStyle("font-size: 0.85rem; color: var(--color-warning); margin-top: var(--space-sm);")}>
                       Save these passwords! They will not be shown again.
                     </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={parseStyle("margin-top: var(--space-sm); display: inline-flex; align-items: center; gap: 6px;")}
+                      onClick={() => {
+                        const rows = [['Name', 'Email', 'Password'], ...results.results.created.map(s => [s.name || '', s.email || '', s.password || ''])];
+                        const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'student-passwords.csv';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Icon name={ICONS.download} size={16} /> Download credentials CSV
+                    </button>
                   </div>
                 )}
 
@@ -4206,7 +4302,7 @@ import * as ReactDOM from 'react-dom/client';
           aria-label="Show original task"
           title="Show original task"
         >
-          
+          <Icon name={ICONS.clipboard} size={24} />
         </button>
       );
     }
@@ -4544,11 +4640,11 @@ import * as ReactDOM from 'react-dom/client';
           <div className="revision-actions">
             {canRevise ? (
               <>
-                <button className="btn btn-primary" onClick={onRevise}>
-                  ? Revise My Paragraph
+                <button className="btn btn-primary" onClick={onRevise} style={parseStyle("display: inline-flex; align-items: center; justify-content: center; gap: 8px;")}>
+                  <Icon name={ICONS.edit} size={18} /> Revise My Paragraph
                 </button>
-                <button className="btn btn-success" onClick={onAccept}>
-                  ? Accept & Continue
+                <button className="btn btn-success" onClick={onAccept} style={parseStyle("display: inline-flex; align-items: center; justify-content: center; gap: 8px;")}>
+                  <Icon name={ICONS.check} size={18} /> Accept & Continue
                 </button>
               </>
             ) : (
@@ -4875,10 +4971,11 @@ import * as ReactDOM from 'react-dom/client';
 
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
-                      <div className="grade-info-title">
-                        {abilityTier === 'high' ? '&#128640; Aiming High!' :
-                         abilityTier === 'foundation' ? '&#128679; Building Strong Foundations' :
-                         '&#128200; Solid Progress'}
+                      <div className="grade-info-title" style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
+                        <Icon name={abilityTier === 'high' ? ICONS.trophy : abilityTier === 'foundation' ? ICONS.target : ICONS.chart} size={18} />
+                        {abilityTier === 'high' ? 'Aiming High!' :
+                         abilityTier === 'foundation' ? 'Building Strong Foundations' :
+                         'Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -5202,9 +5299,31 @@ import * as ReactDOM from 'react-dom/client';
         return error.correctionTarget || error.errorText;
       };
 
-      // Apply correction to the text
-      const applyCorrection = (text, targetText, correction) => {
-        // Find and replace the correction target with the student's correction
+      // Apply correction to the text.
+      // A bare text.replace() would always hit the FIRST occurrence, so a
+      // repeated word could get corrected in the wrong place. Anchor the
+      // replacement using the error's context/position instead.
+      const applyCorrection = (text, targetText, correction, error) => {
+        const context = error?.errorContext;
+        if (context) {
+          const ctxIdx = text.indexOf(context);
+          if (ctxIdx !== -1) {
+            const targetIdx = context.indexOf(targetText);
+            if (targetIdx !== -1) {
+              const abs = ctxIdx + targetIdx;
+              return text.slice(0, abs) + correction + text.slice(abs + targetText.length);
+            }
+          }
+        }
+        if (typeof error?.startIndex === 'number') {
+          let best = -1;
+          let idx = text.indexOf(targetText);
+          while (idx !== -1) {
+            if (best === -1 || Math.abs(idx - error.startIndex) < Math.abs(best - error.startIndex)) best = idx;
+            idx = text.indexOf(targetText, idx + 1);
+          }
+          if (best !== -1) return text.slice(0, best) + correction + text.slice(best + targetText.length);
+        }
         return text.replace(targetText, correction);
       };
 
@@ -5240,7 +5359,7 @@ import * as ReactDOM from 'react-dom/client';
         setCorrectionMessage('Excellent! You\'ve corrected this error.');
 
         // Apply the correction to the text
-        const updatedText = applyCorrection(currentText, target, correctionInput);
+        const updatedText = applyCorrection(currentText, target, correctionInput, currentError);
         setCurrentText(updatedText);
         onUpdateText(updatedText);
         
@@ -5468,8 +5587,9 @@ import * as ReactDOM from 'react-dom/client';
 // PARAGRAPH SCREEN
     // =====================================================
     
-    function ParagraphScreen({ paragraph, paragraphState, paragraphStates, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
+    function ParagraphScreen({ paragraph, paragraphState, paragraphStates, onSubmitAttempt, onComplete, onDraftChange, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
       const [text, setText] = useState(paragraphState?.currentText || '');
+      const [draftStatus, setDraftStatus] = useState('idle'); // 'idle' | 'unsaved' | 'saved'
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
       const [currentFeedback, setCurrentFeedback] = useState(null);
@@ -5483,7 +5603,28 @@ import * as ReactDOM from 'react-dom/client';
       const [originalTextBeforeCorrections, setOriginalTextBeforeCorrections] = useState(null); // Captures text before any corrections
       
       const textareaRef = useRef(null);
-      
+
+      // Autosave the unsubmitted draft into paragraphStates so navigating
+      // away (tracker, refresh, crash) never silently discards typed work.
+      useEffect(() => {
+        if (previewMode || !onDraftChange || paragraphState?.completed) return;
+        if (text === (paragraphState?.currentText || '')) return;
+        setDraftStatus('unsaved');
+        const timer = setTimeout(() => {
+          onDraftChange(text);
+          setDraftStatus('saved');
+        }, 800);
+        return () => clearTimeout(timer);
+      }, [text]);
+
+      // Warn before the tab closes while a draft change hasn't been saved yet
+      useEffect(() => {
+        if (draftStatus !== 'unsaved') return;
+        const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+      }, [draftStatus]);
+
       const wordCount = countWords(text);
       const minWords = config?.minWordsPerParagraph || 50;
       const targetWords = config?.targetWordsPerParagraph || 100;
@@ -5818,6 +5959,11 @@ import * as ReactDOM from 'react-dom/client';
               
               <div className={`word-count ${wordCountClass}`}>
                 <span>{wordCount} words {wordCount < minWords && `(minimum ${minWords})`}</span>
+                {!previewMode && draftStatus !== 'idle' && (
+                  <span role="status" style={parseStyle(`font-size: 0.85rem; color: ${draftStatus === 'saved' ? 'var(--color-success)' : 'var(--color-text-muted)'};`)}>
+                    {draftStatus === 'saved' ? 'Draft saved ✓' : 'Saving…'}
+                  </span>
+                )}
                 <span>Target: {targetWords} words</span>
               </div>
               
@@ -6290,7 +6436,7 @@ ${examinerComment}
             <div className="holistic-feedback" style={parseStyle("margin-top: var(--space-xl);")}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Official Mark Scheme Grading</h2>
+                  <h2 style={parseStyle("margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.award} size={22} /> Official Mark Scheme Grading</h2>
                   <p style={parseStyle("color: var(--color-text-muted);")}>
                     {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification}  {config.officialMarkScheme.paper}
                   </p>
@@ -6307,7 +6453,7 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>Grade {initialVersion.grade}</div>
                   </div>
 
-                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}></div>
+                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")} aria-hidden="true">&rarr;</div>
 
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Improved</div>
@@ -6386,7 +6532,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Essay Feedback</h2>
+                      <h2 style={parseStyle("margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.fileText} size={22} /> Essay Feedback</h2>
                       <p style={parseStyle("color: var(--color-text-muted);")}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -6411,7 +6557,7 @@ ${examinerComment}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label"> Your Best Writing</div>
+                      <div className="best-quote-label">Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -6550,7 +6696,7 @@ ${examinerComment}
             <>
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-xl); background: linear-gradient(135deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98)); border: 2px solid var(--color-primary);")}>
-                  <h3 style={parseStyle("margin-bottom: var(--space-md);")}> 📋 Official Mark Scheme Grading</h3>
+                  <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.clipboard} size={20} /> Official Mark Scheme Grading</h3>
                   <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                     Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                   </p>
@@ -7276,7 +7422,7 @@ ${examinerComment}
                                         const isCurrentPara = pIdx === (student.currentParagraphIndex || 0);
                                         const hasScore = para.score !== undefined && para.score !== null;
                                         const scoreColor = hasScore
-                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-error)')
                                           : 'var(--color-text-muted)';
                                         return (
                                           <div
@@ -7285,7 +7431,7 @@ ${examinerComment}
                                               padding: var(--space-sm) var(--space-md);
                                               border-radius: var(--radius-md);
                                               background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
-                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                              color: ${isCurrentPara ? 'var(--color-text-inverse)' : scoreColor};
                                               border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
                                               min-width: 80px;
                                               text-align: center;
@@ -7313,7 +7459,7 @@ ${examinerComment}
                                               padding: var(--space-sm) var(--space-md);
                                               border-radius: var(--radius-md);
                                               background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
-                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                              color: ${isCurrentPara || isCompleted ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'};
                                               min-width: 80px;
                                               text-align: center;
                                             `)}
@@ -7389,11 +7535,11 @@ ${examinerComment}
                               {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
                             </td>
                           )}
-                          <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
+                          <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${sub.score >= 80 ? 'var(--color-success)' : sub.score >= 60 ? 'var(--color-info)' : sub.score >= 40 ? 'var(--color-warning)' : 'var(--color-error)'};`)}>{sub.score}%</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}> Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}> Official Grading</span>
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
                           </td>
                           <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
@@ -7439,7 +7585,7 @@ ${examinerComment}
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
                     {selectedSubmission.originalEssay && selectedSubmission.essaysAreDifferent ? (
                       <>
-                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essays: Original vs Improved</h4>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Essays: Original vs Improved</h4>
                         <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                           {/* Original Essay */}
                           <div>
@@ -7467,7 +7613,7 @@ ${examinerComment}
                       </>
                     ) : (
                       <>
-                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essay</h4>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Essay</h4>
                         <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                           {selectedSubmission.essay.split('\n\n').map((para, i) => (
                             <p key={i} className="compiled-paragraph">{para}</p>
@@ -10738,7 +10884,7 @@ ${examinerComment}
                     <div key={idx} style={parseStyle(`margin-bottom: var(--space-sm); border: 1px solid ${isExpanded ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-md); overflow: hidden;`)}>
                       {/* Paragraph header - always visible */}
                       <div
-                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'var(--color-primary-light, #f0f4ff)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
+                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'rgba(184, 134, 11, 0.18)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
                         onClick={() => setEditExpandedParagraph(isExpanded ? null : idx)}>
                         <span style={parseStyle("font-weight: 600; font-size: 0.85rem; min-width: 24px; text-align: center; color: var(--color-primary);")}>{idx + 1}</span>
                         <span style={parseStyle("flex: 1; font-size: 0.85rem; font-weight: 500;")}>{para.title || 'Untitled'}</span>
@@ -10899,6 +11045,7 @@ ${examinerComment}
 
     function TeacherManagementPanel() {
       const [teachers, setTeachers] = React.useState([]);
+      const [credentialDialog, setCredentialDialog] = React.useState(null);
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState('');
       const [showAddTeacher, setShowAddTeacher] = React.useState(false);
@@ -10950,7 +11097,14 @@ ${examinerComment}
           const result = await response.json();
           
           if (result.success) {
-            alert('New password: ' + result.newPassword + '\n\nPlease save this password and share it securely with the teacher.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Share this password securely with the teacher.',
+              credentials: [
+                { label: 'Teacher', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Error: ' + result.error);
           }
@@ -11235,6 +11389,10 @@ ${examinerComment}
               }}
             />
           )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
+          )}
         </div>
       );
     }
@@ -11438,6 +11596,7 @@ ${examinerComment}
     function AdminStudentsPanel() {
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
+      const [credentialDialog, setCredentialDialog] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [searchTerm, setSearchTerm] = useState('');
@@ -11521,7 +11680,14 @@ ${examinerComment}
           });
           const result = await response.json();
           if (result.success) {
-            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Give this new password to the student.',
+              credentials: [
+                { label: 'Student', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -11693,7 +11859,14 @@ ${examinerComment}
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
+                setCredentialDialog({
+                  title: 'Student Created',
+                  message: 'Give this password to the student.',
+                  credentials: [
+                    { label: 'Email', value: newStudent.email },
+                    { label: 'Password', value: password }
+                  ]
+                });
               }}
             />
           )}
@@ -11707,6 +11880,10 @@ ${examinerComment}
                 setShowImportCSV(false);
               }}
             />
+          )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
           )}
         </div>
       );
@@ -12484,6 +12661,15 @@ ${examinerComment}
 
       // Handle student logout
       const handleStudentLogout = () => {
+        // Clear cached essay progress so the next student on a shared
+        // device can't see (or resume into) this student's name and work.
+        try {
+          Object.keys(localStorage)
+            .filter(key => key.startsWith('essay_app_'))
+            .forEach(key => localStorage.removeItem(key));
+        } catch (e) {
+          debug('Error clearing local progress on logout:', e);
+        }
         setIsAuthenticated(false);
         setCurrentStudent(null);
         setSessionToken(null);
@@ -12534,7 +12720,14 @@ ${examinerComment}
           if (localSaved) {
             try {
               const data = JSON.parse(localSaved);
-              if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
+              // Never resume localStorage progress saved by a different
+              // account (shared school devices) — it would leak the previous
+              // student's work and adopt their identity.
+              const belongsToCurrentStudent = !studentEmail || !data.studentEmail ||
+                data.studentEmail.toLowerCase() === studentEmail.toLowerCase();
+              if (!belongsToCurrentStudent) {
+                localStorage.removeItem(essayConfig.LOCAL_STORAGE_KEY);
+              } else if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
                 debug('Loading progress from localStorage:', data);
                 setStudentName(data.studentName);
                 if (data.studentEmail) setStudentEmail(data.studentEmail);
@@ -12646,6 +12839,12 @@ ${examinerComment}
           if (localSaved) {
             try {
               localProgress = JSON.parse(localSaved);
+              // Discard progress saved by a different account (shared devices)
+              if (studentEmail && localProgress?.studentEmail &&
+                  localProgress.studentEmail.toLowerCase() !== studentEmail.toLowerCase()) {
+                localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+                localProgress = null;
+              }
             } catch (e) {
               debug('Error parsing localStorage:', e);
             }
@@ -12818,6 +13017,16 @@ ${examinerComment}
         setScreen('login');
       };
       
+      // Persist an in-progress (unsubmitted) draft so tracker navigation,
+      // refreshes, and crashes never lose typed work.
+      const handleDraftChange = useCallback((paragraphId, draftText) => {
+        setParagraphStates(prev => {
+          const current = prev[paragraphId] || { attempts: 0, feedbackHistory: [] };
+          if (current.completed || current.currentText === draftText) return prev;
+          return { ...prev, [paragraphId]: { ...current, currentText: draftText } };
+        });
+      }, []);
+
       const handleSubmitAttempt = (paragraphId, attemptData) => {
         setParagraphStates(prev => {
           const current = prev[paragraphId] || { attempts: 0, feedbackHistory: [] };
@@ -13413,6 +13622,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
                 paragraphStates={paragraphStates}
                 onSubmitAttempt={(data) => handleSubmitAttempt(currentParagraph.id, data)}
                 onComplete={(text, feedback) => handleCompleteParagraph(currentParagraph.id, text, feedback)}
+                onDraftChange={(draftText) => handleDraftChange(currentParagraph.id, draftText)}
                 previewMode={isPreviewMode}
                 config={CONFIG}
                 gradingCriteria={GRADING_CRITERIA}
