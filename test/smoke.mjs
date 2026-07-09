@@ -88,6 +88,12 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ success: true, essays: [] }));
     return;
   }
+  if (u === '/.netlify/functions/teacher-auth') {
+    // Lets the teacher-login screen render its form cleanly during the test.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, teachersExist: true, needsSetup: false }));
+    return;
+  }
   // Static file from dist/
   const rel = u === '/' ? '/index.html' : u;
   const filePath = path.join(SERVE_DIR, rel);
@@ -169,6 +175,24 @@ async function main() {
       };
     });
 
+    // Second screen: click through to the teacher login form. This exercises a
+    // state transition and renders a different component subtree, so the split
+    // work is guarded on more than just the initial screen.
+    let teacherScreen = { controls: 0, textLen: 0 };
+    try {
+      await page.getByText('Teacher Login', { exact: false }).first().click();
+      await page.waitForSelector('#root input[type="password"], #root input', { timeout: 15000 });
+      teacherScreen = await page.evaluate(() => {
+        const r = document.getElementById('root');
+        return {
+          controls: document.querySelectorAll('#root input, #root button').length,
+          textLen: r ? r.textContent.trim().length : 0,
+        };
+      });
+    } catch (e) {
+      pageErrors.push('teacher-login navigation failed: ' + e.message);
+    }
+
     const realConsoleErrors = consoleErrors.filter(t => !ALLOWED_CONSOLE.some(re => re.test(t)));
 
     const problems = [];
@@ -177,12 +201,15 @@ async function main() {
     if (rendered.textLen < 30 || rendered.controls < 1) {
       problems.push(`app did not render an interactive screen: ${JSON.stringify(rendered)}`);
     }
+    if (teacherScreen.controls < 1) {
+      problems.push(`teacher-login screen did not render controls: ${JSON.stringify(teacherScreen)}`);
+    }
 
     if (problems.length) {
       console.error('SMOKE FAIL\n' + problems.join('\n'));
       process.exitCode = 1;
     } else {
-      console.log(`SMOKE PASS — app booted and rendered ${rendered.controls} controls (text: "${rendered.sample}...")`);
+      console.log(`SMOKE PASS — login screen rendered ${rendered.controls} controls; teacher-login screen rendered ${teacherScreen.controls} controls`);
     }
   } finally {
     await browser.close();
