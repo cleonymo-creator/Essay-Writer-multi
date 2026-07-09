@@ -1,47 +1,50 @@
-# Teacher Dashboard Access
+# Teacher & Admin Accounts
 
-## Default Password
+Teacher access is **not** a shared password in a config file (that legacy model,
+including the old `teacher123` default, has been removed). Teachers and admins
+have individual accounts stored in Firestore, authenticated with per-user
+PBKDF2 password hashes and session tokens, handled by
+`netlify/functions/teacher-auth.js`.
 
-The default teacher password is: `teacher123`
+## Creating the first admin
 
-## Changing the Password
+On a fresh deployment with no teacher accounts yet, the **first account you
+register becomes the initial admin** — the sign-up flow allows the very first
+teacher to be created without existing credentials. After that, creating new
+teachers requires an existing admin session.
 
-Edit `config/homework.js` and change the `teacherPassword` value:
+1. Open the app and go to the teacher area (teacher login / sign-up).
+2. Register with your name, email, and a password (**minimum 8 characters**).
+3. This first account is created as an admin.
 
-```javascript
-window.HOMEWORK_CONFIG = {
-  // ... other config
-  teacherPassword: "your-secure-password-here",
-  // ... questions
-};
-```
+## Adding more teachers
 
-## Accessing the Dashboard
+Once at least one account exists, new teachers can only be created by a
+logged-in admin (via the Teacher Management panel in the dashboard). Roles:
 
-1. Go to your homework URL
-2. Click "Teacher Login" on the main screen
-3. Enter the password
-4. Or navigate directly to: `your-site.netlify.app/#teacher`
+- **admin** — full access, including managing other teachers and all classes.
+- **teacher** — scoped to their own students and classes.
 
-## Dashboard Features
+## Passwords & reset
 
-- **Completed Submissions** - View all submitted homework with scores
-- **Currently Working** - Real-time view of students in progress
-- **Submission Details** - Click any submission to see full answers and AI feedback
-- **AI Overview** - Select multiple submissions and click "AI Overview" for class-wide analysis
+- Passwords are hashed (PBKDF2, per-user salt) and never stored in plaintext.
+- Password reset is handled through Firebase Authentication (reset emails), with
+  the `send-password-reset` function. Admins can also trigger resets for teachers
+  and students from the dashboard.
+- There is **no** environment-variable or config-file password, and no
+  `?auth=` query-param bypass — every teacher/admin endpoint requires a valid
+  session token.
 
-## Security Notes
+## Accessing the dashboard
 
-- The password is stored in plain text in the config file
-- For higher security, set `TEACHER_PASSWORD` as an environment variable in Netlify
-- The dashboard is protected by password, but submissions are stored server-side
+1. Go to the app URL and choose teacher login.
+2. Sign in with your account email and password.
+3. You land on the dashboard (submissions, in-progress tracking, students,
+   classes, essays, and — for admins — teacher management).
 
-## Environment Variable Override
+## Security notes
 
-You can override the config file password by setting an environment variable:
-
-1. Go to Netlify → Site settings → Environment variables
-2. Add: `TEACHER_PASSWORD` = `your-password`
-3. Redeploy
-
-The environment variable takes precedence over the config file.
+- All teacher/admin actions are verified server-side against a session token;
+  the client UI is never the authorization boundary.
+- Session tokens live in the `teacherSessions` Firestore collection, which the
+  browser cannot read directly (see `firestore.rules`).
