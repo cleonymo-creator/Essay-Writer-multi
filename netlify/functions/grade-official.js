@@ -4,6 +4,7 @@ const Anthropic = require("@anthropic-ai/sdk").default;
 const client = new Anthropic();
 const { verifyAnySession } = require("./_lib/session");
 const { checkRateLimit, getClientIp } = require("./_lib/rate-limit");
+const { parseJsonResponse, getResponseText } = require("./_lib/anthropic");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -229,26 +230,8 @@ Note: The student did not make revisions, so there is only one version to grade.
       system: systemPrompt
     });
 
-    const content = response.content[0].text;
-    
-    // Extract JSON from response
-    let grading;
-    try {
-      grading = JSON.parse(content);
-    } catch {
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        grading = JSON.parse(jsonMatch[1].trim());
-      } else {
-        const jsonStart = content.indexOf('{');
-        const jsonEnd = content.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          grading = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
-        } else {
-          throw new Error("Could not parse official grading JSON");
-        }
-      }
-    }
+    const content = getResponseText(response);
+    const grading = parseJsonResponse(content, "official grading");
 
     // Add percentage scores for display
     const totalMarks = officialMarkScheme.totalMarks;

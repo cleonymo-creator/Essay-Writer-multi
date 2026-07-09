@@ -4,6 +4,7 @@ const Anthropic = require("@anthropic-ai/sdk").default;
 const client = new Anthropic();
 const { verifyAnySession } = require("./_lib/session");
 const { checkRateLimit, getClientIp } = require("./_lib/rate-limit");
+const { parseJsonResponse, getResponseText } = require("./_lib/anthropic");
 
 // Define grade systems
 const GRADE_SYSTEMS = {
@@ -172,26 +173,8 @@ Please grade both versions and provide a detailed comparison showing the impact 
       system: systemPrompt
     });
 
-    const content = response.content[0].text;
-    
-    // Parse JSON response
-    let comparison;
-    try {
-      comparison = JSON.parse(content);
-    } catch {
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        comparison = JSON.parse(jsonMatch[1].trim());
-      } else {
-        const jsonStart = content.indexOf('{');
-        const jsonEnd = content.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          comparison = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
-        } else {
-          throw new Error("Could not parse comparison JSON");
-        }
-      }
-    }
+    const content = getResponseText(response);
+    const comparison = parseJsonResponse(content, "comparison");
 
     // Add computed fields
     comparison.essaysAreDifferent = essaysAreDifferent;

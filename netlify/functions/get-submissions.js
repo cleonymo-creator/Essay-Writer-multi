@@ -281,11 +281,12 @@ exports.handler = async (event, context) => {
         const studentEmail = (sub.studentEmail || '').toLowerCase();
         const studentName = (sub.studentName || '').toLowerCase();
         
-        return teacherStudentEmails.some(email => 
-          email === studentEmail || 
-          email === studentName ||
-          studentEmail.includes(email) ||
-          studentName.includes(email)
+        // Exact match only. A substring match (studentEmail.includes(email))
+        // could leak another student's submission when one identifier is a
+        // substring of another.
+        return teacherStudentEmails.some(email =>
+          email === studentEmail ||
+          email === studentName
         );
       });
     }
