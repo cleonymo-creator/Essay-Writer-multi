@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+service-account*.json
+firebase-service-account*.json
+
+# Netlify
+.netlify/
+
+# Build output (Vite/other — see Phase 3)
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
