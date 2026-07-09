@@ -5,12 +5,16 @@
   "private": true,
   "scripts": {
     "start": "npx serve .",
-    "test": "echo \"No tests configured\""
+    "build": "vite build",
+    "test": "npm run test:smoke",
+    "test:smoke": "vite build && node test/smoke.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@netlify/blobs": "^8.1.0",
-    "firebase-admin": "^12.0.0"
+    "firebase-admin": "^12.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -23,5 +27,14 @@
     "firebase",
     "claude"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "dompurify": "^3.1.6",
+    "firebase": "^10.7.1",
+    "marked": "^12.0.2",
+    "pdfjs-dist": "^3.11.174",
+    "playwright-core": "^1.48.0",
+    "vite": "^5.4.11"
+  }
 }
