@@ -1337,8 +1337,8 @@ import * as ReactDOM from 'react-dom/client';
             </>
           )}
           <div className="tts-speed">
-            <label>Speed:</label>
-            <select value={speechRate || 0.9} onChange={handleRateChange}>
+            <label aria-hidden="true">Speed:</label>
+            <select value={speechRate || 0.9} onChange={handleRateChange} aria-label="Reading speed">
               <option value="0.6">Slower</option>
               <option value="0.8">Slow</option>
               <option value="0.9">Normal</option>
@@ -1356,8 +1356,8 @@ import * as ReactDOM from 'react-dom/client';
     
     function LoadingSpinner({ text = "Loading..." }) {
       return (
-        <div className="grading-indicator">
-          <div className="spinner"></div>
+        <div className="grading-indicator" role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true"></div>
           <span className="grading-text">{text}</span>
         </div>
       );
@@ -1728,11 +1728,13 @@ import * as ReactDOM from 'react-dom/client';
 
             <form onSubmit={handleLogin}>
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                <label htmlFor="student-login-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                   School Email
                 </label>
                 <input
+                  id="student-login-email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
@@ -1743,12 +1745,14 @@ import * as ReactDOM from 'react-dom/client';
               </div>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                <label htmlFor="student-login-password" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                   Password
                 </label>
                 <div style={parseStyle("position: relative;")}>
                   <input
+                    id="student-login-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(''); }}
                     placeholder="Enter your password"
@@ -1758,8 +1762,9 @@ import * as ReactDOM from 'react-dom/client';
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
-                    style={parseStyle("position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem;")}
+                    style={parseStyle("position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem; padding: var(--space-sm) var(--space-md); min-height: 44px;")}
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
@@ -1800,8 +1805,13 @@ import * as ReactDOM from 'react-dom/client';
                 </p>
                 <form onSubmit={handleForgotPassword}>
                   <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                    <label htmlFor="student-reset-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      School Email
+                    </label>
                     <input
+                      id="student-reset-email"
                       type="email"
+                      autoComplete="email"
                       value={resetEmail}
                       onChange={(e) => { setResetEmail(e.target.value); setError(''); }}
                       placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
@@ -1962,10 +1972,15 @@ import * as ReactDOM from 'react-dom/client';
         const progress = progressData[essay.id];
         const submission = submissionData[essay.id];
 
+        const openEssay = () => isAssigned ? onSelectEssay(essay.id) : onExploreEssay(essay.id);
         return (
-          <div 
+          <div
             className="essay-card"
-            onClick={() => isAssigned ? onSelectEssay(essay.id) : onExploreEssay(essay.id)}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open essay: ${essay.title}`}
+            onClick={openEssay}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEssay(); } }}
             style={parseStyle(status === 'submitted' ? "border-color: var(--color-success);" : "")}
           >
             {isAssigned && (
@@ -2001,7 +2016,7 @@ import * as ReactDOM from 'react-dom/client';
                     <span style={parseStyle("color: var(--color-warning);")}>In Progress</span>
                     <span>{progress?.percentComplete || 0}%</span>
                   </div>
-                  <div style={parseStyle("height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
+                  <div role="progressbar" aria-valuenow={progress?.percentComplete || 0} aria-valuemin={0} aria-valuemax={100} aria-label="Essay progress" style={parseStyle("height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
                     <div style={{ width: (progress?.percentComplete || 0) + '%', height: '100%', background: 'var(--color-warning)' }} />
                   </div>
                 </div>
@@ -2084,17 +2099,19 @@ import * as ReactDOM from 'react-dom/client';
 
             {otherEssays.length > 0 && (
               <div>
-                <div 
+                <button
+                  type="button"
+                  aria-expanded={showExplore}
                   onClick={() => setShowExplore(!showExplore)}
-                  style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}
+                  style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-md); background: var(--glass-bg); border: none; border-radius: var(--radius-md); margin-bottom: var(--space-lg); width: 100%; font-family: inherit;")}
                 >
                   <h2 style={parseStyle("font-family: var(--font-display); font-size: 1.1rem; color: var(--color-text-muted); margin: 0;")}>
                     Explore Other Essays ({otherEssays.length})
                   </h2>
-                  <span style={parseStyle("color: var(--color-text-muted); font-size: 1.2rem;")}>
-                    {showExplore ? '[-]' : '[+]'}
+                  <span style={parseStyle("color: var(--color-text-muted);")}>
+                    <Icon name={showExplore ? ICONS.chevronUp : ICONS.chevronDown} size={20} />
                   </span>
-                </div>
+                </button>
                 
                 {showExplore && (
                   <div className="essay-grid">
@@ -2509,8 +2526,12 @@ import * as ReactDOM from 'react-dom/client';
                     <div key={essayId} className="card" style={parseStyle("margin-bottom: var(--space-md);")}>
                       {/* Essay Header */}
                       <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
                         style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-sm);") }
                         onClick={() => setExpandedEssay(isExpanded ? null : essayId)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedEssay(isExpanded ? null : essayId); } }}
                       >
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md);")}>
                           <span style={parseStyle("font-size: 1.5rem;")}>{essayInfo.icon}</span>
@@ -2571,11 +2592,11 @@ import * as ReactDOM from 'react-dom/client';
                                 <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
                                   <thead>
                                     <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Score</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Grade</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Submitted</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Score</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Grade</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Submitted</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2608,11 +2629,11 @@ import * as ReactDOM from 'react-dom/client';
                                 <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
                                   <thead>
                                     <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Progress</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Current Section</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Last Active</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Progress</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Current Section</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Last Active</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2622,8 +2643,12 @@ import * as ReactDOM from 'react-dom/client';
                                       return (
                                         <React.Fragment key={idx}>
                                           <tr
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-expanded={isExpanded}
                                             style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
                                             onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedProgress(isExpanded ? null : progressKey); } }}
                                             title="Click to view paragraph details"
                                           >
                                             <td style={parseStyle("padding: var(--space-sm);")}>
@@ -2752,12 +2777,12 @@ import * as ReactDOM from 'react-dom/client';
                   <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                     <thead>
                       <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2882,11 +2907,11 @@ import * as ReactDOM from 'react-dom/client';
                     <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.85rem;")}>
                       <thead>
                         <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                          <th style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
+                          <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
                           {assignedEssayIds.map(essayId => {
                             const essayInfo = getEssayInfo(essayId);
                             return (
-                              <th key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
+                              <th scope="colgroup" key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
                                 <div style={parseStyle("font-size: 0.8rem;")}>{essayInfo.icon}</div>
                                 <div style={parseStyle("max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;")} title={essayInfo.title}>
                                   {essayInfo.title || essayId}
@@ -2896,11 +2921,11 @@ import * as ReactDOM from 'react-dom/client';
                           })}
                         </tr>
                         <tr style={parseStyle("border-bottom: 1px solid var(--color-border); background: var(--color-bg);")}>
-                          <th style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
+                          <th scope="col" style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
                           {assignedEssayIds.map(essayId => (
                             <React.Fragment key={essayId}>
-                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
-                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
                             </React.Fragment>
                           ))}
                         </tr>
@@ -3316,11 +3341,11 @@ import * as ReactDOM from 'react-dom/client';
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Last Login</th>
-                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Last Login</th>
+                  <th scope="col" style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -4311,10 +4336,14 @@ import * as ReactDOM from 'react-dom/client';
                 {getEssayList().map((essay) => {
                   const savedProgress = getSavedProgress(essay.id);
                   return (
-                    <div 
-                      key={essay.id} 
+                    <div
+                      key={essay.id}
                       className="essay-card"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open essay: ${essay.title}`}
                       onClick={() => onSelectEssay(essay.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectEssay(essay.id); } }}
                       style={savedProgress ? { borderColor: 'var(--color-primary)' } : {}}
                     >
                       {savedProgress && (
@@ -4337,8 +4366,8 @@ import * as ReactDOM from 'react-dom/client';
                         <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);")}>
                           <strong style={parseStyle("color: var(--color-primary-light);")}>{savedProgress.studentName}</strong>
                           <span> - {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
-                          <div style={parseStyle("margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
-                            <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '2px' }} />
+                          <div role="progressbar" aria-valuenow={savedProgress.percentComplete} aria-valuemin={0} aria-valuemax={100} aria-label="Essay progress" style={parseStyle("margin-top: var(--space-xs); height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
+                            <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '4px' }} />
                           </div>
                         </div>
                       )}
@@ -4450,10 +4479,15 @@ import * as ReactDOM from 'react-dom/client';
               else if (isInProgress) className += ' in-progress';
               if (isLocked) className += ' locked';
               
+              const statusText = isCompleted ? 'complete' : isInProgress ? 'in progress' : isLocked ? 'locked' : 'not started';
               return (
-                <div
+                <button
+                  type="button"
                   key={para.id}
                   className={className}
+                  disabled={isLocked && !previewMode}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  aria-label={`Paragraph ${index + 1}: ${para.title} (${statusText})`}
                   onClick={() => {
                     if (!isLocked || previewMode) {
                       onNavigate(index);
@@ -4462,7 +4496,7 @@ import * as ReactDOM from 'react-dom/client';
                   title={para.title}
                 >
                   {index + 1}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -4540,7 +4574,7 @@ import * as ReactDOM from 'react-dom/client';
       };
       
       return (
-        <div className="feedback-panel ghost-appear">
+        <div className="feedback-panel ghost-appear" role="region" aria-live="polite" aria-label="Feedback on your paragraph">
           {/* Authenticity Warning - shown if suspicious */}
           {hasAuthenticityWarning && (
             <div style={{
@@ -4990,10 +5024,11 @@ import * as ReactDOM from 'react-dom/client';
                 ) : (
                   <>
                     <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      <label htmlFor="entry-student-name" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                         Your full name:
                       </label>
                       <input
+                        id="entry-student-name"
                         type="text"
                         value={studentName}
                         onChange={(e) => { setStudentName(e.target.value); setError(''); }}
@@ -5004,10 +5039,11 @@ import * as ReactDOM from 'react-dom/client';
                     </div>
 
                     <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      <label htmlFor="entry-student-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                         Your school email:
                       </label>
                       <input
+                        id="entry-student-email"
                         type="email"
                         value={studentEmail}
                         onChange={(e) => { setStudentEmail(e.target.value); setError(''); setExistingProgress(null); }}
@@ -5354,9 +5390,12 @@ import * as ReactDOM from 'react-dom/client';
       
       return (
         <div className={`source-material-card ${!isExpanded ? 'collapsed' : ''}`}>
-          <div 
+          <button
+            type="button"
             className="source-material-header"
+            aria-expanded={isExpanded}
             onClick={() => setIsExpanded(!isExpanded)}
+            style={parseStyle("width: 100%; background: none; border: none; font-family: inherit; text-align: left; cursor: pointer;")}
           >
             <h3 className="source-material-title">
               <span className="source-material-title-icon"><Icon name={ICONS.book} size={20} /></span>
@@ -5366,7 +5405,7 @@ import * as ReactDOM from 'react-dom/client';
               <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
               <span className="source-material-toggle-icon"><Icon name={isExpanded ? ICONS.chevronUp : ICONS.chevronDown} size={16} /></span>
             </div>
-          </div>
+          </button>
           
           {!isExpanded && (
             <div className="source-material-hint">
@@ -6060,6 +6099,7 @@ import * as ReactDOM from 'react-dom/client';
                   alert('Drag and drop is not allowed. Please type your response.');
                 }}
                 placeholder="Start writing your paragraph here..."
+                aria-label={`Write your ${paragraph.title || 'paragraph'} here`}
                 disabled={isSubmitting || submissionStage === 'grading'}
                 spellCheck={false}
                 autoCorrect="off"
@@ -7178,76 +7218,84 @@ ${examinerComment}
                 {/* Main Navigation */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Overview</div>
-                  <div className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
+                  <button type="button" className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
+                    aria-current={activeTab === 'submissions' ? 'page' : undefined}
                     onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.inbox} size={18} /></span>
                     <span>Submissions</span>
                     {submissions.length > 0 && <span className="sidebar-item-badge">{submissions.length}</span>}
-                  </div>
-                  <div className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
+                  </button>
+                  <button type="button" className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
+                    aria-current={activeTab === 'performance' ? 'page' : undefined}
                     onClick={() => { setActiveTab('performance'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.chart} size={18} /></span>
                     <span>Performance</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Class Management */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Class Management</div>
-                  <div className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
+                  <button type="button" className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
+                    aria-current={activeTab === 'students' ? 'page' : undefined}
                     onClick={() => { setActiveTab('students'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
                     <span>Students</span>
-                  </div>
-                  <div className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
+                  </button>
+                  <button type="button" className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
+                    aria-current={activeTab === 'assignments' ? 'page' : undefined}
                     onClick={() => { setActiveTab('assignments'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.clipboard} size={18} /></span>
                     <span>Assignments</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Admin Section */}
                 {isAdmin && (
                   <div className="sidebar-section">
                     <div className="sidebar-section-title">Administration</div>
-                    <div className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
+                    <button type="button" className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
+                      aria-current={activeTab === 'essays' ? 'page' : undefined}
                       onClick={() => { setActiveTab('essays'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.fileText} size={18} /></span>
                       <span>Essays</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                      aria-current={activeTab === 'teachers' ? 'page' : undefined}
                       onClick={() => { setActiveTab('teachers'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.graduationCap} size={18} /></span>
                       <span>Teachers</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'admin-students' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'admin-students' ? 'active' : ''}`}
+                      aria-current={activeTab === 'admin-students' ? 'page' : undefined}
                       onClick={() => { setActiveTab('admin-students'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
                       <span>Students</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'admin-classes' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'admin-classes' ? 'active' : ''}`}
+                      aria-current={activeTab === 'admin-classes' ? 'page' : undefined}
                       onClick={() => { setActiveTab('admin-classes'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.book} size={18} /></span>
                       <span>Classes</span>
-                    </div>
+                    </button>
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Actions</div>
-                  <div className="sidebar-item" onClick={handleRefresh}>
+                  <button type="button" className="sidebar-item" onClick={handleRefresh}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.refresh} size={18} /></span>
                     <span>Refresh Data</span>
-                  </div>
-                  <div className="sidebar-item" onClick={() => setShowChangePassword(true)}>
+                  </button>
+                  <button type="button" className="sidebar-item" onClick={() => setShowChangePassword(true)}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.key} size={18} /></span>
                     <span>Change Password</span>
-                  </div>
-                  <div className="sidebar-item" onClick={onLogout}>
+                  </button>
+                  <button type="button" className="sidebar-item" onClick={onLogout}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.logout} size={18} /></span>
                     <span>Logout</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* User Info */}
@@ -7398,8 +7446,12 @@ ${examinerComment}
           {/* Preview Essays - Collapsible, grouped by Subject then Year Group */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4
+              role="button"
+              tabIndex={0}
+              aria-expanded={showPreviewEssays}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowPreviewEssays(!showPreviewEssays)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowPreviewEssays(!showPreviewEssays); } }}
             >
               <span>Preview Essays ({allEssays.length})</span>
               <span style={parseStyle(`transform: rotate(${showPreviewEssays ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7457,8 +7509,12 @@ ${examinerComment}
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
             <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={showInProgress}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowInProgress(!showInProgress)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowInProgress(!showInProgress); } }}
             >
               <span>In Progress ({filteredInProgress.length})</span>
               <span style={parseStyle(`transform: rotate(${showInProgress ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7473,12 +7529,12 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                      {filterEssayId === 'all' && <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Current Section</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Progress</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Last Active</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                      {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Current Section</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Progress</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Last Active</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -7490,8 +7546,12 @@ ${examinerComment}
                       return (
                         <React.Fragment key={index}>
                           <tr
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded}
                             style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
                             onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedProgress(isExpanded ? null : progressKey); } }}
                             title="Click to view paragraph details"
                           >
                             <td style={parseStyle("padding: var(--space-md);")}>
@@ -7607,8 +7667,12 @@ ${examinerComment}
           {/* Completed Submissions */}
           <div className="card">
             <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={showCompleted}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowCompleted(!showCompleted)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowCompleted(!showCompleted); } }}
             >
               <span>Completed Essays ({filteredSubmissions.length})</span>
               <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7623,14 +7687,14 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                      {filterEssayId === 'all' && <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                      {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -8176,10 +8240,11 @@ ${examinerComment}
           <form onSubmit={mode === 'setup' ? handleSetup : handleLogin}>
             {mode === 'setup' && (
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                <label htmlFor="teacher-setup-name" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                   Your Name
                 </label>
                 <input
+                  id="teacher-setup-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -8191,10 +8256,11 @@ ${examinerComment}
             )}
             
             <div style={parseStyle("margin-bottom: var(--space-md);")}>
-              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+              <label htmlFor="teacher-login-email" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                 Email
               </label>
               <input
+                id="teacher-login-email"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
@@ -8206,10 +8272,11 @@ ${examinerComment}
             </div>
             
             <div style={parseStyle("margin-bottom: var(--space-md);")}>
-              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+              <label htmlFor="teacher-login-password" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                 Password
               </label>
               <input
+                id="teacher-login-password"
                 type="password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
@@ -8221,10 +8288,11 @@ ${examinerComment}
             
             {mode === 'setup' && (
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                <label htmlFor="teacher-setup-confirm" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                   Confirm Password
                 </label>
                 <input
+                  id="teacher-setup-confirm"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
@@ -8949,7 +9017,11 @@ ${examinerComment}
                 {Object.entries(groupBySubject(filterEssays(customEssays))).map(([subject, essayGroup]) => (
                   <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedCategories['essay-' + subject] !== false}
                       onClick={() => toggleCategory('essay-' + subject)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCategory('essay-' + subject); } }}
                       style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
@@ -8963,11 +9035,11 @@ ${examinerComment}
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
                             <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Source</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Source</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -11408,11 +11480,11 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Name</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Email</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Role</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Last Login</th>
-                      <th style={parseStyle("text-align: right; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Actions</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Name</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Email</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Role</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Last Login</th>
+                      <th scope="col" style={parseStyle("text-align: right; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -11878,11 +11950,11 @@ ${examinerComment}
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Year Group</th>
-                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Year Group</th>
+                  <th scope="col" style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -12322,9 +12394,9 @@ ${examinerComment}
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
                             <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Name</th>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Email</th>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Year Group</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Name</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Email</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Year Group</th>
                             </tr>
                           </thead>
                           <tbody>

@@ -439,6 +439,16 @@
       font-size: 0.9rem;
     }
 
+    /* Sidebar items are real <button>s for keyboard access — strip UA styles */
+    button.sidebar-item {
+      width: 100%;
+      background: none;
+      border: none;
+      border-left: 3px solid transparent;
+      font-family: inherit;
+      text-align: left;
+    }
+
     .sidebar-item:hover {
       background: rgba(184, 134, 11, 0.1);
       color: var(--color-text);
@@ -717,6 +727,7 @@
       width: 40px;
       height: 40px;
       border-radius: var(--radius-md);
+      font-family: inherit;
       font-weight: 600;
       font-size: 0.9rem;
       cursor: pointer;
@@ -725,6 +736,11 @@
       background: rgba(30, 30, 50, 0.8);
       color: var(--color-text-muted);
       position: relative;
+      padding: 0;
+    }
+
+    .question-tracker-item:disabled {
+      cursor: not-allowed;
     }
     
     .question-tracker-item:hover:not(.locked) {
