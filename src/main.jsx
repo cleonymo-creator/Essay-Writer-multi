@@ -3283,6 +3283,9 @@ import * as ReactDOM from 'react-dom/client';
       const [classes, setClasses] = useState([]);
       const [credentialDialog, setCredentialDialog] = useState(null);
       const [confirmAction, setConfirmAction] = useState(null);
+      const [selectedEmails, setSelectedEmails] = useState([]); // bulk-operation selection
+      const [bulkClassId, setBulkClassId] = useState('');
+      const [bulkBusy, setBulkBusy] = useState(false);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [showAddStudent, setShowAddStudent] = useState(false);
@@ -3477,6 +3480,82 @@ import * as ReactDOM from 'react-dom/client';
         });
       };
 
+      // ---------- Bulk operations ----------
+      const toggleSelected = (email) => {
+        setSelectedEmails(prev => prev.includes(email) ? prev.filter(e => e !== email) : [...prev, email]);
+      };
+
+      const performBulkDelete = async (emails) => {
+        setBulkBusy(true);
+        const failed = [];
+        const firebaseReady = await FirebaseDB.isReady();
+        for (const email of emails) {
+          try {
+            let result;
+            if (firebaseReady) {
+              result = await FirebaseDB.deleteStudent(email);
+            } else {
+              const response = await fetch('/.netlify/functions/manage-students?email=' + encodeURIComponent(email), { method: 'DELETE' });
+              result = await response.json();
+            }
+            if (!result.success) failed.push(email);
+          } catch (e) {
+            failed.push(email);
+          }
+        }
+        setStudents(prev => prev.filter(s => !emails.includes(s.email) || failed.includes(s.email)));
+        setSelectedEmails(failed);
+        setBulkBusy(false);
+        if (failed.length) showToast(`Deleted ${emails.length - failed.length}; ${failed.length} failed (still selected)`, 'error');
+        else showToast(`Deleted ${emails.length} student${emails.length !== 1 ? 's' : ''}`);
+      };
+
+      const handleBulkDelete = () => {
+        const emails = [...selectedEmails];
+        setConfirmAction({
+          title: `Delete ${emails.length} Students`,
+          message: `Delete ${emails.length} selected student${emails.length !== 1 ? 's' : ''}? This cannot be undone.`,
+          confirmLabel: `Delete ${emails.length}`,
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performBulkDelete(emails); }
+        });
+      };
+
+      const handleBulkAddToClass = async () => {
+        if (!bulkClassId) return;
+        const emails = [...selectedEmails];
+        setBulkBusy(true);
+        const failed = [];
+        const firebaseReady = await FirebaseDB.isReady();
+        for (const email of emails) {
+          try {
+            let result;
+            if (firebaseReady) {
+              const student = students.find(s => s.email === email);
+              const currentIds = student?.classIds || (student?.classId ? [student.classId] : []);
+              if (currentIds.includes(bulkClassId)) continue;
+              result = await FirebaseDB.updateStudent(email, { classIds: [...currentIds, bulkClassId] }, classes);
+            } else {
+              const response = await fetch('/.netlify/functions/manage-students', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() },
+                body: JSON.stringify({ email, updates: { addClassIds: [bulkClassId] } })
+              });
+              result = await response.json();
+            }
+            if (!result.success) failed.push(email);
+          } catch (e) {
+            failed.push(email);
+          }
+        }
+        await loadData(); // memberships changed on both student and class docs
+        setSelectedEmails(failed);
+        setBulkBusy(false);
+        const className = classes.find(c => c.id === bulkClassId)?.name || 'class';
+        if (failed.length) showToast(`Added ${emails.length - failed.length} to ${className}; ${failed.length} failed (still selected)`, 'error');
+        else showToast(`Added ${emails.length} student${emails.length !== 1 ? 's' : ''} to ${className}`);
+      };
+
       if (loading) {
         return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}>Loading students...</p></div>;
       }
@@ -3526,10 +3605,42 @@ import * as ReactDOM from 'react-dom/client';
             </select>
           </div>
 
+          {/* Bulk action bar */}
+          {selectedEmails.length > 0 && (
+            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); background: rgba(184, 134, 11, 0.1); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
+              <strong>{selectedEmails.length} selected</strong>
+              <label style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem;")}>
+                <span>Add to class:</span>
+                <select value={bulkClassId} onChange={e => setBulkClassId(e.target.value)} className="form-input" style={parseStyle("width: auto; padding: var(--space-xs) var(--space-sm);")} disabled={bulkBusy}>
+                  <option value="">Choose class…</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={handleBulkAddToClass} disabled={!bulkClassId || bulkBusy}>
+                {bulkBusy ? 'Working…' : 'Add'}
+              </button>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem; color: var(--color-error);")} onClick={handleBulkDelete} disabled={bulkBusy}>
+                Delete selected
+              </button>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem; margin-left: auto;")} onClick={() => setSelectedEmails([])} disabled={bulkBusy}>
+                Clear
+              </button>
+            </div>
+          )}
+
           <div style={parseStyle("overflow-x: auto;")}>
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                  <th scope="col" style={parseStyle("padding: var(--space-md); width: 36px;")}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all students shown"
+                      checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedEmails.includes(s.email))}
+                      onChange={(e) => setSelectedEmails(e.target.checked ? filteredStudents.map(s => s.email) : [])}
+                      style={parseStyle("width: 16px; height: 16px; cursor: pointer;")}
+                    />
+                  </th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
@@ -3539,7 +3650,16 @@ import * as ReactDOM from 'react-dom/client';
               </thead>
               <tbody>
                 {filteredStudents.map(student => (
-                  <tr key={student.email} style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                  <tr key={student.email} style={parseStyle(`border-bottom: 1px solid var(--color-border); ${selectedEmails.includes(student.email) ? 'background: rgba(184, 134, 11, 0.08);' : ''}`)}>
+                    <td style={parseStyle("padding: var(--space-md);")}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${student.name}`}
+                        checked={selectedEmails.includes(student.email)}
+                        onChange={() => toggleSelected(student.email)}
+                        style={parseStyle("width: 16px; height: 16px; cursor: pointer;")}
+                      />
+                    </td>
                     <td style={parseStyle("padding: var(--space-md);")}>{student.name}</td>
                     <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>{student.email}</td>
                     <td style={parseStyle("padding: var(--space-md); font-size: 0.9rem;")}>
