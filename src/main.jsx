@@ -10782,6 +10782,9 @@ ${examinerComment}
       // Tier tab selection is PER PARAGRAPH (keyed by index) — a single shared
       // value silently changed which tier every other paragraph's editor showed.
       const [editExpandedTiers, setEditExpandedTiers] = useState({});
+      const [regeneratingIdx, setRegeneratingIdx] = useState(null);
+      const [regenInstruction, setRegenInstruction] = useState('');
+      const [showStudentPreview, setShowStudentPreview] = useState(false);
 
       // Paper and question selection state
       const [selectedPaper, setSelectedPaper] = useState('');
@@ -10793,6 +10796,19 @@ ${examinerComment}
       const [extractionSummary, setExtractionSummary] = useState('');
       const [originalPdfFiles, setOriginalPdfFiles] = useState([]); // Store original File objects for view/download
       const [markSchemeWarning, setMarkSchemeWarning] = useState('');
+      const [markSchemeNotice, setMarkSchemeNotice] = useState('');
+      const [isStructuringMs, setIsStructuringMs] = useState(false);
+
+      // Grade boundaries (optional). When provided, generation produces
+      // authentic grade descriptors, which the student grading flow prefers
+      // over generic criteria.
+      const [gradeBoundaries, setGradeBoundaries] = useState([]);
+      const updateGradeBoundary = (idx, field, value) =>
+        setGradeBoundaries(prev => prev.map((b, i) => i === idx ? { ...b, [field]: value } : b));
+      const addGradeBoundary = () =>
+        setGradeBoundaries(prev => [...prev, { grade: '', minMarks: '', maxMarks: '' }]);
+      const removeGradeBoundary = (idx) =>
+        setGradeBoundaries(prev => prev.filter((_, i) => i !== idx));
 
       // Draft + per-teacher defaults persistence: the wizard survives tab
       // switches, refreshes and re-logins, and Step 1 selections (subject,
@@ -10891,12 +10907,14 @@ ${examinerComment}
         return descriptions;
       };
 
-      // Auto-extract question and source material from PDF text.
+      // Auto-extract question and source material from the uploaded papers.
+      // Files are sent as extracted text, or as base64 PDFs (scanned papers)
+      // which the server reads with Claude's native document support.
       // extraNote is appended to whatever summary is shown, so warnings about
-      // skipped files (e.g. scanned PDFs) survive the extraction round-trip.
-      const autoExtractFromPdf = async (pdfText, extraNote = '') => {
+      // unreadable files survive the extraction round-trip.
+      const autoExtractFromFiles = async (extractionFiles, extraNote = '') => {
         setIsExtracting(true);
-        setExtractionStatus('Analysing PDF to extract question and source material...');
+        setExtractionStatus('Analysing the paper to extract question and source material...');
         setExtractionSummary('');
 
         const selectedDescriptions = getSelectedQuestionDescriptions();
@@ -10906,7 +10924,8 @@ ${examinerComment}
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
             body: JSON.stringify({
-              pdfText,
+              mode: 'question',
+              files: extractionFiles,
               subject: subject || '',
               examBoard: examBoard || '',
               paperName: paperName || '',
@@ -10946,10 +10965,13 @@ ${examinerComment}
         }
       };
 
+      // Base64 payload budget per extraction request (Netlify limit is ~6MB)
+      const MAX_PDF_BASE64_BYTES = 4 * 1024 * 1024;
+
       // File handling
       const handleSourceFileUpload = async (files) => {
-        let allExtractedText = '';
-        const skippedScanned = [];
+        const extractionFiles = [];
+        const unreadable = [];
 
         for (const file of files) {
           if (file.size > 10 * 1024 * 1024) {
@@ -10958,41 +10980,42 @@ ${examinerComment}
           }
 
           try {
-            let fileData;
             if (file.type === 'application/pdf') {
-              const extractedText = await extractPdfText(file);
-              if (!extractedText || extractedText.trim().length < 50) {
-                skippedScanned.push(file.name);
-                continue;
-              }
-              fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
-              allExtractedText += extractedText + '\n\n';
               // Store original File object for view/download
               setOriginalPdfFiles(prev => [...prev, file]);
+              const extractedText = await extractPdfText(file);
+              if (extractedText && extractedText.trim().length >= 50) {
+                setSourceFiles(prev => [...prev, { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' }]);
+                extractionFiles.push({ name: file.name, text: extractedText });
+              } else if (file.size * 1.4 <= MAX_PDF_BASE64_BYTES) {
+                // Scanned PDF (no text layer): send the PDF itself so the
+                // server can read it with Claude's native document support
+                const base64 = await readFileAsBase64(file);
+                extractionFiles.push({ name: file.name, base64 });
+              } else {
+                unreadable.push(file.name);
+              }
             } else if (file.type.startsWith('image/')) {
               const base64 = await readFileAsBase64(file);
-              fileData = { name: file.name, type: file.type, content: base64 };
+              setSourceFiles(prev => [...prev, { name: file.name, type: file.type, content: base64 }]);
             } else {
               alert('Unsupported file type. Use PDF or images.');
-              continue;
             }
-            setSourceFiles(prev => [...prev, fileData]);
           } catch (err) {
             console.error('File processing error:', err);
             alert('Error processing file: ' + err.message);
           }
         }
 
-        // Auto-extract question and source material from PDF text. The
-        // skipped-file warning rides along as a note so it isn't wiped when
-        // another PDF in the same batch extracts successfully.
-        const scannedNote = skippedScanned.length > 0
-          ? ' Warning: ' + skippedScanned.join(', ') + ' appear(s) to be scanned with no selectable text and could not be read - enter that content manually or upload photos of those pages as images instead.'
+        // The unreadable-file warning rides along as a note so it isn't wiped
+        // when another file in the same batch extracts successfully.
+        const unreadableNote = unreadable.length > 0
+          ? ' Warning: ' + unreadable.join(', ') + ' appear(s) to be scanned and too large to process automatically - enter that content manually or upload photos of those pages as images instead.'
           : '';
-        if (allExtractedText.trim()) {
-          autoExtractFromPdf(allExtractedText.trim(), scannedNote);
-        } else if (skippedScanned.length > 0) {
-          setExtractionSummary(scannedNote.trim());
+        if (extractionFiles.length > 0) {
+          autoExtractFromFiles(extractionFiles, unreadableNote);
+        } else if (unreadable.length > 0) {
+          setExtractionSummary(unreadableNote.trim());
         }
       };
 
@@ -11003,26 +11026,82 @@ ${examinerComment}
         }
 
         try {
-          let fileData;
+          setMarkSchemeWarning('');
+          setMarkSchemeNotice('');
           if (file.type === 'application/pdf') {
             const extractedText = await extractPdfText(file);
-            if (!extractedText || extractedText.trim().length < 50) {
-              setMarkSchemeWarning('"' + file.name + '" appears to be a scanned PDF with no selectable text, so the mark scheme could not be read from it. Please paste the mark scheme as text, or upload a photo of it as an image instead.');
+            const scanned = !extractedText || extractedText.trim().length < 50;
+            if (scanned && file.size * 1.4 > MAX_PDF_BASE64_BYTES) {
+              setMarkSchemeWarning('"' + file.name + '" appears to be scanned and is too large to process automatically. Please paste the mark scheme as text, or upload a photo of it as an image instead.');
               return;
             }
-            fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
+            if (!scanned) {
+              setMarkSchemeFile({ name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' });
+            }
+            // AI pass: clean descriptors into the text field and detect
+            // grade boundaries. For scanned PDFs this is also how the file
+            // is read at all (native document support server-side).
+            const extractionFile = scanned
+              ? { name: file.name, base64: await readFileAsBase64(file) }
+              : { name: file.name, text: extractedText };
+            await structureMarkScheme(extractionFile, scanned);
           } else if (file.type.startsWith('image/')) {
             const base64 = await readFileAsBase64(file);
-            fileData = { name: file.name, type: file.type, content: base64 };
+            setMarkSchemeFile({ name: file.name, type: file.type, content: base64 });
           } else {
             alert('Unsupported file type. Use PDF or images.');
-            return;
           }
-          setMarkSchemeWarning('');
-          setMarkSchemeFile(fileData);
         } catch (err) {
           console.error('File processing error:', err);
           alert('Error processing file: ' + err.message);
+        }
+      };
+
+      // Run the uploaded mark scheme through AI structuring: fills the text
+      // field with the level descriptors and pre-fills any grade boundaries
+      // found in the document. Non-blocking for text PDFs (the raw extracted
+      // text already works); essential for scanned ones.
+      const structureMarkScheme = async (extractionFile, scanned) => {
+        setIsStructuringMs(true);
+        try {
+          const response = await fetch('/.netlify/functions/extract-pdf-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({
+              mode: 'markScheme',
+              files: [extractionFile],
+              subject: subject || '',
+              examBoard: examBoard || '',
+              paperName: paperName || '',
+              selectedQuestions: getSelectedQuestionDescriptions()
+            })
+          });
+          const result = await response.json();
+          if (result.success) {
+            if (result.markSchemeText && !markScheme.trim()) {
+              setMarkScheme(result.markSchemeText);
+            }
+            if (scanned && result.markSchemeText) {
+              setMarkSchemeFile({ name: extractionFile.name, type: 'text/plain', extractedText: result.markSchemeText, originalType: 'application/pdf' });
+            }
+            let notice = result.summary || 'Mark scheme read successfully.';
+            if (result.gradeBoundaries?.length && gradeBoundaries.length === 0) {
+              setGradeBoundaries(result.gradeBoundaries.map(b => ({
+                grade: b.grade, minMarks: String(b.minMarks), maxMarks: String(b.maxMarks)
+              })));
+              notice += ' Detected ' + result.gradeBoundaries.length + ' grade boundaries - review them below.';
+            }
+            setMarkSchemeNotice(notice);
+          } else if (scanned) {
+            setMarkSchemeWarning('Could not read "' + extractionFile.name + '" automatically: ' + (result.error || 'extraction failed') + '. Please paste the mark scheme as text instead.');
+          }
+        } catch (err) {
+          console.warn('Mark scheme structuring failed:', err);
+          if (scanned) {
+            setMarkSchemeWarning('Could not read the scanned mark scheme automatically. Please paste it as text instead.');
+          }
+        } finally {
+          setIsStructuringMs(false);
         }
       };
 
@@ -11201,6 +11280,7 @@ ${examinerComment}
             setMinWords(draft.minWords || '80'); setTargetWords(draft.targetWords || '150');
             setMaxAttempts(draft.maxAttempts || '3');
             setSelectedPaper(draft.selectedPaper || ''); setSelectedQuestions(draft.selectedQuestions || []);
+            setGradeBoundaries(draft.gradeBoundaries || []);
             if (draft.step >= 1 && draft.step <= 4) { setStep(s => s === 4 ? s : draft.step); setMaxStepReached(draft.step); }
             // Only announce a restore when there was real in-progress content,
             // not just remembered Step-1 details from a previous save.
@@ -11231,6 +11311,7 @@ ${examinerComment}
               subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
               examQuestion, sourceMaterial, markScheme, additionalNotes,
               minWords, targetWords, maxAttempts, selectedPaper, selectedQuestions,
+              gradeBoundaries,
               step: Math.min(step, 4),
               fileNames: [...sourceFiles.map(f => f.name), ...(markSchemeFile ? [markSchemeFile.name] : [])]
             }));
@@ -11239,7 +11320,7 @@ ${examinerComment}
         return () => clearTimeout(t);
       }, [subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
           examQuestion, sourceMaterial, markScheme, additionalNotes, minWords, targetWords,
-          maxAttempts, selectedPaper, selectedQuestions, step, sourceFiles, markSchemeFile]);
+          maxAttempts, selectedPaper, selectedQuestions, gradeBoundaries, step, sourceFiles, markSchemeFile]);
 
       useEffect(() => { setMaxStepReached(m => Math.max(m, step)); }, [step]);
 
@@ -11252,8 +11333,9 @@ ${examinerComment}
         setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
         setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
         setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
-        setSelectedPaper(''); setSelectedQuestions([]);
-        setDraftNotice(''); setMarkSchemeWarning(''); setError('');
+        setSelectedPaper(''); setSelectedQuestions([]); setGradeBoundaries([]);
+        setDraftNotice(''); setMarkSchemeWarning(''); setMarkSchemeNotice('');
+        setRegenInstruction(''); setShowStudentPreview(false); setError('');
       };
 
       const handleCancelGeneration = () => {
@@ -11270,6 +11352,10 @@ ${examinerComment}
         if (!mw || mw < 10) return 'Min Words/Para must be at least 10.';
         if (!tw || tw < mw) return 'Target Words/Para must be at least the minimum words per paragraph.';
         if (!ma || ma < 1 || ma > 10) return 'Max Attempts must be between 1 and 10.';
+        const incomplete = gradeBoundaries.some(b =>
+          (b.grade.trim() || b.minMarks !== '' || b.maxMarks !== '') &&
+          !(b.grade.trim() && b.minMarks !== '' && b.maxMarks !== ''));
+        if (incomplete) return 'Complete or remove the partially filled grade boundary rows.';
         return null;
       };
 
@@ -11292,7 +11378,10 @@ ${examinerComment}
             paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
             additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
             maxAttempts: parseInt(maxAttempts),
-            selectedQuestionDescriptions: getSelectedQuestionDescriptions()
+            selectedQuestionDescriptions: getSelectedQuestionDescriptions(),
+            gradeBoundaries: gradeBoundaries
+              .filter(b => b.grade.trim() && b.minMarks !== '' && b.maxMarks !== '')
+              .map(b => ({ grade: b.grade.trim(), minMarks: parseInt(b.minMarks), maxMarks: parseInt(b.maxMarks) }))
           };
 
           // Start job
@@ -11423,7 +11512,8 @@ ${examinerComment}
             setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
             setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
-            setDraftNotice(''); setMarkSchemeWarning('');
+            setDraftNotice(''); setMarkSchemeWarning(''); setMarkSchemeNotice('');
+            setRegenInstruction(''); setShowStudentPreview(false);
           } else {
             throw new Error(result.error || 'Failed to save');
           }
@@ -11523,6 +11613,49 @@ ${examinerComment}
           return updated;
         });
         setEditExpandedParagraph(newIdx);
+      };
+
+      // Regenerate one paragraph via AI without touching the rest of the
+      // essay (or the teacher's edits to other paragraphs)
+      const regenerateParagraph = async (idx) => {
+        if (!editableEssay) return;
+        setRegeneratingIdx(idx);
+        try {
+          const response = await fetch('/.netlify/functions/regenerate-paragraph', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({
+              essay: {
+                subject: editableEssay.subject,
+                yearGroup: editableEssay.yearGroup,
+                examBoard: editableEssay.examBoard || examBoard,
+                essayTitle: editableEssay.essayTitle,
+                markScheme: editableEssay.markScheme || markScheme,
+                sourceMaterial: editableEssay.sourceMaterial,
+                minWordsPerParagraph: editableEssay.minWordsPerParagraph,
+                targetWordsPerParagraph: editableEssay.targetWordsPerParagraph,
+                paragraphTitles: editableEssay.paragraphs.map(p => p.title)
+              },
+              paragraph: editableEssay.paragraphs[idx],
+              paragraphIndex: idx,
+              instruction: regenInstruction.trim()
+            })
+          });
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error || 'Regeneration failed');
+          setEditableEssay(prev => {
+            const updated = { ...prev };
+            updated.paragraphs = [...updated.paragraphs];
+            updated.paragraphs[idx] = { ...result.paragraph, id: idx + 1 };
+            return updated;
+          });
+          setRegenInstruction('');
+          showToast('Paragraph regenerated');
+        } catch (err) {
+          alert('Could not regenerate the paragraph: ' + err.message);
+        } finally {
+          setRegeneratingIdx(null);
+        }
       };
 
       // Validate editableEssay before save
@@ -11888,6 +12021,43 @@ ${examinerComment}
                     {markSchemeWarning}
                   </div>
                 )}
+                {isStructuringMs && (
+                  <div style={parseStyle("margin-top: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm); color: var(--color-primary); font-size: 0.85rem;")}>
+                    <div className="loading-spinner" style={parseStyle("width: 16px; height: 16px;")}></div>
+                    <span>Reading the mark scheme...</span>
+                  </div>
+                )}
+                {!isStructuringMs && markSchemeNotice && (
+                  <div style={parseStyle("margin-top: var(--space-sm); padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-success); background: var(--color-success-bg); border-radius: var(--radius-md); font-size: 0.85rem;")}>
+                    {markSchemeNotice}
+                  </div>
+                )}
+              </div>
+
+              {/* Grade boundaries (optional) */}
+              <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xs);")}>
+                  <label style={parseStyle("font-size: 0.85rem; font-weight: 600;")}>Grade Boundaries (optional)</label>
+                  <button className="btn btn-secondary" style={parseStyle("font-size: 0.75rem; padding: 2px 8px;")}
+                    onClick={addGradeBoundary}>+ Add Grade</button>
+                </div>
+                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 var(--space-sm) 0;")}>
+                  If you provide grade boundaries for this question, students get feedback against
+                  authentic grade descriptors instead of generic criteria. You only need a few
+                  anchor grades - missing ones are interpolated.
+                </p>
+                {gradeBoundaries.map((b, idx) => (
+                  <div key={idx} style={parseStyle("display: flex; gap: var(--space-xs); margin-bottom: var(--space-xs); align-items: center;")}>
+                    <input type="text" value={b.grade} onChange={e => updateGradeBoundary(idx, 'grade', e.target.value)}
+                      placeholder="Grade (e.g. 9 or A*)" className="form-input" style={parseStyle("width: 140px;")} />
+                    <input type="number" value={b.minMarks} onChange={e => updateGradeBoundary(idx, 'minMarks', e.target.value)}
+                      placeholder="Min marks" className="form-input" style={parseStyle("width: 110px;")} />
+                    <input type="number" value={b.maxMarks} onChange={e => updateGradeBoundary(idx, 'maxMarks', e.target.value)}
+                      placeholder="Max marks" className="form-input" style={parseStyle("width: 110px;")} />
+                    <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 6px; color: var(--color-error, #dc3545);")}
+                      onClick={() => removeGradeBoundary(idx)}>x</button>
+                  </div>
+                ))}
               </div>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
@@ -11899,7 +12069,9 @@ ${examinerComment}
 
               <div style={parseStyle("display: flex; justify-content: space-between;")}>
                 <button className="btn btn-secondary" onClick={prevStep}>Back</button>
-                <button className="btn btn-primary" onClick={nextStep}>Continue</button>
+                <button className="btn btn-primary" onClick={nextStep} disabled={isStructuringMs}>
+                  {isStructuringMs ? 'Reading mark scheme...' : 'Continue'}
+                </button>
               </div>
             </div>
           )}
@@ -12159,6 +12331,38 @@ ${examinerComment}
                               className="paragraph-editor"
                               style={parseStyle("min-height: 120px; font-size: 0.8rem;")}
                               placeholder={`Learning material for ${editExpandedTiers[idx] || 'foundation'} tier students...`} />
+                            <div style={parseStyle("margin-top: var(--space-xs);")}>
+                              <button className="btn btn-secondary" style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm);")}
+                                onClick={() => setShowStudentPreview(p => !p)}>
+                                {showStudentPreview ? 'Hide student view' : 'Preview student view'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Student-view preview: the learning material rendered
+                              as markdown, the way the writing screen shows it */}
+                          {showStudentPreview && (
+                            <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg);")}>
+                              <div style={parseStyle("font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-sm);")}>
+                                Student view — {(editExpandedTiers[idx] || 'foundation')} tier
+                              </div>
+                              <div dangerouslySetInnerHTML={{ __html: renderMarkdown((para.learningMaterial && para.learningMaterial[editExpandedTiers[idx] || 'foundation']) || '*No learning material for this tier yet.*') }} />
+                              <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--color-border); font-size: 0.85rem;")}>
+                                <strong>Your task:</strong> {para.writingPrompt || '(no writing prompt yet)'}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Per-paragraph AI regeneration */}
+                          <div style={parseStyle("display: flex; gap: var(--space-xs); align-items: center;")}>
+                            <input type="text" value={regenInstruction} onChange={e => setRegenInstruction(e.target.value)}
+                              placeholder="Optional: what should change? e.g. 'more focus on language techniques'"
+                              className="form-input" style={parseStyle("flex: 1; font-size: 0.8rem;")} />
+                            <button className="btn btn-secondary" disabled={regeneratingIdx !== null}
+                              style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); white-space: nowrap;")}
+                              onClick={() => regenerateParagraph(idx)}>
+                              {regeneratingIdx === idx ? 'Regenerating...' : 'Regenerate with AI'}
+                            </button>
                           </div>
                         </div>
                       )}
