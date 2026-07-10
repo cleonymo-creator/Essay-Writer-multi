@@ -364,19 +364,21 @@ choice: **"Start from a past paper"** (pick/upload → everything auto-fills) vs
 
 ## 6. Prioritised roadmap
 
-**Quick wins (hours each, no schema changes)**
-1. Keep the panel mounted on tab switch + draft autosave to localStorage (B1).
-2. Last-used defaults prefill; don't wipe the form after save (B2).
-3. Auth on `generate-essay-background`; check `stop_reason`; one retry (C2, C3).
-4. Send selected-question descriptions + board/series into the generation prompt
+**Quick wins (hours each, no schema changes)** — ✅ all implemented
+1. ✅ Keep the panel mounted on tab switch + draft autosave to localStorage (B1).
+2. ✅ Last-used defaults prefill; don't wipe the form after save (B2).
+3. ✅ Auth on `generate-essay-background`; check `stop_reason`; one retry (C2, C3).
+4. ✅ Send selected-question descriptions + board/series into the generation prompt
    and persist them on the essay (A6, B4).
-5. Detect scanned/empty-text PDFs and say so (A4, minimal version).
-6. Auto-apply paper selection; clickable step indicator; numeric validation
+5. ✅ Detect scanned/empty-text PDFs and say so (A4, minimal version).
+6. ✅ Auto-apply paper selection; clickable step indicator; numeric validation
    (D3, D2, C5).
 
 **Medium (a day or two each)**
-7. Structured output via tool use — delete the parser cascade (C1). *Do this
-   before investing further in the pipeline.*
+7. ✅ Structured output via tool use — delete the parser cascade (C1). *Implemented:
+   generation now forces a `create_essay_config` tool call with a full JSON schema;
+   the generator's client-side multi-strategy parser was reduced to a single direct
+   parse (the import dialog keeps its tolerant parser for hand-pasted configs).*
 8. Grade-boundaries UI in Step 3 → activates existing student-side authentic
    descriptors (A5).
 9. Mark-scheme AI extraction + store mark scheme on the essay (A5, A6).

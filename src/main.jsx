@@ -9858,10 +9858,11 @@ ${examinerComment}
             </button>
           </div>
 
-          {/* Generate View */}
-          {activeView === 'generate' && (
+          {/* Generate View — kept mounted (hidden, not unmounted) so switching
+              to Manage Essays mid-wizard doesn't destroy the teacher's inputs */}
+          <div style={{ display: activeView === 'generate' ? 'block' : 'none' }}>
             <EssayGeneratorPanel onEssayGenerated={() => { setActiveView('manage'); loadEssays(); }} />
-          )}
+          </div>
 
           {/* Manage View */}
           {activeView === 'manage' && (
@@ -10137,6 +10138,16 @@ ${examinerComment}
       const [extractionStatus, setExtractionStatus] = useState('');
       const [extractionSummary, setExtractionSummary] = useState('');
       const [originalPdfFiles, setOriginalPdfFiles] = useState([]); // Store original File objects for view/download
+      const [markSchemeWarning, setMarkSchemeWarning] = useState('');
+
+      // Draft + per-teacher defaults persistence: the wizard survives tab
+      // switches, refreshes and re-logins, and Step 1 selections (subject,
+      // board, word counts) are remembered between essays.
+      const teacherEmail = TeacherAuth.getTeacher()?.email || 'unknown';
+      const DRAFT_KEY = 'essayGenDraft:' + teacherEmail;
+      const DEFAULTS_KEY = 'essayGenDefaults:' + teacherEmail;
+      const [draftNotice, setDraftNotice] = useState('');
+      const [maxStepReached, setMaxStepReached] = useState(1);
 
       // Exam paper structure data for each subject/exam board combination
       const examPaperData = {
@@ -10935,6 +10946,10 @@ ${examinerComment}
             let fileData;
             if (file.type === 'application/pdf') {
               const extractedText = await extractPdfText(file);
+              if (!extractedText || extractedText.trim().length < 50) {
+                setExtractionSummary('"' + file.name + '" appears to be a scanned PDF with no selectable text, so nothing could be extracted from it. Please enter the question and source material manually, or upload photos of the pages as images instead.');
+                continue;
+              }
               fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
               allExtractedText += extractedText + '\n\n';
               // Store original File object for view/download
@@ -10969,6 +10984,10 @@ ${examinerComment}
           let fileData;
           if (file.type === 'application/pdf') {
             const extractedText = await extractPdfText(file);
+            if (!extractedText || extractedText.trim().length < 50) {
+              setMarkSchemeWarning('"' + file.name + '" appears to be a scanned PDF with no selectable text, so the mark scheme could not be read from it. Please paste the mark scheme as text, or upload a photo of it as an image instead.');
+              return;
+            }
             fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
           } else if (file.type.startsWith('image/')) {
             const base64 = await readFileAsBase64(file);
@@ -10977,6 +10996,7 @@ ${examinerComment}
             alert('Unsupported file type. Use PDF or images.');
             return;
           }
+          setMarkSchemeWarning('');
           setMarkSchemeFile(fileData);
         } catch (err) {
           console.error('File processing error:', err);
@@ -11131,6 +11151,82 @@ ${examinerComment}
         }
       }, []);
 
+      // Restore an unsaved draft (or, failing that, the teacher's last-used
+      // defaults) on mount, so a refresh or expired session doesn't lose work.
+      useEffect(() => {
+        try {
+          const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+          if (draft && (draft.subject || draft.examQuestion || draft.markScheme || draft.sourceMaterial)) {
+            setSubject(draft.subject || ''); setYearGroup(draft.yearGroup || '');
+            setExamBoard(draft.examBoard || ''); setExamSeries(draft.examSeries || '');
+            setTotalMarks(draft.totalMarks || ''); setTimeAllowed(draft.timeAllowed || '');
+            setPaperName(draft.paperName || ''); setExamQuestion(draft.examQuestion || '');
+            setSourceMaterial(draft.sourceMaterial || ''); setMarkScheme(draft.markScheme || '');
+            setAdditionalNotes(draft.additionalNotes || '');
+            setMinWords(draft.minWords || '80'); setTargetWords(draft.targetWords || '150');
+            setMaxAttempts(draft.maxAttempts || '3');
+            setSelectedPaper(draft.selectedPaper || ''); setSelectedQuestions(draft.selectedQuestions || []);
+            if (draft.step >= 1 && draft.step <= 4) { setStep(s => s === 4 ? s : draft.step); setMaxStepReached(draft.step); }
+            // Only announce a restore when there was real in-progress content,
+            // not just remembered Step-1 details from a previous save.
+            if (draft.examQuestion || draft.markScheme || draft.sourceMaterial) {
+              setDraftNotice('Restored your unsaved draft.' + (draft.fileNames?.length
+                ? ' Uploaded files (' + draft.fileNames.join(', ') + ') cannot be restored automatically - please re-upload them if you still need them.'
+                : ''));
+            }
+          } else {
+            const defaults = JSON.parse(localStorage.getItem(DEFAULTS_KEY) || 'null');
+            if (defaults) {
+              setSubject(defaults.subject || ''); setYearGroup(defaults.yearGroup || '');
+              setExamBoard(defaults.examBoard || '');
+              setMinWords(defaults.minWords || '80'); setTargetWords(defaults.targetWords || '150');
+              setMaxAttempts(defaults.maxAttempts || '3');
+            }
+          }
+        } catch (e) { /* corrupt draft — start clean */ }
+      }, []);
+
+      // Debounced draft autosave. File contents are too large for
+      // localStorage, so only their names are recorded for the restore notice.
+      useEffect(() => {
+        const t = setTimeout(() => {
+          if (!(subject || examQuestion.trim() || markScheme.trim() || sourceMaterial.trim())) return;
+          try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({
+              subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
+              examQuestion, sourceMaterial, markScheme, additionalNotes,
+              minWords, targetWords, maxAttempts, selectedPaper, selectedQuestions,
+              step: Math.min(step, 4),
+              fileNames: [...sourceFiles.map(f => f.name), ...(markSchemeFile ? [markSchemeFile.name] : [])]
+            }));
+          } catch (e) { /* storage full — skip this autosave */ }
+        }, 800);
+        return () => clearTimeout(t);
+      }, [subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
+          examQuestion, sourceMaterial, markScheme, additionalNotes, minWords, targetWords,
+          maxAttempts, selectedPaper, selectedQuestions, step, sourceFiles, markSchemeFile]);
+
+      useEffect(() => { setMaxStepReached(m => Math.max(m, step)); }, [step]);
+
+      // Auto-apply the paper/question selection (marks, time, paper name) as
+      // it changes — no separate "Apply Selection" click needed.
+      useEffect(() => {
+        if (selectedPaper && selectedQuestions.length > 0) handleApplySelection();
+      }, [selectedPaper, selectedQuestions]);
+
+      const resetForm = () => {
+        if (!confirm('Clear the whole form and start over?')) return;
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        setStep(1); setMaxStepReached(1);
+        setGeneratedConfig(null); setServerParsedEssay(null); setEditableEssay(null); setEditExpandedParagraph(null);
+        setSubject(''); setYearGroup(''); setExamBoard(''); setExamSeries(''); setTotalMarks('');
+        setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
+        setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
+        setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
+        setSelectedPaper(''); setSelectedQuestions([]);
+        setDraftNotice(''); setMarkSchemeWarning(''); setError('');
+      };
+
       const handleCancelGeneration = () => {
         cancelGenerationRef.current = true;
         localStorage.removeItem(PENDING_JOB_KEY);
@@ -11138,8 +11234,21 @@ ${examinerComment}
         setGenerationStatus('');
       };
 
+      // Sanity-check the numeric settings before paying for a generation run
+      const validateGenerationSettings = () => {
+        const tm = parseInt(totalMarks), mw = parseInt(minWords), tw = parseInt(targetWords), ma = parseInt(maxAttempts);
+        if (!tm || tm < 1) return 'Total Marks must be a positive number.';
+        if (!mw || mw < 10) return 'Min Words/Para must be at least 10.';
+        if (!tw || tw < mw) return 'Target Words/Para must be at least the minimum words per paragraph.';
+        if (!ma || ma < 1 || ma > 10) return 'Max Attempts must be between 1 and 10.';
+        return null;
+      };
+
       // Generate essay
       const handleGenerate = async () => {
+        const settingsError = validateGenerationSettings();
+        if (settingsError) { setError(settingsError); return; }
+
         setIsGenerating(true);
         setError('');
         setGenerationStatus('Starting generation...');
@@ -11150,7 +11259,8 @@ ${examinerComment}
             timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
             paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
             additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
-            maxAttempts: parseInt(maxAttempts)
+            maxAttempts: parseInt(maxAttempts),
+            selectedQuestionDescriptions: getSelectedQuestionDescriptions()
           };
 
           // Start job
@@ -11167,10 +11277,10 @@ ${examinerComment}
           localStorage.setItem(PENDING_JOB_KEY, JSON.stringify({ jobId, startedAt: new Date().toISOString() }));
           setGenerationStatus('Processing with AI (this may take a few minutes)...');
 
-          // Trigger background processing
+          // Trigger background processing (now requires the admin session)
           fetch('/.netlify/functions/generate-essay-background', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
             body: JSON.stringify({ jobId })
           }).catch(() => {});
 
@@ -11205,274 +11315,26 @@ ${examinerComment}
             debug('Using server-parsed essay data');
           }
 
-          // Fall back to client-side parsing if server didn't parse
+          // Fall back to client-side parsing if the server did not parse.
+          // Generation now uses structured output, so the config is plain JSON
+          // assigned to window.ESSAYS and a direct parse is sufficient.
           if (!essayData && generatedConfig) {
-          let configText = generatedConfig.trim();
-
-          // Remove the preamble
-          configText = configText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
-
-          // Extract the essay object from window.ESSAYS['id'] = {...}
-          const match = configText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
-          if (match) {
-            const essayId = match[1];
-            let objectText = match[2];
-
-            // Try multiple parsing strategies
-            const parseStrategies = [
-              // Strategy 1: Direct eval with Function (original approach)
-              () => {
-                const evalFunc = new Function('return (' + objectText + ')');
-                return evalFunc();
-              },
-              // Strategy 2: Character-by-character template literal conversion
-              () => {
-                // Walk through the text and convert backtick strings to double-quoted strings
-                // This handles multi-line content, escaped backticks, and ${} expressions
-                let result = '';
-                let i = 0;
-                while (i < objectText.length) {
-                  if (objectText[i] === '`') {
-                    // Start of template literal - collect until closing backtick
-                    i++;
-                    let content = '';
-                    while (i < objectText.length) {
-                      if (objectText[i] === '\\' && i + 1 < objectText.length) {
-                        // Escaped character
-                        const next = objectText[i + 1];
-                        if (next === '`') {
-                          content += '`';
-                          i += 2;
-                        } else if (next === '\\') {
-                          content += '\\\\';
-                          i += 2;
-                        } else if (next === 'n' || next === 'r' || next === 't') {
-                          content += '\\' + next;
-                          i += 2;
-                        } else {
-                          content += '\\\\' + next;
-                          i += 2;
-                        }
-                      } else if (objectText[i] === '`') {
-                        break; // End of template literal
-                      } else if (objectText[i] === '$' && objectText[i + 1] === '{') {
-                        // Template expression ${...} - include as literal text
-                        content += '${';
-                        i += 2;
-                      } else if (objectText[i] === '"') {
-                        content += '\\"';
-                        i++;
-                      } else if (objectText[i] === '\n') {
-                        content += '\\n';
-                        i++;
-                      } else if (objectText[i] === '\r') {
-                        content += '\\r';
-                        i++;
-                      } else {
-                        content += objectText[i];
-                        i++;
-                      }
-                    }
-                    i++; // skip closing backtick
-                    result += '"' + content + '"';
-                  } else {
-                    result += objectText[i];
-                    i++;
-                  }
-                }
-                const evalFunc = new Function('return (' + result + ')');
-                return evalFunc();
-              },
-              // Strategy 3: Extract key fields manually using string-aware parsing
-              () => {
-                const extractField = (fieldName, isNumber = false) => {
-                  const regex = new RegExp(fieldName + '\\s*:\\s*(' + (isNumber ? '\\d+' : '[\'"`]([^\'"`]*)[\'"`]') + ')');
-                  const m = objectText.match(regex);
-                  return m ? (isNumber ? parseInt(m[1]) : m[2]) : null;
-                };
-
-                // Helper: skip over a string literal (`, ', ") starting at the opening quote
-                const skipString = (text, startPos) => {
-                  const quote = text[startPos];
-                  let pos = startPos + 1;
-                  while (pos < text.length) {
-                    if (text[pos] === '\\') { pos += 2; continue; }
-                    if (text[pos] === quote) return pos;
-                    pos++;
-                  }
-                  return pos;
-                };
-
-                // Helper: find matching closing bracket, skipping string content
-                const findMatchingBracket = (text, openPos) => {
-                  const open = text[openPos];
-                  const close = open === '{' ? '}' : ']';
-                  let depth = 1;
-                  let pos = openPos + 1;
-                  while (pos < text.length && depth > 0) {
-                    const ch = text[pos];
-                    if (ch === '`' || ch === '"' || ch === "'") {
-                      pos = skipString(text, pos) + 1;
-                      continue;
-                    }
-                    if (ch === open) depth++;
-                    else if (ch === close) depth--;
-                    pos++;
-                  }
-                  return depth === 0 ? pos - 1 : -1;
-                };
-
-                // Helper: extract a string value after a field name at a given position
-                const extractStringAfterField = (text, fieldName) => {
-                  const regex = new RegExp(fieldName + '\\s*:\\s*([`\'"])');
-                  const m = text.match(regex);
-                  if (!m) return '';
-                  const quotePos = text.indexOf(m[0]) + m[0].length - 1;
-                  const endPos = skipString(text, quotePos);
-                  const raw = text.substring(quotePos + 1, endPos);
-                  return raw.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\`/g, '`').replace(/\\\\/g, '\\').replace(/\\"/g, '"').replace(/\\'/g, "'");
-                };
-
-                // Helper: extract learningMaterial object from a paragraph block
-                const extractLearningMaterial = (blockText) => {
-                  const lmIdx = blockText.indexOf('learningMaterial');
-                  if (lmIdx === -1) return null;
-                  const braceIdx = blockText.indexOf('{', lmIdx);
-                  if (braceIdx === -1) return null;
-                  const closeIdx = findMatchingBracket(blockText, braceIdx);
-                  if (closeIdx === -1) return null;
-                  const lmText = blockText.substring(braceIdx, closeIdx + 1);
-                  return {
-                    foundation: extractStringAfterField(lmText, 'foundation'),
-                    intermediate: extractStringAfterField(lmText, 'intermediate'),
-                    advanced: extractStringAfterField(lmText, 'advanced')
-                  };
-                };
-
-                // Helper: extract keyPoints or exampleQuotes array of strings
-                const extractStringArray = (blockText, fieldName) => {
-                  const regex = new RegExp(fieldName + '\\s*:\\s*\\[');
-                  const m = blockText.match(regex);
-                  if (!m) return [];
-                  const arrStart = blockText.indexOf(m[0]) + m[0].length - 1;
-                  const arrEnd = findMatchingBracket(blockText, arrStart);
-                  if (arrEnd === -1) return [];
-                  const arrText = blockText.substring(arrStart + 1, arrEnd);
-                  const items = [];
-                  const strRegex = /[`'"]/g;
-                  let sm;
-                  while ((sm = strRegex.exec(arrText)) !== null) {
-                    const endPos = skipString(arrText, sm.index);
-                    items.push(arrText.substring(sm.index + 1, endPos));
-                    strRegex.lastIndex = endPos + 1;
-                  }
-                  return items;
-                };
-
-                // Find the paragraphs array using bracket matching
-                const paraIdx = objectText.indexOf('paragraphs');
-                let paragraphBlocks = [];
-                if (paraIdx !== -1) {
-                  const bracketIdx = objectText.indexOf('[', paraIdx);
-                  if (bracketIdx !== -1) {
-                    const closeBracket = findMatchingBracket(objectText, bracketIdx);
-                    if (closeBracket !== -1) {
-                      const paraArrayText = objectText.substring(bracketIdx + 1, closeBracket);
-                      // Find each paragraph object using bracket matching
-                      let searchPos = 0;
-                      while (searchPos < paraArrayText.length) {
-                        const nextBrace = paraArrayText.indexOf('{', searchPos);
-                        if (nextBrace === -1) break;
-                        const closeBrace = findMatchingBracket(paraArrayText, nextBrace);
-                        if (closeBrace === -1) break;
-                        paragraphBlocks.push(paraArrayText.substring(nextBrace, closeBrace + 1));
-                        searchPos = closeBrace + 1;
-                      }
-                    }
-                  }
-                }
-
-                const manualData = {
-                  id: essayId,
-                  title: extractField('title') || 'Untitled Essay',
-                  subject: extractField('subject') || subject || 'Not specified',
-                  yearGroup: extractField('yearGroup') || yearGroup || 'Not specified',
-                  totalMarks: extractField('totalMarks', true) || parseInt(totalMarks) || 40,
-                  essayTitle: extractField('essayTitle') || examQuestion || 'Essay Question',
-                  instructions: extractField('instructions') || 'Complete the essay following the guidance provided.',
-                  maxAttempts: extractField('maxAttempts', true) || parseInt(maxAttempts) || 3,
-                  minWordsPerParagraph: extractField('minWordsPerParagraph', true) || parseInt(minWords) || 80,
-                  targetWordsPerParagraph: extractField('targetWordsPerParagraph', true) || parseInt(targetWords) || 150,
-                  paragraphs: []
-                };
-
-                // Parse each paragraph block with full field extraction
-                paragraphBlocks.forEach((block, idx) => {
-                  try {
-                    const pTitle = block.match(/title\s*:\s*['"`]([^'"`]*)['"`]/);
-                    const pType = block.match(/type\s*:\s*['"`]([^'"`]*)['"`]/);
-                    const lm = extractLearningMaterial(block);
-                    const wp = extractStringAfterField(block, 'writingPrompt');
-                    const kp = extractStringArray(block, 'keyPoints');
-                    const eq = extractStringArray(block, 'exampleQuotes');
-                    manualData.paragraphs.push({
-                      id: idx + 1,
-                      title: pTitle ? pTitle[1] : 'Paragraph ' + (idx + 1),
-                      type: pType ? pType[1] : 'body',
-                      learningMaterial: lm || { foundation: '', intermediate: '', advanced: '' },
-                      writingPrompt: wp || 'Write this paragraph based on the essay question.',
-                      keyPoints: kp.length > 0 ? kp : [],
-                      exampleQuotes: eq
-                    });
-                  } catch (e) {
-                    console.warn('Failed to parse paragraph block:', e);
-                  }
-                });
-
-                // If we couldn't extract any paragraphs, fail honestly rather
-                // than fabricating empty placeholder paragraphs that would be
-                // saved as if generation had succeeded.
-                if (manualData.paragraphs.length === 0) {
-                  throw new Error('Could not extract any paragraphs from the generated config');
-                }
-
-                return manualData;
-              }
-            ];
-
-            let lastError = null;
-            let strategyUsed = -1;
-            const strategyNames = ['direct parsing', 'template literal conversion', 'manual field extraction'];
-
-            for (let i = 0; i < parseStrategies.length; i++) {
+            let configText = generatedConfig.trim();
+            configText = configText.replace(/^window\.ESSAYS\s*=\s*window\.ESSAYS\s*\|\|\s*\{\s*\}\s*;?\s*/m, '');
+            const match = configText.match(/window\.ESSAYS\s*\[\s*['"]([^'"]+)['"]\s*\]\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+            if (match) {
               try {
-                essayData = parseStrategies[i]();
-                if (essayData && essayData.paragraphs) {
-                  essayData.id = essayId;
-                  strategyUsed = i;
-                  debug('Successfully parsed essay config using strategy:', strategyNames[i]);
-                  break;
-                }
+                essayData = new Function('return (' + match[2] + ')')();
+                if (essayData) essayData.id = match[1];
               } catch (e) {
-                lastError = e;
-                console.warn('Parse strategy failed:', strategyNames[i], e.message);
+                console.error('Config parse failed:', e);
+                essayData = null;
               }
             }
-
-            if (!essayData) {
-              console.error('All parsing strategies failed. Last error:', lastError);
-              throw new Error('Failed to parse the generated essay configuration — the AI produced invalid syntax. Go back to the Generate step and regenerate; nothing was saved.');
-            }
-
-            // Show warning if fallback strategy was used
-            if (strategyUsed > 0) {
-              const warningMsg = strategyUsed === 2
-                ? 'Warning: The generated config had syntax issues and was parsed using fallback extraction. Please verify the content is complete.'
-                : 'Warning: The generated config required additional processing to parse. The essay was saved but please verify the content.';
-              alert(warningMsg);
+            if (!essayData || !essayData.paragraphs) {
+              throw new Error('Failed to parse the generated essay configuration. Go back to the Generate step and regenerate; nothing was saved.');
             }
           }
-          } // end client-side parsing fallback
 
           if (!essayData) {
             throw new Error('Could not extract essay data from generated config');
@@ -11502,17 +11364,25 @@ ${examinerComment}
 
           if (result.success) {
             showToast('Essay saved successfully');
+            // Remember this teacher's defaults for the next essay, and clear
+            // the in-progress draft now that it's saved.
+            try {
+              localStorage.setItem(DEFAULTS_KEY, JSON.stringify({ subject, yearGroup, examBoard, minWords, targetWords, maxAttempts }));
+              localStorage.removeItem(DRAFT_KEY);
+            } catch (e) {}
             if (onEssayGenerated) onEssayGenerated();
-            // Reset form
+            // Keep the exam details (teachers often set several questions from
+            // the same paper in a row) — clear only question-specific content.
             setStep(1);
+            setMaxStepReached(1);
             setGeneratedConfig(null);
             setServerParsedEssay(null);
             setEditableEssay(null);
             setEditExpandedParagraph(null);
-            setSubject(''); setYearGroup(''); setExamBoard(''); setExamSeries(''); setTotalMarks('');
-            setTimeAllowed(''); setPaperName(''); setExamQuestion(''); setSourceMaterial('');
+            setExamQuestion(''); setSourceMaterial('');
             setSourceFiles([]); setMarkScheme(''); setMarkSchemeFile(null); setAdditionalNotes('');
             setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
+            setDraftNotice(''); setMarkSchemeWarning('');
           } else {
             throw new Error(result.error || 'Failed to save');
           }
@@ -11631,12 +11501,24 @@ ${examinerComment}
         return null;
       };
 
-      // Render steps indicator
+      // Render steps indicator — steps already visited are clickable
       const stepLabels = ['Details', 'Question', 'Mark Scheme', 'Generate', 'Review & Edit', 'Save'];
+      const canJumpToStep = (s) => {
+        if (isGenerating || isExtracting || s === step) return false;
+        if (s > maxStepReached) return false;
+        if (s >= 5 && !editableEssay && !generatedConfig) return false;
+        return true;
+      };
       const renderSteps = () => (
         <div style={parseStyle("display: flex; justify-content: center; gap: var(--space-sm); margin-bottom: var(--space-xl);")}>
-          {[1,2,3,4,5,6].map(s => (
-            <div key={s} style={parseStyle("display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);")}>
+          {[1,2,3,4,5,6].map(s => {
+            const clickable = canJumpToStep(s);
+            return (
+            <div key={s}
+              onClick={() => { if (clickable) setStep(s); }}
+              role={clickable ? 'button' : undefined}
+              title={clickable ? 'Go to ' + stepLabels[s - 1] : undefined}
+              style={parseStyle(`display: flex; flex-direction: column; align-items: center; gap: var(--space-xs); cursor: ${clickable ? 'pointer' : 'default'};`)}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -11646,13 +11528,22 @@ ${examinerComment}
               }}>{s < step ? <Icon name={ICONS.check} size={14} color="white" /> : s}</div>
               <span style={parseStyle("font-size: 0.65rem; color: var(--color-text-muted); text-align: center; max-width: 60px;")}>{stepLabels[s - 1]}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
       );
 
       return (
         <div>
           {renderSteps()}
+
+          {draftNotice && (
+            <div style={parseStyle("display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); font-size: 0.85rem;")}>
+              <span>{draftNotice}</span>
+              <button className="btn btn-secondary" style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); flex-shrink: 0;")}
+                onClick={() => setDraftNotice('')}>Dismiss</button>
+            </div>
+          )}
 
           {/* Step 1: Exam Details */}
           {step === 1 && (
@@ -11771,21 +11662,15 @@ ${examinerComment}
                           </div>
                         ))}
 
-                        {/* Apply Selection Button */}
+                        {/* Selection summary — marks, time and paper name are applied automatically */}
                         {selectedQuestions.length > 0 && (
                           <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--color-border);")}>
-                            <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);")}>
+                            <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>
                               Selected: {selectedQuestions.length} question(s), {
                                 paper.sections.reduce((total, section) =>
                                   total + section.questions.filter(q => selectedQuestions.includes(q.id)).reduce((sum, q) => sum + q.marks, 0), 0)
-                              } marks
+                              } marks — the marks, time and paper name fields have been filled in automatically.
                             </div>
-                            <button
-                              className="btn btn-primary"
-                              onClick={handleApplySelection}
-                              style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-md);")}>
-                              Apply Selection
-                            </button>
                           </div>
                         )}
                       </div>
@@ -11809,7 +11694,8 @@ ${examinerComment}
                   placeholder="e.g., Paper 2 Section B" className="form-input" />
               </div>
 
-              <div style={parseStyle("display: flex; justify-content: flex-end;")}>
+              <div style={parseStyle("display: flex; justify-content: space-between;")}>
+                <button className="btn btn-secondary" onClick={resetForm}>Reset Form</button>
                 <button className="btn btn-primary" onClick={nextStep}>Continue</button>
               </div>
             </div>
@@ -11947,6 +11833,11 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>{markSchemeFile ? markSchemeFile.name : 'Click to upload PDF or image'}</div>
                   </label>
                 </div>
+                {markSchemeWarning && (
+                  <div style={parseStyle("margin-top: var(--space-sm); padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-warning, #e6a817); background: var(--color-warning-bg, #fef9e7); border-radius: var(--radius-md); font-size: 0.85rem;")}>
+                    {markSchemeWarning}
+                  </div>
+                )}
               </div>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
