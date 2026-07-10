@@ -1432,6 +1432,19 @@ import * as ReactDOM from 'react-dom/client';
       );
     }
 
+    // Long AI waits (10-30s) feel shorter when the message narrates what
+    // is happening instead of sitting on one static line.
+    function StagedLoadingIndicator({ stages, intervalMs = 6000 }) {
+      const [stageIndex, setStageIndex] = useState(0);
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setStageIndex(i => Math.min(i + 1, stages.length - 1));
+        }, intervalMs);
+        return () => clearInterval(timer);
+      }, []);
+      return <LoadingSpinner text={stages[stageIndex]} />;
+    }
+
     // =====================================================
     // SHARED UI PRIMITIVES (Modal, Field, ConfirmDialog, Toast)
     // =====================================================
@@ -4598,7 +4611,7 @@ import * as ReactDOM from 'react-dom/client';
     // FEEDBACK DISPLAY COMPONENT
     // =====================================================
     
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade, authenticityCheck }) {
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade, authenticityCheck, referenceMode = false }) {
       const scoreClass = getScoreClass(feedback.overallScore || 0);
       const grade = feedback.estimatedGrade || feedback.awardedGrade;
       const hasAuthenticGrade = Boolean(grade);
@@ -4613,7 +4626,6 @@ import * as ReactDOM from 'react-dom/client';
       
       // Authenticity check results
       const hasAuthenticityWarning = authenticityCheck?.isSuspicious || !authenticityCheck?.isAuthentic;
-      const authenticityFlags = authenticityCheck?.flags || {};
       
       // Build readable feedback text for TTS
       const buildFeedbackText = () => {
@@ -4650,178 +4662,27 @@ import * as ReactDOM from 'react-dom/client';
       
       return (
         <div className="feedback-panel ghost-appear" role="region" aria-live="polite" aria-label="Feedback on your paragraph">
-          {/* Authenticity Warning - shown if suspicious */}
-          {hasAuthenticityWarning && (
-            <div style={{
-              marginBottom: 'var(--space-lg)',
-              padding: 'var(--space-md)',
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))',
-              borderRadius: 'var(--radius-md)',
-              border: '2px solid var(--color-error)',
-              boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-sm)',
-                marginBottom: 'var(--space-sm)',
-                color: 'var(--color-error)',
-                fontWeight: 700,
-                fontSize: '1rem'
-              }}>
-                <Icon name={ICONS.alertTriangle} size={20} />
-                Authenticity Check: Please Review
-              </div>
-              <p style={{
-                margin: '0 0 var(--space-sm) 0',
-                fontSize: '0.95rem',
-                color: 'var(--color-text)'
-              }}>
-                This submission has been flagged for review. Please ensure this is your own original work written in your own words.
-              </p>
-              {authenticityCheck?.concerns && authenticityCheck.concerns.length > 0 && (
-                <ul style={{
-                  margin: '0',
-                  paddingLeft: 'var(--space-lg)',
-                  fontSize: '0.9rem',
-                  color: 'var(--color-text-secondary)'
-                }}>
-                  {authenticityCheck.concerns.map((concern, i) => (
-                    <li key={i} style={{ marginBottom: 'var(--space-xs)' }}>{concern}</li>
-                  ))}
-                </ul>
-              )}
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 'var(--space-sm)',
-                marginTop: 'var(--space-md)'
-              }}>
-                {authenticityFlags.sophisticationMismatch && (
-                  <span style={{
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    color: 'var(--color-error)',
-                    padding: 'var(--space-xs) var(--space-sm)',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600
-                  }}>
-                    Sophistication Mismatch
-                  </span>
-                )}
-                {authenticityFlags.styleInconsistency && (
-                  <span style={{
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    color: 'var(--color-error)',
-                    padding: 'var(--space-xs) var(--space-sm)',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600
-                  }}>
-                    Style Inconsistency
-                  </span>
-                )}
-                {authenticityFlags.aiPatterns && (
-                  <span style={{
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    color: 'var(--color-error)',
-                    padding: 'var(--space-xs) var(--space-sm)',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600
-                  }}>
-                    AI Writing Patterns
-                  </span>
-                )}
-              </div>
-              <p style={{
-                margin: 'var(--space-md) 0 0 0',
-                fontSize: '0.85rem',
-                color: 'var(--color-text-muted)',
-                fontStyle: 'italic'
-              }}>
-                <span style={{display: 'inline-flex', alignItems: 'center', gap: '4px'}}><Icon name={ICONS.lightbulb} size={14} /> Tip:</span> If you used AI tools, please revise this paragraph using your own words and understanding. Your teacher wants to see YOUR thinking!
-              </p>
-            </div>
-          )}
-          
+          {/* What was written comes FIRST; the grade is revealed after the
+              feedback so students read the coaching before the number. */}
           <div className="feedback-header">
-            {hasAuthenticGrade ? (
-              <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md);")}>
-                <div style={parseStyle("background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: var(--color-text-inverse); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: 1.5rem; font-weight: 700; font-family: var(--font-display);")}>
-                  {displayGrade}
-                </div>
-                {hasMarks && (
-                  <div style={parseStyle("font-size: 1rem; color: var(--color-text); background: var(--color-surface-alt); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 500;")}>
-                    {feedback.awardedMarks}/{feedback.totalMarks} marks
-                  </div>
-                )}
-                {isCumulative && paragraphCount > 1 && (
-                  <div style={parseStyle("font-size: 0.8rem; color: var(--color-info); background: var(--color-info-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 600;")}>
-                     &#128202; Cumulative ({paragraphCount} paragraphs)
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className={`feedback-score ${scoreClass}`}>
-                {feedback.overallScore || 0}%
-              </div>
-            )}
             <div>
               <h3 style={parseStyle("margin: 0;")}>
-                {isCumulative ? `Essay Grade So Far (After ${paragraphCount} Paragraph${paragraphCount > 1 ? 's' : ''})` : `Feedback on Attempt ${attemptNumber}`}
+                {isCumulative ? `Feedback on Your Essay So Far (${paragraphCount} Paragraph${paragraphCount > 1 ? 's' : ''})` : `Feedback on Draft ${attemptNumber}`}
               </h3>
               <p style={parseStyle("margin: 0; font-size: 0.9rem; color: var(--color-text-muted);")}>
-                {isCumulative 
-                  ? `This grade reflects your complete essay written so far` 
-                  : (canRevise ? 'Review the feedback and revise your paragraph' : 'Final feedback on your paragraph')
+                {isCumulative
+                  ? 'This looks at your complete essay written so far'
+                  : (canRevise ? 'Read the feedback, then improve your draft — that\'s how the best marks are earned' : 'Final feedback on your paragraph')
                 }
               </p>
             </div>
           </div>
-          
+
           {/* TTS Button for feedback */}
           <div style={parseStyle("margin-bottom: var(--space-md);")}>
             <TextToSpeech text={buildFeedbackText()} label="Read feedback aloud" targetGrade={targetGrade} />
           </div>
-          
-          {/* Grade/Marks Justification - shown when using authentic descriptors */}
-          {(feedback.marksJustification || feedback.gradeJustification) && (
-            <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
-              <div style={parseStyle("font-size: 0.8rem; font-weight: 600; color: var(--color-primary-light); margin-bottom: var(--space-xs);")}>
-                Indicative Mark Assessment
-              </div>
-              <p style={parseStyle("margin: 0; font-size: 0.95rem;")}>{feedback.marksJustification || feedback.gradeJustification}</p>
-            </div>
-          )}
-          
-          {feedback.criteriaScores && (
-            <div className="criteria-scores">
-              {Object.entries(feedback.criteriaScores).map(([key, score]) => {
-                // Map technical keys to user-friendly labels
-                const labelMap = {
-                  // Authentic descriptor criteria (AO5/AO6 based)
-                  'communication': 'Communication & Style',
-                  'organization': 'Organisation & Structure',
-                  'language': 'Language & Devices',
-                  'accuracy': 'Technical Accuracy',
-                  // Fallback criteria
-                  'content': 'Content & Understanding',
-                  'analysis': 'Analysis',
-                  'structure': 'Structure',
-                  'expression': 'Expression'
-                };
-                const label = labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
-                return (
-                  <div key={key} className="criteria-item">
-                    <div className="criteria-label">{label}</div>
-                    <div className="criteria-score">{score}%</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
+
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
               <div className="feedback-section-title"><span>&#9733; Strengths</span></div>
@@ -4830,7 +4691,7 @@ import * as ReactDOM from 'react-dom/client';
               </ul>
             </div>
           )}
-          
+
           {feedback.improvements && feedback.improvements.length > 0 && (
             <div className="feedback-section">
               <div className="feedback-section-title"><span>▲ Areas to Improve</span></div>
@@ -4839,6 +4700,118 @@ import * as ReactDOM from 'react-dom/client';
               </ul>
             </div>
           )}
+
+          {/* Authenticity check-in: a private, neutral nudge — not an
+              accusation. False positives land on honest students, so this
+              sits below their strengths and stays amber, not red. */}
+          {hasAuthenticityWarning && (
+            <div style={{
+              margin: 'var(--space-lg) 0',
+              padding: 'var(--space-md)',
+              background: 'var(--color-warning-bg)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-warning)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-sm)',
+                marginBottom: 'var(--space-sm)',
+                color: 'var(--color-warning)',
+                fontWeight: 600,
+                fontSize: '0.95rem'
+              }}>
+                <Icon name={ICONS.info} size={18} />
+                A quick check-in
+              </div>
+              <p style={{
+                margin: '0 0 var(--space-sm) 0',
+                fontSize: '0.95rem',
+                color: 'var(--color-text)'
+              }}>
+                Some of this doesn't sound like your usual writing. Have a read through — is it all in your own words? Your own thinking is what earns the marks here.
+              </p>
+              {authenticityCheck?.concerns && authenticityCheck.concerns.length > 0 && (
+                <ul style={{
+                  margin: '0',
+                  paddingLeft: 'var(--space-lg)',
+                  fontSize: '0.85rem',
+                  color: 'var(--color-text-muted)'
+                }}>
+                  {authenticityCheck.concerns.map((concern, i) => (
+                    <li key={i} style={{ marginBottom: 'var(--space-xs)' }}>{concern}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Grade reveal — after the feedback, with the celebration beat */}
+          <div className="score-reveal" style={parseStyle("margin: var(--space-lg) 0; padding: var(--space-md); background: rgba(184, 134, 11, 0.06); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
+            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;")}>
+              {hasAuthenticGrade ? (
+                <>
+                  <div style={parseStyle("background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: var(--color-text-inverse); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: 1.5rem; font-weight: 700; font-family: var(--font-display);")}>
+                    {displayGrade}
+                  </div>
+                  {hasMarks && (
+                    <div style={parseStyle("font-size: 1rem; color: var(--color-text); background: var(--color-surface-alt); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 500;")}>
+                      {feedback.awardedMarks}/{feedback.totalMarks} marks
+                    </div>
+                  )}
+                  {isCumulative && paragraphCount > 1 && (
+                    <div style={parseStyle("font-size: 0.8rem; color: var(--color-info); background: var(--color-info-bg); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); font-weight: 600;")}>
+                      Whole essay so far ({paragraphCount} paragraphs)
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={`feedback-score ${scoreClass}`}>
+                  {feedback.overallScore || 0}%
+                </div>
+              )}
+              <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
+                {isCumulative ? 'Grade for your essay so far' : 'Current grade for this draft'}
+              </div>
+            </div>
+
+            {/* Grade/Marks Justification - shown when using authentic descriptors */}
+            {(feedback.marksJustification || feedback.gradeJustification) && (
+              <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
+                <div style={parseStyle("font-size: 0.8rem; font-weight: 600; color: var(--color-primary-light); margin-bottom: var(--space-xs);")}>
+                  Why this mark
+                </div>
+                <p style={parseStyle("margin: 0; font-size: 0.95rem;")}>{feedback.marksJustification || feedback.gradeJustification}</p>
+              </div>
+            )}
+
+            {feedback.criteriaScores && (
+              <div className="criteria-scores" style={parseStyle("margin-top: var(--space-md); margin-bottom: 0;")}>
+                {Object.entries(feedback.criteriaScores).map(([key, score]) => {
+                  // Map technical keys to user-friendly labels
+                  const labelMap = {
+                    // Authentic descriptor criteria (AO5/AO6 based)
+                    'communication': 'Communication & Style',
+                    'organization': 'Organisation & Structure',
+                    'language': 'Language & Devices',
+                    'accuracy': 'Technical Accuracy',
+                    // Fallback criteria
+                    'content': 'Content & Understanding',
+                    'analysis': 'Analysis',
+                    'structure': 'Structure',
+                    'expression': 'Expression'
+                  };
+                  const label = labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+                  return (
+                    <div key={key} className="criteria-item">
+                      <div className="criteria-label">{label}</div>
+                      <div className="criteria-score">{score}%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           
           {feedback.detailedFeedback && (
             <div className="feedback-section">
@@ -4861,6 +4834,12 @@ import * as ReactDOM from 'react-dom/client';
             </div>
           )}
           
+          {referenceMode ? (
+            <div style={parseStyle("margin-top: var(--space-lg); padding: var(--space-md); background: var(--color-info-bg); border: 1px solid var(--color-info); border-radius: var(--radius-md); font-size: 0.9rem; text-align: center;")}>
+              <Icon name={ICONS.lightbulb} size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              This feedback stays here while you revise — use it as your checklist.
+            </div>
+          ) : (
           <div className="revision-actions">
             {canRevise ? (
               <>
@@ -4877,6 +4856,7 @@ import * as ReactDOM from 'react-dom/client';
               </button>
             )}
           </div>
+          )}
         </div>
       );
     }
@@ -5340,8 +5320,9 @@ import * as ReactDOM from 'react-dom/client';
     // EXPANDABLE LEARNING MATERIAL
     // =====================================================
     
-    function ExpandableLearningMaterial({ content, subject, essayContext, targetGrade }) {
+    function ExpandableLearningMaterial({ content, subject, essayContext, targetGrade, defaultOpen = true }) {
       const containerRef = useRef(null);
+      const [isOpen, setIsOpen] = useState(defaultOpen);
       const [expandedHint, setExpandedHint] = useState(null); // { id, text, explanation, element }
       const [isLoading, setIsLoading] = useState(false);
       
@@ -5435,18 +5416,33 @@ import * as ReactDOM from 'react-dom/client';
       
       return (
         <div className="learning-material">
-          <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);")}>
-            <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0; font-style: italic;")}>
-              Click on any bullet point below for more information
-            </p>
-            <TextToSpeech text={content} label="Read hints" targetGrade={targetGrade} />
-          </div>
-          <div 
-            ref={containerRef}
-            onClick={handleHintClick}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-          />
-          {renderExpansion()}
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            onClick={() => setIsOpen(!isOpen)}
+            style={parseStyle("display: flex; justify-content: space-between; align-items: center; width: 100%; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--color-text); padding: 0; font-size: 1rem; font-weight: 600;")}
+          >
+            <span style={parseStyle("display: inline-flex; align-items: center; gap: var(--space-sm);")}>
+              <Icon name={ICONS.lightbulb} size={18} /> Need help? Writing guidance
+            </span>
+            <Icon name={isOpen ? ICONS.chevronUp : ICONS.chevronDown} size={18} />
+          </button>
+          {isOpen && (
+            <>
+              <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin: var(--space-md) 0;")}>
+                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin: 0; font-style: italic;")}>
+                  Click on any bullet point below for more information
+                </p>
+                <TextToSpeech text={content} label="Read hints" targetGrade={targetGrade} />
+              </div>
+              <div
+                ref={containerRef}
+                onClick={handleHintClick}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+              />
+              {renderExpansion()}
+            </>
+          )}
         </div>
       );
     }
@@ -5820,6 +5816,7 @@ import * as ReactDOM from 'react-dom/client';
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
       const [currentFeedback, setCurrentFeedback] = useState(null);
+      const [isRevising, setIsRevising] = useState(false); // split view: editor + previous feedback side by side
       const [cumulativeInfo, setCumulativeInfo] = useState(null);  // For cumulative grading display
       const [authenticityCheck, setAuthenticityCheck] = useState(null);  // For authenticity check results
       
@@ -6042,6 +6039,7 @@ import * as ReactDOM from 'react-dom/client';
             
             setSubmissionStage('writing');
             setShowFeedback(true);
+            setIsRevising(false);
             onSubmitAttempt({
               text: paragraphText,
               originalText: originalParagraphText, // Pass original text for comparison
@@ -6058,7 +6056,7 @@ import * as ReactDOM from 'react-dom/client';
           }
         } catch (error) {
           console.error('Grading error:', error);
-          alert('Failed to submit. Please try again.');
+          showToast('Grading didn\'t go through — your writing is saved. Please press submit again.', 'error');
           setSubmissionStage('writing');
         } finally {
           setIsSubmitting(false);
@@ -6071,12 +6069,15 @@ import * as ReactDOM from 'react-dom/client';
       };
       
       const handleRevise = () => {
-        setShowFeedback(false);
-        setCurrentFeedback(null);
+        // Split-view revise: KEEP the feedback visible beside the editor.
+        // Destroying it forced students to memorise the advice and revise
+        // blind — the single most damaging flaw in the old writing loop.
+        setIsRevising(true);
         setAuthenticityCheck(null);  // Reset authenticity check on revision
         setSubmissionStage('writing');
         setTechnicalErrors([]);
-        textareaRef.current?.focus();
+        // Focus after the editor re-renders in the split layout
+        setTimeout(() => textareaRef.current?.focus(), 50);
       };
       
       const handleAccept = () => {
@@ -6084,7 +6085,10 @@ import * as ReactDOM from 'react-dom/client';
       };
       
       const wordCountClass = wordCount < minWords ? 'warning' : wordCount >= targetWords ? 'success' : '';
-      
+
+      // Has the student already done work in this essay (any paragraph)?
+      const hasPriorProgress = Object.values(paragraphStates || {}).some(s => s && (s.attempts > 0 || s.completed || (s.currentText || '').length > 0));
+
       return (
         <div className="card ghost-appear">
           <div style={parseStyle("margin-bottom: var(--space-lg);")}>
@@ -6112,17 +6116,20 @@ import * as ReactDOM from 'react-dom/client';
             </div>
           </div>
           
-          {/* Source Material Card - Prominent display at top */}
-          <SourceMaterialCard 
+          {/* Reference material: fully expanded on a student's first visit,
+              collapsed once they're underway so the editor is the hero and
+              writing starts above the fold. */}
+          <SourceMaterialCard
             sourceMaterial={config?.sourceMaterial || paragraph?.sourceMaterial}
-            defaultExpanded={true}
+            defaultExpanded={!hasPriorProgress}
           />
-          
-          <ExpandableLearningMaterial 
-            content={getLearningMaterial()} 
+
+          <ExpandableLearningMaterial
+            content={getLearningMaterial()}
             subject={config?.subject || 'English'}
             essayContext={config?.essayTitle || paragraph.writingPrompt}
             targetGrade={targetGrade}
+            defaultOpen={!hasPriorProgress}
           />
           
           <div className="writing-prompt">
@@ -6131,11 +6138,13 @@ import * as ReactDOM from 'react-dom/client';
           </div>
           
           <div className="attempt-indicator">
-            <span className="attempt-badge">Attempt {attemptNumber} of {maxAttempts}</span>
-            {attemptNumber < maxAttempts && (
+            <span className="attempt-badge">Draft {attemptNumber}</span>
+            {attemptNumber < maxAttempts ? (
               <span className="attempts-remaining">
-                {maxAttempts - attemptNumber} revision{maxAttempts - attemptNumber !== 1 ? 's' : ''} remaining
+                You can improve this {maxAttempts - attemptNumber} more time{maxAttempts - attemptNumber !== 1 ? 's' : ''} — redrafting is how writers get better
               </span>
+            ) : (
+              <span className="attempts-remaining">Final draft</span>
             )}
           </div>
           
@@ -6153,13 +6162,20 @@ import * as ReactDOM from 'react-dom/client';
           {/* Technical Check Loading */}
           {isCheckingTechnical && (
             <div style={parseStyle("margin-top: var(--space-lg); margin-bottom: var(--space-lg);")}>
-              <LoadingSpinner text="Checking spelling, grammar and punctuation..." />
+              <StagedLoadingIndicator stages={[
+                'Checking spelling, grammar and punctuation...',
+                'Reading each sentence carefully...',
+                'Almost done with the checks...'
+              ]} />
             </div>
           )}
           
+          {/* Writing + feedback. While revising, both render side by side
+              (.revise-split) so students edit WITH the advice in view. */}
+          <div className={isRevising && showFeedback ? 'revise-split' : ''}>
           {/* Writing Stage - Show textarea when not in correction mode */}
-          {!showFeedback && submissionStage !== 'correcting' && !isCheckingTechnical && (
-            <>
+          {(!showFeedback || isRevising) && submissionStage !== 'correcting' && !isCheckingTechnical && (
+            <div>
               <textarea
                 ref={textareaRef}
                 className="paragraph-editor"
@@ -6197,16 +6213,21 @@ import * as ReactDOM from 'react-dom/client';
               
               {isSubmitting || submissionStage === 'grading' ? (
                 <div style={parseStyle("margin-top: var(--space-lg);")}>
-                  <LoadingSpinner text="Grading your writing..." />
+                  <StagedLoadingIndicator stages={[
+                    'Reading your paragraph...',
+                    'Checking it against the grade descriptors...',
+                    'Writing your feedback...',
+                    'Nearly there — polishing the advice...'
+                  ]} />
                 </div>
               ) : (
                 <div style={parseStyle("margin-top: var(--space-lg);")}>
                   <button className="btn btn-primary btn-large" onClick={handleSubmit} disabled={!canSubmit} style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
-                    <Icon name={ICONS.send} size={18} /> Check & Submit for Feedback
+                    <Icon name={ICONS.send} size={18} /> {isRevising ? 'Submit Revision' : 'Check & Submit for Feedback'}
                   </button>
-                  <p style={{ 
-                    fontSize: '0.85rem', 
-                    color: 'var(--color-text-muted)', 
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--color-text-muted)',
                     marginTop: 'var(--space-sm)',
                     textAlign: 'center'
                   }}>
@@ -6214,9 +6235,9 @@ import * as ReactDOM from 'react-dom/client';
                   </p>
                 </div>
               )}
-            </>
+            </div>
           )}
-          
+
           {showFeedback && currentFeedback && (
             <FeedbackDisplay
               feedback={currentFeedback}
@@ -6227,8 +6248,10 @@ import * as ReactDOM from 'react-dom/client';
               onAccept={handleAccept}
               targetGrade={targetGrade}
               authenticityCheck={authenticityCheck}
+              referenceMode={isRevising}
             />
           )}
+          </div>
         </div>
       );
     }

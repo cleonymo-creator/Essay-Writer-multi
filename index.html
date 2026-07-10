@@ -579,6 +579,42 @@
     }
 
     /* =====================================================
+       SPLIT-VIEW REVISE MODE
+       Editor and previous feedback side by side, so students
+       revise with the advice in view instead of from memory.
+       ===================================================== */
+
+    .revise-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    .revise-split .feedback-panel {
+      max-height: 75vh;
+      overflow-y: auto;
+      position: sticky;
+      top: var(--space-lg);
+      margin-top: 0;
+    }
+
+    /* Give the writing screen more room when the split view is active */
+    .app-container:has(.revise-split) {
+      max-width: 1320px;
+    }
+
+    @media (max-width: 1023px) {
+      .revise-split {
+        grid-template-columns: 1fr;
+      }
+      .revise-split .feedback-panel {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    /* =====================================================
        HEADER - VICTORIAN GOLD
        ===================================================== */
     
