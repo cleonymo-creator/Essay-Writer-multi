@@ -65,8 +65,9 @@ function getSessionToken(event) {
 function makeRequest(apiKey, messages) {
   return new Promise((resolve, reject) => {
     const requestBody = JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      model: 'claude-sonnet-5',
+      thinking: { type: 'disabled' },
+      max_tokens: 6000,
       messages: messages
     });
 

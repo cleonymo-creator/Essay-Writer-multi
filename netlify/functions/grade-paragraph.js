@@ -687,12 +687,17 @@ ${responseFormat}
 - Comments speak directly to the student in plain language appropriate to their target grade.`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-5",
+      // Sonnet 5 defaults to adaptive thinking when the field is omitted;
+      // keep it off so the response fits the function's time budget and the
+      // JSON parser sees a plain text block first.
+      thinking: { type: "disabled" },
       // Generous headroom: the response format (grades, justifications,
       // detailed feedback, example revision, authenticity check, and the
       // inline annotations) exceeds 1500 tokens on verbose gradings, and a
-      // truncated response fails the whole grading request.
-      max_tokens: 3000,
+      // truncated response fails the whole grading request. Sonnet 5's
+      // tokenizer also spends ~30% more tokens on the same text.
+      max_tokens: 4500,
       messages: [
         {
           role: "user",
