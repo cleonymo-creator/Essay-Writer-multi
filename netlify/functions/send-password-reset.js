@@ -2,7 +2,7 @@
 // Supports individual, bulk (class), and student self-service password reset emails
 
 const { getStore, connectLambda } = require('@netlify/blobs');
-const { initializeFirebase, getAuth } = require('./firebase-helper');
+const { initializeFirebase, getAuth, firestoreTimeout } = require('./firebase-helper');
 
 // Send password reset email via Firebase Auth REST API
 // Unlike admin SDK's generatePasswordResetLink(), this actually delivers the email
@@ -39,14 +39,14 @@ async function verifyTeacherSession(sessionToken) {
   try {
     const db = initializeFirebase();
     if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
+      const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
       if (sessionDoc.exists) {
         const session = sessionDoc.data();
         if (new Date(session.expiresAt.toDate ? session.expiresAt.toDate() : session.expiresAt) < new Date()) {
           return { valid: false, error: 'Session expired' };
         }
 
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
         if (!teacherDoc.exists) {
           return { valid: false, error: 'Teacher not found' };
         }
@@ -160,7 +160,7 @@ exports.handler = async (event, context) => {
       const db = initializeFirebase();
       let studentExists = false;
       try {
-        const studentDoc = await db.collection('students').doc(emailLower).get();
+        const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
         studentExists = studentDoc.exists;
       } catch (e) {
         // Try Blobs fallback
@@ -185,7 +185,12 @@ exports.handler = async (event, context) => {
       }
 
       // Ensure Firebase Auth account exists (creates one if missing)
-      await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+      const selfUserResult = await ensureFirebaseAuthUser(auth, emailLower, emailLower.split('@')[0]);
+      // Brief delay if the account was just created — sendOobCode can fail
+      // with EMAIL_NOT_FOUND before the new account propagates
+      if (selfUserResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send the actual email via REST API
       await sendResetEmailViaREST(emailLower);
@@ -228,13 +233,23 @@ exports.handler = async (event, context) => {
       const emailLower = email.trim().toLowerCase();
 
       // Ensure user exists in Firebase Auth
-      await ensureFirebaseAuthUser(auth, emailLower, displayName);
+      const userResult = await ensureFirebaseAuthUser(auth, emailLower, displayName);
+      if (userResult.created) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
 
       // Send the actual password reset email via REST API
       await sendResetEmailViaREST(emailLower);
 
-      // Also generate a direct link the teacher can share as backup
-      const resetLink = await auth.generatePasswordResetLink(emailLower);
+      // Also generate a direct link the teacher can share as backup.
+      // Non-fatal: the email has already been sent at this point, so a
+      // link-generation failure must not surface as a 500.
+      let resetLink = null;
+      try {
+        resetLink = await auth.generatePasswordResetLink(emailLower);
+      } catch (linkErr) {
+        console.warn('Could not generate reset link:', linkErr.message);
+      }
 
       return {
         statusCode: 200,
@@ -265,14 +280,19 @@ exports.handler = async (event, context) => {
       // Get class data to find students
       let classData = null;
       try {
-        const classDoc = await db.collection('classes').doc(classId).get();
+        const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
         if (classDoc.exists) {
           classData = classDoc.data();
         }
       } catch (e) {
-        // Try Netlify Blobs
-        const classesStore = getStore("classes");
-        classData = await classesStore.get(classId, { type: 'json' });
+        // Try Netlify Blobs — guarded so a double failure falls through to
+        // the 404 below instead of surfacing as a 500
+        try {
+          const classesStore = getStore("classes");
+          classData = await classesStore.get(classId, { type: 'json' });
+        } catch (blobErr) {
+          console.warn('Both Firestore and Blobs failed for class lookup:', blobErr.message);
+        }
       }
 
       if (!classData || !classData.students || classData.students.length === 0) {
@@ -298,7 +318,7 @@ exports.handler = async (event, context) => {
             }
           } catch (e) {
             try {
-              const studentDoc = await db.collection('students').doc(emailLower).get();
+              const studentDoc = await firestoreTimeout(db.collection('students').doc(emailLower).get());
               if (studentDoc.exists) {
                 studentName = studentDoc.data().name || studentName;
               }
@@ -306,7 +326,10 @@ exports.handler = async (event, context) => {
           }
 
           // Ensure user exists in Firebase Auth
-          await ensureFirebaseAuthUser(auth, emailLower, studentName);
+          const bulkUserResult = await ensureFirebaseAuthUser(auth, emailLower, studentName);
+          if (bulkUserResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send the actual password reset email
           await sendResetEmailViaREST(emailLower);
@@ -355,7 +378,10 @@ exports.handler = async (event, context) => {
           const displayName = typeof emailEntry === 'object' ? emailEntry.name : email.split('@')[0];
 
           // Ensure user exists
-          await ensureFirebaseAuthUser(auth, email, displayName);
+          const batchUserResult = await ensureFirebaseAuthUser(auth, email, displayName);
+          if (batchUserResult.created) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
 
           // Send the actual password reset email
           await sendResetEmailViaREST(email);

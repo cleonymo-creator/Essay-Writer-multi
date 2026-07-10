@@ -202,11 +202,43 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Load the class IDs and student rosters owned by this teacher: a
+    // student in classes owned by two teachers only carries ONE
+    // teacherEmail on their doc, so access must also consider class
+    // membership or the second teacher gets 403s on their own students.
+    let teacherClassIds = null;
+    let teacherClassStudentEmails = null;
+    if (sessionCheck.valid && !sessionCheck.isAdmin) {
+      try {
+        const classSnapshot = await db.collection('classes')
+          .where('teacherEmail', '==', sessionCheck.email)
+          .get();
+        teacherClassIds = new Set();
+        teacherClassStudentEmails = new Set();
+        classSnapshot.forEach(doc => {
+          teacherClassIds.add(doc.id);
+          const classData = doc.data();
+          if (classData.students && Array.isArray(classData.students)) {
+            classData.students.forEach(email => teacherClassStudentEmails.add(email.toLowerCase()));
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to load teacher classes for access check:', e.message);
+      }
+    }
+
     // Helper to check if teacher can access a student
     const canAccessStudent = (studentData) => {
       if (!sessionCheck.valid) return true;
       if (sessionCheck.isAdmin) return true;
-      return studentData.teacherEmail === sessionCheck.email;
+      if (studentData.teacherEmail === sessionCheck.email) return true;
+      if (teacherClassStudentEmails && studentData.email) {
+        if (teacherClassStudentEmails.has(studentData.email.toLowerCase())) return true;
+      }
+      if (teacherClassIds && studentData.classIds && Array.isArray(studentData.classIds)) {
+        if (studentData.classIds.some(cid => teacherClassIds.has(cid))) return true;
+      }
+      return false;
     };
 
     // GET - List all students or get a specific student
