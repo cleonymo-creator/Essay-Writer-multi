@@ -73,22 +73,29 @@ function generateSessionToken() {
   return nodeCrypto.randomBytes(32).toString('hex');
 }
 
-// Get class assignments for a student (supports both classIds array and legacy classId)
+// Get class assignments for a student (supports both classIds array and legacy classId).
+// Also collects per-essay due dates; when the same essay is assigned in two
+// classes with different dates, the earliest one wins.
 async function getClassAssignments(studentData, db) {
   let classAssignments = [];
+  const dueDates = {};
   const classIds = studentData.classIds || (studentData.classId ? [studentData.classId] : []);
 
   for (const classId of classIds) {
     try {
       const classDoc = await firestoreTimeout(db.collection('classes').doc(classId).get());
       if (classDoc.exists) {
-        classAssignments.push(...(classDoc.data().assignedEssays || []));
+        const classData = classDoc.data();
+        classAssignments.push(...(classData.assignedEssays || []));
+        Object.entries(classData.assignmentDueDates || {}).forEach(([essayId, date]) => {
+          if (!dueDates[essayId] || date < dueDates[essayId]) dueDates[essayId] = date;
+        });
       }
     } catch (err) {
       console.warn('Class lookup failed for', classId, ':', err.message);
     }
   }
-  return classAssignments;
+  return { classAssignments, dueDates };
 }
 
 // Find student in Firestore, falling back to Blobs with auto-migration
@@ -124,17 +131,19 @@ async function findStudent(emailLower, db) {
   return null;
 }
 
-// Build student response with assignments
+// Build student response with assignments and per-essay due dates
 async function buildStudentResponse(studentData, db) {
-  const classAssignments = await getClassAssignments(studentData, db);
+  const { classAssignments, dueDates } = await getClassAssignments(studentData, db);
   const allAssignments = [
     ...new Set([
       ...classAssignments,
       ...(studentData.individualAssignments || [])
     ])
   ];
+  // Individual assignment due dates override class-level ones
+  const assignmentDueDates = { ...dueDates, ...(studentData.assignmentDueDates || {}) };
   const { passwordHash, ...safeStudentData } = studentData;
-  return { ...safeStudentData, assignedEssays: allAssignments };
+  return { ...safeStudentData, assignedEssays: allAssignments, assignmentDueDates };
 }
 
 exports.handler = async (event, context) => {
