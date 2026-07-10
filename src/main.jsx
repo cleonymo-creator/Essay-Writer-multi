@@ -1533,7 +1533,7 @@ import * as ReactDOM from 'react-dom/client';
 
       return (
         <div
-          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+          style={parseStyle("position: fixed; inset: 0; background: rgba(15, 18, 32, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
           onClick={closeOnOverlay && onClose ? (e) => { if (e.target === e.currentTarget) onClose(); } : undefined}
         >
           <div
@@ -1664,12 +1664,12 @@ import * as ReactDOM from 'react-dom/client';
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+          style={parseStyle("position: fixed; inset: 0; background: rgba(15, 18, 32, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
         >
           <div className="card" style={parseStyle("max-width: 440px; width: 100%; padding: var(--space-xl);")}>
             <h3 style={parseStyle("margin-bottom: var(--space-md);")}>{title}</h3>
             {message && <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>{message}</p>}
-            <div style={parseStyle("background: rgba(0, 0, 0, 0.3); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md);")}>
+            <div style={parseStyle("background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md);")}>
               {credentials.map((c, i) => (
                 <div key={i} style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); padding: var(--space-xs) 0;")}>
                   <span style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>{c.label}</span>
@@ -1907,7 +1907,7 @@ import * as ReactDOM from 'react-dom/client';
               )}
 
               {successMsg && (
-                <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(46, 160, 67, 0.1); border: 1px solid #2ea043; border-radius: var(--radius-md); color: #2ea043;")}>
+                <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-success-bg); border: 1px solid var(--color-success-light); border-radius: var(--radius-md); color: var(--color-success);")}>
                   {successMsg}
                 </div>
               )}
@@ -3209,7 +3209,7 @@ import * as ReactDOM from 'react-dom/client';
                                   background: noActivity ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
                                 }}
                               >
-                                <td style={parseStyle(`padding: var(--space-sm); position: sticky; left: 0; background: ${noActivity ? '#3a2438' : 'var(--color-bg-alt)'};`)}>
+                                <td style={parseStyle(`padding: var(--space-sm); position: sticky; left: 0; background: ${noActivity ? '#fbeaea' : 'var(--color-bg-alt)'};`)}>
                                   <div style={parseStyle("font-weight: 500;")}>{student.name || '-'}</div>
                                   <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{student.email || '-'}</div>
                                   {noActivity && (
@@ -3675,7 +3675,7 @@ import * as ReactDOM from 'react-dom/client';
 
           {/* Bulk action bar */}
           {selectedEmails.length > 0 && (
-            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); background: rgba(184, 134, 11, 0.1); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
+            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); background: rgba(79, 70, 229, 0.1); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
               <strong>{selectedEmails.length} selected</strong>
               <label style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem;")}>
                 <span>Add to class:</span>
@@ -3718,7 +3718,7 @@ import * as ReactDOM from 'react-dom/client';
               </thead>
               <tbody>
                 {filteredStudents.map(student => (
-                  <tr key={student.email} style={parseStyle(`border-bottom: 1px solid var(--color-border); ${selectedEmails.includes(student.email) ? 'background: rgba(184, 134, 11, 0.08);' : ''}`)}>
+                  <tr key={student.email} style={parseStyle(`border-bottom: 1px solid var(--color-border); ${selectedEmails.includes(student.email) ? 'background: rgba(79, 70, 229, 0.08);' : ''}`)}>
                     <td style={parseStyle("padding: var(--space-md);")}>
                       <input
                         type="checkbox"
@@ -4745,7 +4745,7 @@ import * as ReactDOM from 'react-dom/client';
                           font-size: 0.85rem; 
                           padding: var(--space-xs) var(--space-sm); 
                           border-radius: var(--radius-full);
-                          background: ${totalAssigned > 0 ? 'var(--color-success-bg)' : 'rgba(100, 100, 120, 0.2)'};
+                          background: ${totalAssigned > 0 ? 'var(--color-success-bg)' : 'var(--color-bg-alt)'};
                           color: ${totalAssigned > 0 ? 'var(--color-success)' : 'var(--color-text-muted)'};
                         `)}>
                           {totalAssigned} student{totalAssigned !== 1 ? 's' : ''} assigned
@@ -5257,7 +5257,7 @@ import * as ReactDOM from 'react-dom/client';
           )}
 
           {/* Grade reveal — after the feedback, with the celebration beat */}
-          <div className="score-reveal" style={parseStyle("margin: var(--space-lg) 0; padding: var(--space-md); background: rgba(184, 134, 11, 0.06); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
+          <div className="score-reveal" style={parseStyle("margin: var(--space-lg) 0; padding: var(--space-md); background: rgba(79, 70, 229, 0.06); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
             <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;")}>
               {hasAuthenticGrade ? (
                 <>
@@ -5287,7 +5287,7 @@ import * as ReactDOM from 'react-dom/client';
 
             {/* Grade/Marks Justification - shown when using authentic descriptors */}
             {(feedback.marksJustification || feedback.gradeJustification) && (
-              <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
+              <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: rgba(79, 70, 229, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);")}>
                 <div style={parseStyle("font-size: 0.8rem; font-weight: 600; color: var(--color-primary-light); margin-bottom: var(--space-xs);")}>
                   Why this mark
                 </div>
@@ -5657,7 +5657,7 @@ import * as ReactDOM from 'react-dom/client';
                 )}
                   
                 {existingProgress && !checkingProgress && (
-                  <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(255, 215, 0, 0.1); border: 1px solid var(--color-gold); border-radius: var(--radius-md);")}>
+                  <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: rgba(79, 70, 229, 0.08); border: 1px solid var(--color-gold); border-radius: var(--radius-md);")}>
                     <p style={parseStyle("font-weight: 600; margin-bottom: var(--space-sm); color: var(--color-gold);")}>
                       Saved progress found!
                     </p>
@@ -5791,7 +5791,7 @@ import * as ReactDOM from 'react-dom/client';
               </p>
             </div>
 
-            <div style={parseStyle("margin-top: var(--space-lg); padding: var(--space-md); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); border-radius: var(--radius-md);")}>
+            <div style={parseStyle("margin-top: var(--space-lg); padding: var(--space-md); background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.05)); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: var(--radius-md);")}>
               <p style={parseStyle("margin: 0; color: var(--color-text);")}>
                 <strong style={parseStyle("color: var(--color-primary-light);")}>Preview Mode:</strong> Test the essay as a student would experience it. Pasting is enabled and progress is not saved.
               </p>
@@ -7240,7 +7240,7 @@ ${examinerComment}
               
               {/* Improvement Summary */}
               {initialVersion && improvedVersion && comparison && (
-              <div className="card" style={parseStyle("background: linear-gradient(135deg, rgba(184, 134, 11, 0.08), rgba(184, 134, 11, 0.03)); border: 2px solid var(--color-primary); margin-bottom: var(--space-xl);")}>
+              <div className="card" style={parseStyle("background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.03)); border: 1px solid rgba(79, 70, 229, 0.3); margin-bottom: var(--space-xl);")}>
                 <div style={parseStyle("display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: var(--space-lg);")}>
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Initial</div>
@@ -7315,7 +7315,7 @@ ${examinerComment}
 
           {/* Show loading indicator while feedback is being generated */}
           {isLoadingFeedback && (
-            <div className="card" style={parseStyle("text-align: center; padding: var(--space-lg); margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 1px solid var(--color-primary);")}>
+            <div className="card" style={parseStyle("text-align: center; padding: var(--space-lg); margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.05)); border: 1px solid var(--color-primary);")}>
               <StagedLoadingIndicator stages={[
                 'Reading your whole essay from start to finish...',
                 'Weighing it against the grade descriptors...',
@@ -7487,7 +7487,7 @@ ${examinerComment}
                     <div style={{
                       marginTop: 'var(--space-lg)',
                       padding: 'var(--space-md)',
-                      background: 'rgba(0, 0, 0, 0.2)',
+                      background: 'var(--color-bg-secondary)',
                       borderRadius: 'var(--radius-md)',
                       textAlign: 'center'
                     }}>
@@ -7506,7 +7506,7 @@ ${examinerComment}
           {hasOfficialMarkScheme && (
             <>
               {!showOfficialGrading && !isLoadingOfficialGrading && (
-                <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-xl); background: linear-gradient(135deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98)); border: 2px solid var(--color-primary);")}>
+                <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-xl); background: rgba(79, 70, 229, 0.06); border: 1px solid rgba(79, 70, 229, 0.3);")}>
                   <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.clipboard} size={20} /> Official Mark Scheme Grading</h3>
                   <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                     Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
@@ -7539,7 +7539,7 @@ ${examinerComment}
           
           {/* Print Full Report Section - shown when any feedback is available */}
           {(essayFeedback || officialGrading) && (
-            <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); text-align: center;")}>
+            <div className="card" style={parseStyle("margin-top: var(--space-xl); background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.05)); border: 1px solid rgba(79, 70, 229, 0.3); text-align: center;")}>
               <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; justify-content: center; gap: 8px;")}><Icon name={ICONS.download} size={22} /> Download Your Full Report</h3>
               <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>
                 Get a complete printable report including your essay, feedback{officialGrading ? ', and official mark scheme grading' : ''}.
@@ -8818,7 +8818,7 @@ ${examinerComment}
                       )}
                       
                       {selectedSubmission.feedback.bestQuotation && (
-                        <div style={parseStyle("font-style: italic; padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-left: 3px solid var(--color-primary); margin-bottom: var(--space-md);")}>
+                        <div style={parseStyle("font-style: italic; padding: var(--space-md); background: rgba(79, 70, 229, 0.08); border-left: 3px solid var(--color-primary); margin-bottom: var(--space-md);")}>
                           "Best Writing: {selectedSubmission.feedback.bestQuotation}"
                         </div>
                       )}
@@ -8877,7 +8877,7 @@ ${examinerComment}
                       )}
                       
                       {selectedSubmission.officialGrading.examinerComment && (
-                        <div style={parseStyle("margin-top: var(--space-md); font-style: italic; padding: var(--space-md); background: rgba(184, 134, 11, 0.08); border-radius: var(--radius-md);")}>
+                        <div style={parseStyle("margin-top: var(--space-md); font-style: italic; padding: var(--space-md); background: rgba(79, 70, 229, 0.08); border-radius: var(--radius-md);")}>
                           <strong>Examiner:</strong> {selectedSubmission.officialGrading.examinerComment}
                         </div>
                       )}
@@ -9877,7 +9877,7 @@ ${examinerComment}
             <div style={parseStyle("display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-lg); flex-wrap: wrap;")}>
               <div style={parseStyle("flex: 1;")}>
                 <div style={parseStyle("display: flex; gap: var(--space-lg); margin-bottom: var(--space-md);")}>
-                  <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(184, 134, 11, 0.1); border-radius: var(--radius-md);")}>
+                  <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(79, 70, 229, 0.1); border-radius: var(--radius-md);")}>
                     <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-primary);")}>{allEssays.length}</div>
                     <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Total Essays</div>
                   </div>
@@ -9886,7 +9886,7 @@ ${examinerComment}
                     <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Custom</div>
                   </div>
                   <div style={parseStyle("text-align: center; padding: var(--space-md); background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-md);")}>
-                    <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: #3b82f6;")}>{subjects.length}</div>
+                    <div style={parseStyle("font-size: 1.5rem; font-weight: 700; color: var(--color-info);")}>{subjects.length}</div>
                     <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>Subjects</div>
                   </div>
                 </div>
@@ -10034,7 +10034,7 @@ ${examinerComment}
                       aria-expanded={expandedCategories['essay-' + subject] !== false}
                       onClick={() => toggleCategory('essay-' + subject)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCategory('essay-' + subject); } }}
-                      style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
+                      style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: var(--color-bg-secondary); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
                         <span style={parseStyle("color: var(--color-text-muted); transition: transform 0.2s;" + (expandedCategories['essay-' + subject] !== false ? " transform: rotate(90deg);" : ""))}><Icon name={ICONS.chevronRight} size={16} /></span>
@@ -10046,7 +10046,7 @@ ${examinerComment}
                       <div style={parseStyle("overflow-x: auto;")}>
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
-                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
+                            <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: var(--color-bg-secondary);")}>
                               <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
                               <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
                               <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
@@ -12136,7 +12136,7 @@ ${examinerComment}
                     <div key={idx} style={parseStyle(`margin-bottom: var(--space-sm); border: 1px solid ${isExpanded ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-md); overflow: hidden;`)}>
                       {/* Paragraph header - always visible */}
                       <div
-                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'rgba(184, 134, 11, 0.18)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
+                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'rgba(79, 70, 229, 0.18)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
                         onClick={() => setEditExpandedParagraph(isExpanded ? null : idx)}>
                         <span style={parseStyle("font-weight: 600; font-size: 0.85rem; min-width: 24px; text-align: center; color: var(--color-primary);")}>{idx + 1}</span>
                         <span style={parseStyle("flex: 1; font-size: 0.85rem; font-weight: 500;")}>{para.title || 'Untitled'}</span>
@@ -14884,7 +14884,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
           </div>
           
           {isPreviewMode && (
-            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 2px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
+            <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.05)); border: 1px solid rgba(79, 70, 229, 0.3); display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-lg);")}>
               <div>
                 <strong style={parseStyle("color: var(--color-primary-light);")}> Teacher Preview Mode</strong>
                 <span style={parseStyle("margin-left: var(--space-md); color: var(--color-text-muted);")}>
