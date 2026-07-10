@@ -6990,6 +6990,29 @@ ${examinerComment}
       const [filterYearGroup, setFilterYearGroup] = useState('all');
       const [filterClass, setFilterClass] = useState('all');
       const [studentSearch, setStudentSearch] = useState('');
+      const [diagnosticResult, setDiagnosticResult] = useState(null);
+      const [diagnosticLoading, setDiagnosticLoading] = useState(false);
+      const [expandedGroups, setExpandedGroups] = useState({});
+
+      // Ask the server why submissions might be missing from this teacher's view
+      const runSubmissionDiagnostics = async () => {
+        setDiagnosticLoading(true);
+        try {
+          const response = await fetch('/.netlify/functions/get-submissions?diagnostics=true', {
+            headers: { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() }
+          });
+          const data = await response.json();
+          if (data.diagnostics) {
+            setDiagnosticResult(data.diagnostics);
+          } else {
+            showToast(data.error || 'Diagnostics unavailable', 'error');
+          }
+        } catch (err) {
+          showToast('Could not run diagnostics: ' + err.message, 'error');
+        } finally {
+          setDiagnosticLoading(false);
+        }
+      };
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
 
@@ -7226,6 +7249,25 @@ ${examinerComment}
         .filter(matchesYearGroupFilter)
         .filter(matchesClassFilter)
         .filter(matchesStudentSearch);
+
+      // Group submissions by student+essay, keeping only the latest per
+      // group as the display row; earlier attempts expand underneath.
+      const submissionGroups = {};
+      filteredSubmissions.forEach(sub => {
+        const key = `${(sub.studentEmail || '').toLowerCase()}_${sub.essayId || ''}`;
+        if (!submissionGroups[key]) submissionGroups[key] = [];
+        submissionGroups[key].push(sub);
+      });
+      const groupedSubmissions = [];
+      Object.entries(submissionGroups).forEach(([key, subs]) => {
+        subs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+        groupedSubmissions.push({ ...subs[0], _groupKey: key, _attemptCount: subs.length });
+      });
+      groupedSubmissions.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+
+      const toggleGroup = (groupKey) => {
+        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+      };
 
       const filteredInProgress = inProgress
         .filter(p => filterEssayId === 'all' || p.essayId === filterEssayId)
@@ -7529,15 +7571,46 @@ ${examinerComment}
             {/* Active filter summary */}
             {hasActiveFilters && (
               <div style={parseStyle("margin-top: var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted);")}>
-                Showing {filteredInProgress.length} in progress, {filteredSubmissions.length} completed
+                Showing {filteredInProgress.length} in progress, {groupedSubmissions.length} completed ({filteredSubmissions.length} total submissions)
                 {filterSubject !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterSubject}</span>}
                 {filterYearGroup !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterYearGroup}</span>}
                 {filterClass !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{classMap[filterClass]?.name || filterClass}</span>}
                 {filterEssayId !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{getEssayList().find(e => e.id === filterEssayId)?.title || filterEssayId}</span>}
               </div>
             )}
+
+            {/* Diagnostics: helps a teacher work out why an essay isn't showing */}
+            <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border-light);")}>
+              <button
+                className="btn btn-secondary"
+                style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")}
+                onClick={runSubmissionDiagnostics}
+                disabled={diagnosticLoading}
+              >
+                {diagnosticLoading ? 'Checking...' : 'Check for missing essays'}
+              </button>
+              {diagnosticResult && (
+                <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); font-size: 0.85rem;")}>
+                  <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; margin-bottom: var(--space-sm);")}>
+                    <span><strong>{diagnosticResult.totalInFirestore}</strong> submissions in the database</span>
+                    <span><strong>{diagnosticResult.afterTeacherFilter}</strong> visible to you</span>
+                    <span><strong>{diagnosticResult.filteredOut}</strong> belong to other teachers' students</span>
+                  </div>
+                  {diagnosticResult.studentsFilteredOut && diagnosticResult.studentsFilteredOut.length > 0 && !diagnosticResult.isAdmin && (
+                    <div style={parseStyle("color: var(--color-text-muted);")}>
+                      <div style={parseStyle("margin-bottom: var(--space-xs);")}>Students with submissions not linked to you:</div>
+                      <div style={parseStyle("font-family: var(--font-mono); font-size: 0.8rem;")}>{diagnosticResult.studentsFilteredOut.join(', ')}</div>
+                      <div style={parseStyle("margin-top: var(--space-xs);")}>If one of these should be your student, add them to one of your classes (Students tab) and their essays will appear.</div>
+                    </div>
+                  )}
+                  {diagnosticResult.filteredOut === 0 && (
+                    <div style={parseStyle("color: var(--color-success);")}>Every submission in the database is visible to you — nothing is being filtered out.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          
+
           {/* Preview Essays - Collapsible, grouped by Subject then Year Group */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4
@@ -7769,11 +7842,11 @@ ${examinerComment}
               onClick={() => setShowCompleted(!showCompleted)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowCompleted(!showCompleted); } }}
             >
-              <span>Completed Essays ({filteredSubmissions.length})</span>
+              <span>Completed Essays ({groupedSubmissions.length}{groupedSubmissions.length !== filteredSubmissions.length ? ` — ${filteredSubmissions.length} total submissions` : ''})</span>
               <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
             </h3>
 
-            {!showCompleted ? null : filteredSubmissions.length === 0 ? (
+            {!showCompleted ? null : groupedSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl); margin-top: var(--space-md);")}>
                 No essays submitted yet.
               </p>
@@ -7787,36 +7860,93 @@ ${examinerComment}
                       {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Improvement</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSubmissions.map((sub, index) => {
+                    {groupedSubmissions.map((sub) => {
                       const essayInfo = getEssayList().find(e => e.id === sub.essayId);
                       const hasFeedback = !!sub.feedback;
                       const hasOfficial = !!sub.officialGrading;
+                      const hasMultiple = sub._attemptCount > 1;
+                      const isExpanded = !!expandedGroups[sub._groupKey];
+                      const olderAttempts = hasMultiple ? submissionGroups[sub._groupKey].slice(1) : [];
+                      const showImprovement = sub.firstDraftScore != null && sub.firstDraftScore !== sub.score;
+                      const improvementDiff = showImprovement ? sub.score - sub.firstDraftScore : 0;
                       return (
-                        <tr key={index} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                          <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
-                          {filterEssayId === 'all' && (
-                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                              {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                        <React.Fragment key={sub._groupKey}>
+                          <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                            <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
+                            {filterEssayId === 'all' && (
+                              <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                                {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                              </td>
+                            )}
+                            <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${scoreColor(sub.score)};`)}>{sub.score}%</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center; font-size: 0.85rem;")}>
+                              {showImprovement ? (
+                                <span title={`First draft: ${sub.firstDraftScore}% → Final: ${sub.score}%`}>
+                                  <span style={parseStyle("color: var(--color-text-muted);")}>{sub.firstDraftScore}%</span>
+                                  <span style={parseStyle("margin: 0 4px;")}>&rarr;</span>
+                                  <span style={parseStyle(`font-weight: 600; color: ${scoreColor(sub.score)};`)}>{sub.score}%</span>
+                                  <span style={parseStyle(`margin-left: 4px; font-size: 0.8rem; color: ${improvementDiff > 0 ? 'var(--color-success)' : 'var(--color-error)'};`)}>
+                                    ({improvementDiff > 0 ? '+' : ''}{improvementDiff})
+                                  </span>
+                                </span>
+                              ) : (
+                                <span style={parseStyle("color: var(--color-text-muted);")}>{sub.essaysAreDifferent ? 'Edited' : '-'}</span>
+                              )}
                             </td>
-                          )}
-                          <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${sub.score >= 80 ? 'var(--color-success)' : sub.score >= 60 ? 'var(--color-info)' : sub.score >= 40 ? 'var(--color-warning)' : 'var(--color-error)'};`)}>{sub.score}%</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
-                          </td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
-                          </td>
-                        </tr>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
+                              <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <div style={parseStyle("display: flex; gap: 4px; justify-content: center; align-items: center;")}>
+                                <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
+                                {hasMultiple && (
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.75rem;")}
+                                    aria-expanded={isExpanded}
+                                    onClick={() => toggleGroup(sub._groupKey)}
+                                    title={`${sub._attemptCount} submissions for this essay`}
+                                  >
+                                    <Icon name={isExpanded ? ICONS.chevronUp : ICONS.chevronDown} size={12} /> {sub._attemptCount}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {hasMultiple && isExpanded && olderAttempts.map((older, oi) => {
+                            const olderHasFeedback = !!older.feedback;
+                            const olderHasOfficial = !!older.officialGrading;
+                            return (
+                              <tr key={`${sub._groupKey}_older_${oi}`} style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: var(--color-bg-secondary);")}>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); padding-left: var(--space-xl); font-size: 0.85rem; color: var(--color-text-muted);")}>&rdsh; Previous attempt</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); font-size: 0.8rem; color: var(--color-text-muted);")}>{older.studentEmail || '-'}</td>
+                                {filterEssayId === 'all' && <td></td>}
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.score}%</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.grade || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.firstDraftScore != null ? `${older.firstDraftScore}%` : '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <span style={{ opacity: olderHasFeedback ? 0.6 : 0.2, fontSize: '0.85rem' }}>Feedback</span>
+                                  <span style={{ opacity: olderHasOfficial ? 0.6 : 0.2, fontSize: '0.85rem', marginLeft: '4px' }}>Official</span>
+                                </td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{formatDateTime(older.submittedAt)}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <button className="btn btn-secondary" style={parseStyle("padding: 2px var(--space-sm); font-size: 0.8rem;")} onClick={() => setSelectedSubmission(older)}>View</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
