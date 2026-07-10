@@ -2407,6 +2407,23 @@ import * as ReactDOM from 'react-dom/client';
       const [selectedClass, setSelectedClass] = useState('all');
       const [selectedEssay, setSelectedEssay] = useState('all');
       const [viewMode, setViewMode] = useState('by-essay'); // 'by-essay' or 'by-student'
+      const [sortBy, setSortBy] = useState('name');     // by-student table sort column
+      const [sortDir, setSortDir] = useState('asc');
+
+      const sortStudents = (list) => {
+        const dir = sortDir === 'asc' ? 1 : -1;
+        return [...list].sort((a, b) => {
+          if (sortBy === 'name' || sortBy === 'email') {
+            return dir * String(a[sortBy] || '').localeCompare(String(b[sortBy] || ''));
+          }
+          const sa = getStudentStats(a.email);
+          const sb = getStudentStats(b.email);
+          const pick = (s) => sortBy === 'completed' ? s.completedEssays
+            : sortBy === 'inProgress' ? s.inProgressEssays
+            : (s.avgScore ?? -1); // students with no scores sort below 0%
+          return dir * (pick(sa) - pick(sb));
+        });
+      };
       const [expandedEssay, setExpandedEssay] = useState(null);
       const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
 
@@ -2920,16 +2937,39 @@ import * as ReactDOM from 'react-dom/client';
                   <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                     <thead>
                       <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
-                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
+                        {[
+                          { key: 'name', label: 'Student', align: 'left' },
+                          { key: 'email', label: 'Email', align: 'left' },
+                          { key: null, label: 'Class', align: 'left' },
+                          { key: 'completed', label: 'Completed', align: 'center' },
+                          { key: 'inProgress', label: 'In Progress', align: 'center' },
+                          { key: 'avgScore', label: 'Avg Score', align: 'center' }
+                        ].map(col => (
+                          <th
+                            key={col.label}
+                            scope="col"
+                            aria-sort={col.key && sortBy === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
+                            style={parseStyle(`padding: var(--space-md); text-align: ${col.align};`)}
+                          >
+                            {col.key ? (
+                              <button
+                                type="button"
+                                className="student-name-link"
+                                style={parseStyle("color: inherit; font-weight: inherit;")}
+                                onClick={() => {
+                                  if (sortBy === col.key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                  else { setSortBy(col.key); setSortDir(col.key === 'name' || col.key === 'email' ? 'asc' : 'desc'); }
+                                }}
+                              >
+                                {col.label}{sortBy === col.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                              </button>
+                            ) : col.label}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {getFilteredStudents().map((student, idx) => {
+                      {sortStudents(getFilteredStudents()).map((student, idx) => {
                         const stats = getStudentStats(student.email);
                         const studentClasses = classes.filter(c => {
                           const studentClassIds = student.classIds || (student.classId ? [student.classId] : []);
@@ -3745,6 +3785,7 @@ import * as ReactDOM from 'react-dom/client';
       const [csvContent, setCsvContent] = useState('');
       const [selectedClassIds, setSelectedClassIds] = useState([]);
       const [results, setResults] = useState(null);
+      const [preview, setPreview] = useState(null); // { valid, invalid } from parseCSVWithValidation
       const [error, setError] = useState('');
       const [isLoading, setIsLoading] = useState(false);
 
@@ -3756,40 +3797,65 @@ import * as ReactDOM from 'react-dom/client';
         }
       };
 
-      const parseCSV = (content) => {
-        // Split on newlines (handle Windows \r\n and Unix \n)
+      // RFC-4180-ish field splitter: handles quoted fields containing commas
+      // and escaped double-quotes ("Smith, John","He said ""hi""") — Excel
+      // exports quote any field with a comma, which a plain split(',')
+      // silently corrupts.
+      const parseCSVLine = (line) => {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQuotes) {
+            if (ch === '"') {
+              if (line[i + 1] === '"') { current += '"'; i++; }
+              else inQuotes = false;
+            } else current += ch;
+          } else if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            values.push(current); current = '';
+          } else current += ch;
+        }
+        values.push(current);
+        return values;
+      };
+
+      // Parse with per-row validation so bad rows are SHOWN to the teacher
+      // instead of silently dropped.
+      const parseCSVWithValidation = (content) => {
         const lines = content.trim().split(/\r?\n/);
-        debug('CSV parsing - lines found:', lines.length);
-        if (lines.length < 2) return [];
-        
-        // Parse headers - normalize to lowercase, remove quotes and spaces
-        const headers = lines[0].split(',').map(h => 
+        if (lines.length < 2) {
+          return { valid: [], invalid: [], headerError: 'CSV needs a header row plus at least one student row.' };
+        }
+        const headers = parseCSVLine(lines[0]).map(h =>
           h.trim().toLowerCase().replace(/['"]/g, '').replace(/\s+/g, '')
         );
-        debug('CSV headers:', headers);
-        
-        const students = [];
+        if (!headers.includes('email')) {
+          return { valid: [], invalid: [], headerError: `No "email" column found. Header row read as: ${headers.join(', ')}` };
+        }
+        const valid = [];
+        const invalid = [];
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
-          const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
-          
+          const values = parseCSVLine(lines[i]).map(v => v.trim());
           const student = {};
-          headers.forEach((header, idx) => {
-            if (values[idx]) student[header] = values[idx];
+          headers.forEach((h, idx) => { if (values[idx]) student[h] = values[idx]; });
+          const name = student.name || student.fullname || student.studentname;
+          const email = student.email;
+          if (!email) { invalid.push({ row: i + 1, raw: lines[i], reason: 'Missing email' }); continue; }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { invalid.push({ row: i + 1, raw: lines[i], reason: `"${email}" doesn't look like an email address` }); continue; }
+          if (!name) { invalid.push({ row: i + 1, raw: lines[i], reason: 'Missing name' }); continue; }
+          valid.push({
+            ...student,
+            name,
+            yearGroup: student.yeargroup || student.year || null,
+            class: student.class || student.classes || null,
+            _row: i + 1
           });
-          
-          debug('Parsed student row:', student);
-          
-          if (student.email && (student.name || student.fullname || student.studentname)) {
-            student.name = student.name || student.fullname || student.studentname;
-            student.yearGroup = student.yeargroup || student.year || null;
-            // Capture class column (can be "class" or "classes")
-            student.class = student.class || student.classes || null;
-            students.push(student);
-          }
         }
-        debug('Valid students found:', students.length);
-        return students;
+        return { valid, invalid, headerError: null };
       };
 
       const handleFileUpload = (e) => {
@@ -3803,7 +3869,8 @@ import * as ReactDOM from 'react-dom/client';
         reader.readAsText(file);
       };
 
-      const handleImport = async () => {
+      // Step 1: parse and show the teacher exactly what will happen
+      const handlePreview = () => {
         setError('');
         setResults(null);
 
@@ -3812,9 +3879,26 @@ import * as ReactDOM from 'react-dom/client';
           return;
         }
 
-        const parsedStudents = parseCSV(csvContent);
+        const parsed = parseCSVWithValidation(csvContent);
+        if (parsed.headerError) {
+          setError(parsed.headerError);
+          return;
+        }
+        if (parsed.valid.length === 0 && parsed.invalid.length === 0) {
+          setError('No student rows found below the header.');
+          return;
+        }
+        setPreview(parsed);
+      };
+
+      // Step 2: commit the previewed rows
+      const handleImport = async () => {
+        setError('');
+        setResults(null);
+
+        const parsedStudents = preview?.valid || [];
         if (parsedStudents.length === 0) {
-          setError('No valid students found. CSV must have "email" and "name" columns.');
+          setError('No valid students to import.');
           return;
         }
 
@@ -3826,7 +3910,7 @@ import * as ReactDOM from 'react-dom/client';
           if (firebaseReady) {
             // Pass classes array so importStudents can look up class names from CSV
             result = await FirebaseDB.importStudents(
-              parsedStudents, 
+              parsedStudents,
               selectedClassIds.length > 0 ? selectedClassIds : null,
               classes  // All available classes for name lookup
             );
@@ -3856,8 +3940,68 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <Modal title="Import Students from CSV" onClose={onClose} width={600}>
-            {!results ? (
+        <Modal title="Import Students from CSV" onClose={onClose} width={640}>
+            {results ? null : preview ? (
+              <>
+                <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; margin-bottom: var(--space-md);")}>
+                  <span style={parseStyle("color: var(--color-success); font-weight: 600;")}>{preview.valid.length} students ready to import</span>
+                  {preview.invalid.length > 0 && (
+                    <span style={parseStyle("color: var(--color-error); font-weight: 600;")}>{preview.invalid.length} rows will be skipped</span>
+                  )}
+                </div>
+
+                {preview.invalid.length > 0 && (
+                  <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-md); font-size: 0.85rem;")}>
+                    <strong>Skipped rows — fix these in your CSV and re-preview if they should be included:</strong>
+                    <ul style={parseStyle("margin: var(--space-sm) 0 0; padding-left: var(--space-lg);")}>
+                      {preview.invalid.slice(0, 10).map((inv, i) => (
+                        <li key={i}>Row {inv.row}: {inv.reason}</li>
+                      ))}
+                      {preview.invalid.length > 10 && <li>…and {preview.invalid.length - 10} more</li>}
+                    </ul>
+                  </div>
+                )}
+
+                <div style={parseStyle("max-height: 260px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: var(--space-md);")}>
+                  <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.85rem;")}>
+                    <thead>
+                      <tr style={parseStyle("border-bottom: 1px solid var(--color-border); position: sticky; top: 0; background: var(--color-bg-alt);")}>
+                        <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Name</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Class</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Year</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.valid.slice(0, 100).map((s, i) => (
+                        <tr key={i} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                          <td style={parseStyle("padding: var(--space-sm);")}>{s.name}</td>
+                          <td style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>{s.email}</td>
+                          <td style={parseStyle("padding: var(--space-sm);")}>{s.class || '-'}</td>
+                          <td style={parseStyle("padding: var(--space-sm);")}>{s.yearGroup || '-'}</td>
+                        </tr>
+                      ))}
+                      {preview.valid.length > 100 && (
+                        <tr><td colSpan={4} style={parseStyle("padding: var(--space-sm); color: var(--color-text-muted);")}>…and {preview.valid.length - 100} more</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {error && (
+                  <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                    {error}
+                  </div>
+                )}
+
+                <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+                  <button type="button" className="btn btn-secondary" onClick={() => { setPreview(null); setError(''); }} disabled={isLoading}>Back</button>
+                  <button className="btn btn-primary" onClick={handleImport} disabled={isLoading || preview.valid.length === 0}>
+                    {isLoading ? 'Importing...' : `Import ${preview.valid.length} Student${preview.valid.length !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </>
+            ) : (
               <>
                 <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md);")}>
                   <p style={parseStyle("font-size: 0.9rem; margin-bottom: var(--space-sm);")}>
@@ -3928,12 +4072,14 @@ import * as ReactDOM from 'react-dom/client';
 
                 <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
                   <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                  <button className="btn btn-primary" onClick={handleImport} disabled={isLoading}>
-                    {isLoading ? 'Importing...' : 'Import'}
+                  <button className="btn btn-primary" onClick={handlePreview}>
+                    Preview Import
                   </button>
                 </div>
               </>
-            ) : (
+            )}
+
+            {results && (
               <>
                 <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                   <h3 style={parseStyle("color: var(--color-success); margin-bottom: var(--space-md);")}>
@@ -7152,9 +7298,117 @@ ${examinerComment}
     }
     
     // =====================================================
+    // STUDENT PROFILE (teacher drill-down)
+    // =====================================================
+    // One place to see a student: score trajectory across submissions,
+    // current in-progress work with per-paragraph status, and one-click
+    // access to their actual writing. Every student name in the dashboard
+    // opens this instead of being inert text.
+    function StudentProfileModal({ student, submissions, inProgress, onViewSubmission, onClose }) {
+      const emailLower = (student.email || '').toLowerCase();
+      const nameLower = (student.name || '').toLowerCase();
+
+      const theirSubmissions = submissions
+        .filter(s => (s.studentEmail || '').toLowerCase() === emailLower ||
+                     (!s.studentEmail && (s.studentName || '').toLowerCase() === nameLower))
+        .sort((a, b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0));
+
+      const theirProgress = inProgress
+        .filter(p => (p.studentEmail || '').toLowerCase() === emailLower)
+        .sort((a, b) => new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0));
+
+      // Simple score trajectory sparkline across submissions (chronological)
+      const scores = theirSubmissions.map(s => s.score).filter(s => s != null);
+      const sparkline = scores.length >= 2 ? (() => {
+        const w = 260, h = 56, pad = 6;
+        const min = Math.min(...scores), max = Math.max(...scores);
+        const range = Math.max(max - min, 1);
+        const pts = scores.map((s, i) => {
+          const x = pad + (i * (w - 2 * pad)) / (scores.length - 1);
+          const y = h - pad - ((s - min) * (h - 2 * pad)) / range;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        });
+        return { w, h, points: pts.join(' '), first: scores[0], last: scores[scores.length - 1] };
+      })() : null;
+
+      return (
+        <Modal title={`${student.name || student.email}`} onClose={onClose} width={720}>
+          <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin-top: calc(-1 * var(--space-md)); margin-bottom: var(--space-lg);")}>{student.email}</p>
+
+          {sparkline && (
+            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-lg); margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md);")}>
+              <svg width={sparkline.w} height={sparkline.h} role="img" aria-label={`Score trend from ${sparkline.first}% to ${sparkline.last}%`}>
+                <polyline points={sparkline.points} fill="none" stroke="var(--color-primary-light)" strokeWidth="2" />
+              </svg>
+              <div style={parseStyle("font-size: 0.9rem;")}>
+                <div style={parseStyle("color: var(--color-text-muted);")}>Score trend across {scores.length} submissions</div>
+                <div style={parseStyle("font-weight: 600; margin-top: 2px;")}>
+                  {sparkline.first}% &rarr; <span style={{ color: scoreColor(sparkline.last) }}>{sparkline.last}%</span>
+                  <span style={parseStyle(`margin-left: 6px; font-size: 0.85rem; color: ${sparkline.last >= sparkline.first ? 'var(--color-success)' : 'var(--color-error)'};`)}>
+                    ({sparkline.last >= sparkline.first ? '+' : ''}{sparkline.last - sparkline.first})
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {theirProgress.length > 0 && (
+            <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+              <h4 style={parseStyle("margin-bottom: var(--space-sm);")}>Currently Working On</h4>
+              {theirProgress.map((prog, i) => (
+                <div key={i} style={parseStyle("padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); margin-bottom: var(--space-sm);")}>
+                  <div style={parseStyle("display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-sm);")}>
+                    <strong>{prog.essayTitle || prog.essayId}</strong>
+                    <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>Last active {formatDateTime(prog.lastUpdate)}</span>
+                  </div>
+                  <div role="progressbar" aria-valuenow={prog.percentComplete || 0} aria-valuemin={0} aria-valuemax={100} style={parseStyle("height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; margin-bottom: var(--space-sm);")}>
+                    <div style={{ width: (prog.percentComplete || 0) + '%', height: '100%', background: 'var(--color-warning)' }} />
+                  </div>
+                  {prog.paragraphScores && prog.paragraphScores.length > 0 && (
+                    <div style={parseStyle("display: flex; flex-wrap: wrap; gap: var(--space-xs);")}>
+                      {prog.paragraphScores.map((para, pIdx) => (
+                        <span key={pIdx} style={parseStyle(`padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.8rem; background: var(--color-bg); border: 1px solid ${para.score != null ? scoreColor(para.score) : 'var(--color-border)'}; color: ${para.score != null ? scoreColor(para.score) : 'var(--color-text-muted)'};`)}>
+                          {para.id || `P${pIdx + 1}`}{para.score != null ? ` ${para.score}%` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h4 style={parseStyle("margin-bottom: var(--space-sm);")}>Submissions ({theirSubmissions.length})</h4>
+          {theirSubmissions.length === 0 ? (
+            <p style={parseStyle("color: var(--color-text-muted);")}>No submissions yet.</p>
+          ) : (
+            [...theirSubmissions].reverse().map((sub, i) => (
+              <div key={i} style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border-light); flex-wrap: wrap;")}>
+                <div style={parseStyle("flex: 1; min-width: 180px;")}>
+                  <div style={parseStyle("font-weight: 500;")}>{sub.essayTitle || sub.essayId}</div>
+                  <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</div>
+                </div>
+                <div style={parseStyle("font-size: 0.9rem; text-align: right;")}>
+                  {sub.firstDraftScore != null && sub.firstDraftScore !== sub.score && (
+                    <span style={parseStyle("color: var(--color-text-muted);")}>{sub.firstDraftScore}% &rarr; </span>
+                  )}
+                  <span style={{ fontWeight: 600, color: scoreColor(sub.score) }}>{sub.score}%</span>
+                  {sub.grade && <span style={parseStyle("margin-left: 6px; color: var(--color-text-muted);")}>({sub.grade})</span>}
+                </div>
+                <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => onViewSubmission(sub)}>
+                  Read
+                </button>
+              </div>
+            ))
+          )}
+        </Modal>
+      );
+    }
+
+    // =====================================================
     // TEACHER DASHBOARD
     // =====================================================
-    
+
     function TeacherDashboard({ onLogout, onPreview }) {
       const [submissions, setSubmissions] = useState([]);
       const [inProgress, setInProgress] = useState([]);
@@ -7169,6 +7423,7 @@ ${examinerComment}
       const [diagnosticResult, setDiagnosticResult] = useState(null);
       const [diagnosticLoading, setDiagnosticLoading] = useState(false);
       const [expandedGroups, setExpandedGroups] = useState({});
+      const [profileStudent, setProfileStudent] = useState(null); // { name, email } -> StudentProfileModal
 
       // Ask the server why submissions might be missing from this teacher's view
       const runSubmissionDiagnostics = async () => {
@@ -7654,6 +7909,56 @@ ${examinerComment}
 
               {activeTab === 'submissions' && (
           <>
+          {/* Class Health triage: what needs attention right now, before
+              any tables — names click through to the student profile. */}
+          {(() => {
+            const now = Date.now();
+            const MIN = 60 * 1000, DAY = 24 * 60 * 60 * 1000;
+            const activeNow = inProgress.filter(p => p.lastUpdate && (now - new Date(p.lastUpdate).getTime()) < 30 * MIN);
+            const stalled = inProgress.filter(p => p.lastUpdate && (now - new Date(p.lastUpdate).getTime()) > 7 * DAY);
+            const seen = new Set();
+            const recentLow = [];
+            submissions.forEach(s => { // submissions arrive newest-first, so first hit per student+essay is the latest attempt
+              if (!s.submittedAt || (now - new Date(s.submittedAt).getTime()) > 14 * DAY) return;
+              const key = `${(s.studentEmail || '').toLowerCase()}_${s.essayId || ''}`;
+              if (seen.has(key)) return;
+              seen.add(key);
+              if (s.score != null && s.score < 40) recentLow.push(s);
+            });
+            const weekSubs = submissions.filter(s => s.submittedAt && (now - new Date(s.submittedAt).getTime()) < 7 * DAY);
+            const nameButtons = (items) => items.slice(0, 3).map((item, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && ', '}
+                <button type="button" className="student-name-link" onClick={() => setProfileStudent({ name: item.studentName, email: item.studentEmail })}>
+                  {item.studentName || item.studentEmail}
+                </button>
+              </React.Fragment>
+            ));
+            return (
+              <div className="triage-strip">
+                <div className="triage-card" style={parseStyle("border-left-color: var(--color-success);")}>
+                  <div className="triage-count" style={parseStyle("color: var(--color-success);")}>{activeNow.length}</div>
+                  <div className="triage-label">writing right now</div>
+                  {activeNow.length > 0 && <div className="triage-names">{nameButtons(activeNow)}{activeNow.length > 3 && ` +${activeNow.length - 3} more`}</div>}
+                </div>
+                <div className="triage-card" style={parseStyle("border-left-color: var(--color-error);")}>
+                  <div className="triage-count" style={parseStyle(`color: ${recentLow.length ? 'var(--color-error)' : 'var(--color-text-muted)'};`)}>{recentLow.length}</div>
+                  <div className="triage-label">recent scores below 40% — may need support</div>
+                  {recentLow.length > 0 && <div className="triage-names">{nameButtons(recentLow)}{recentLow.length > 3 && ` +${recentLow.length - 3} more`}</div>}
+                </div>
+                <div className="triage-card" style={parseStyle("border-left-color: var(--color-warning);")}>
+                  <div className="triage-count" style={parseStyle(`color: ${stalled.length ? 'var(--color-warning)' : 'var(--color-text-muted)'};`)}>{stalled.length}</div>
+                  <div className="triage-label">essays untouched for 7+ days</div>
+                  {stalled.length > 0 && <div className="triage-names">{nameButtons(stalled)}{stalled.length > 3 && ` +${stalled.length - 3} more`}</div>}
+                </div>
+                <div className="triage-card">
+                  <div className="triage-count" style={parseStyle("color: var(--color-primary-light);")}>{weekSubs.length}</div>
+                  <div className="triage-label">essays submitted this week</div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Filters Card */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Filter Submissions</h4>
@@ -7901,7 +8206,9 @@ ${examinerComment}
                             <td style={parseStyle("padding: var(--space-md);")}>
                               <span style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
                                 <span style={parseStyle(`transform: rotate(${isExpanded ? '90deg' : '0deg'}); transition: transform 0.2s; color: var(--color-text-muted);`)}>▶</span>
-                                {student.studentName}
+                                <button type="button" className="student-name-link" title="Open student profile" onClick={(e) => { e.stopPropagation(); setProfileStudent({ name: student.studentName, email: student.studentEmail }); }}>
+                                  {student.studentName}
+                                </button>
                               </span>
                             </td>
                             <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{student.studentEmail || '-'}</td>
@@ -8055,7 +8362,11 @@ ${examinerComment}
                       return (
                         <React.Fragment key={sub._groupKey}>
                           <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                            <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
+                            <td style={parseStyle("padding: var(--space-md);")}>
+                              <button type="button" className="student-name-link" title="Open student profile" onClick={() => setProfileStudent({ name: sub.studentName, email: sub.studentEmail })}>
+                                {sub.studentName}
+                              </button>
+                            </td>
                             <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
                             {filterEssayId === 'all' && (
                               <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
@@ -8131,6 +8442,16 @@ ${examinerComment}
             )}
           </div>
           
+          {profileStudent && (
+            <StudentProfileModal
+              student={profileStudent}
+              submissions={submissions}
+              inProgress={inProgress}
+              onViewSubmission={(sub) => { setProfileStudent(null); setSelectedSubmission(sub); }}
+              onClose={() => setProfileStudent(null)}
+            />
+          )}
+
           {selectedSubmission && (
             <Modal title={`${selectedSubmission.studentName}'s Essay`} onClose={() => setSelectedSubmission(null)} width={900}>
                 <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); margin-top: calc(-1 * var(--space-md));")}>
