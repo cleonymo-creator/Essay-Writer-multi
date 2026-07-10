@@ -9132,7 +9132,9 @@ ${examinerComment}
       // Editable essay state (for Step 5 review & edit)
       const [editableEssay, setEditableEssay] = useState(null);
       const [editExpandedParagraph, setEditExpandedParagraph] = useState(null);
-      const [editExpandedTier, setEditExpandedTier] = useState('foundation');
+      // Tier tab selection is PER PARAGRAPH (keyed by index) — a single shared
+      // value silently changed which tier every other paragraph's editor showed.
+      const [editExpandedTiers, setEditExpandedTiers] = useState({});
 
       // Paper and question selection state
       const [selectedPaper, setSelectedPaper] = useState('');
@@ -10028,6 +10030,122 @@ ${examinerComment}
         if (step > 1) setStep(step - 1);
       };
 
+      // -----------------------------------------------------
+      // Essay generation as a DURABLE job: the jobId is persisted
+      // to localStorage so switching tabs or refreshing mid-generation
+      // no longer orphans a multi-minute AI job; polling resumes on
+      // remount. Transient poll failures retry instead of aborting,
+      // and the teacher can cancel out of the wait.
+      // -----------------------------------------------------
+      const PENDING_JOB_KEY = 'essayGenPendingJob';
+      const cancelGenerationRef = useRef(false);
+
+      const handleGenerationResult = (result) => {
+        setGeneratedConfig(result.config);
+        setServerParsedEssay(result.parsedEssay || null);
+        setGenerationStatus('');
+
+        // Parse into editable essay object for the review step
+        let parsed = result.parsedEssay || null;
+        if (parsed && parsed.paragraphs) {
+          setEditableEssay(JSON.parse(JSON.stringify(parsed))); // deep clone
+          setEditExpandedParagraph(0);
+        } else if (result.config) {
+          // Try quick client-side parse as fallback
+          try {
+            const window = { ESSAYS: {} };
+            const fn = new Function('window', result.config);
+            fn(window);
+            const essays = Object.values(window.ESSAYS);
+            if (essays.length > 0 && essays[0].paragraphs) {
+              setEditableEssay(JSON.parse(JSON.stringify(essays[0])));
+              setEditExpandedParagraph(0);
+            }
+          } catch (parseErr) {
+            console.warn('Client-side parse for editor failed:', parseErr.message);
+          }
+        }
+        setStep(5);
+      };
+
+      const pollForResult = async (jobId) => {
+        let consecutiveFailures = 0;
+        for (let i = 0; i < 120; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (cancelGenerationRef.current) return { cancelled: true };
+          try {
+            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
+              headers: { 'Authorization': 'Bearer ' + sessionToken }
+            });
+            const checkData = await checkRes.json();
+            consecutiveFailures = 0;
+
+            if (checkData.status === 'completed') return { result: checkData };
+            if (checkData.status === 'error') {
+              const fatal = new Error(checkData.error || 'Generation failed');
+              fatal.isFatal = true;
+              throw fatal;
+            }
+            setGenerationStatus('Processing with AI... (' + Math.round((i + 1) * 3 / 60) + ' min — the job keeps running even if you close this tab)');
+          } catch (err) {
+            if (err.isFatal) throw err;
+            // Transient network failure: retry with backoff instead of
+            // abandoning a multi-minute job over one dropped request.
+            consecutiveFailures++;
+            if (consecutiveFailures >= 5) {
+              throw new Error('Lost connection while checking the job. The generation may still complete — return to this tab in a few minutes to resume checking.');
+            }
+            setGenerationStatus('Connection hiccup — retrying...');
+            await new Promise(r => setTimeout(r, 2000 * consecutiveFailures));
+          }
+        }
+        return { timedOut: true };
+      };
+
+      const runGenerationJob = async (jobId) => {
+        setIsGenerating(true);
+        setError('');
+        cancelGenerationRef.current = false;
+
+        try {
+          const outcome = await pollForResult(jobId);
+          if (outcome.cancelled) return;
+          if (outcome.timedOut) {
+            throw new Error('Generation timed out. The job may still finish — return to this tab in a few minutes to resume checking.');
+          }
+          localStorage.removeItem(PENDING_JOB_KEY);
+          handleGenerationResult(outcome.result);
+        } catch (err) {
+          console.error('Generation error:', err);
+          if (err.isFatal) localStorage.removeItem(PENDING_JOB_KEY);
+          setError(err.message || 'Generation failed');
+          setGenerationStatus('');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      // Resume a pending generation job after tab switch / refresh
+      useEffect(() => {
+        try {
+          const pending = JSON.parse(localStorage.getItem(PENDING_JOB_KEY) || 'null');
+          if (pending?.jobId) {
+            setStep(4);
+            setGenerationStatus('Resuming a generation job that was still running...');
+            runGenerationJob(pending.jobId);
+          }
+        } catch (e) {
+          localStorage.removeItem(PENDING_JOB_KEY);
+        }
+      }, []);
+
+      const handleCancelGeneration = () => {
+        cancelGenerationRef.current = true;
+        localStorage.removeItem(PENDING_JOB_KEY);
+        setIsGenerating(false);
+        setGenerationStatus('');
+      };
+
       // Generate essay
       const handleGenerate = async () => {
         setIsGenerating(true);
@@ -10054,6 +10172,7 @@ ${examinerComment}
           if (!startData.success) throw new Error(startData.error || 'Failed to start generation');
 
           const jobId = startData.jobId;
+          localStorage.setItem(PENDING_JOB_KEY, JSON.stringify({ jobId, startedAt: new Date().toISOString() }));
           setGenerationStatus('Processing with AI (this may take a few minutes)...');
 
           // Trigger background processing
@@ -10063,59 +10182,11 @@ ${examinerComment}
             body: JSON.stringify({ jobId })
           }).catch(() => {});
 
-          // Poll for result
-          let result = null;
-          for (let i = 0; i < 120; i++) {
-            await new Promise(r => setTimeout(r, 3000));
-
-            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
-              headers: { 'Authorization': 'Bearer ' + sessionToken }
-            });
-            const checkData = await checkRes.json();
-
-            if (checkData.status === 'completed') {
-              result = checkData;
-              break;
-            } else if (checkData.status === 'error') {
-              throw new Error(checkData.error || 'Generation failed');
-            }
-
-            setGenerationStatus('Processing with AI... (' + Math.round((i+1)*3/60) + ' min)');
-          }
-
-          if (!result) throw new Error('Generation timed out');
-
-          setGeneratedConfig(result.config);
-          setServerParsedEssay(result.parsedEssay || null);
-          setGenerationStatus('');
-
-          // Parse into editable essay object for the review step
-          let parsed = result.parsedEssay || null;
-          if (parsed && parsed.paragraphs) {
-            setEditableEssay(JSON.parse(JSON.stringify(parsed))); // deep clone
-            setEditExpandedParagraph(0);
-          } else if (result.config) {
-            // Try quick client-side parse as fallback
-            try {
-              const window = { ESSAYS: {} };
-              const fn = new Function('window', result.config);
-              fn(window);
-              const essays = Object.values(window.ESSAYS);
-              if (essays.length > 0 && essays[0].paragraphs) {
-                setEditableEssay(JSON.parse(JSON.stringify(essays[0])));
-                setEditExpandedParagraph(0);
-              }
-            } catch (parseErr) {
-              console.warn('Client-side parse for editor failed:', parseErr.message);
-            }
-          }
-          setStep(5);
-
+          await runGenerationJob(jobId);
         } catch (err) {
-          console.error('Generation error:', err);
+          console.error('Generation start error:', err);
           setError(err.message || 'Generation failed');
           setGenerationStatus('');
-        } finally {
           setIsGenerating(false);
         }
       };
@@ -10366,13 +10437,11 @@ ${examinerComment}
                   }
                 });
 
-                // If we couldn't extract paragraphs, create default structure
+                // If we couldn't extract any paragraphs, fail honestly rather
+                // than fabricating empty placeholder paragraphs that would be
+                // saved as if generation had succeeded.
                 if (manualData.paragraphs.length === 0) {
-                  manualData.paragraphs = [
-                    { id: 1, title: 'Introduction', type: 'introduction', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
-                    { id: 2, title: 'Main Body', type: 'body', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
-                    { id: 3, title: 'Conclusion', type: 'conclusion', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] }
-                  ];
+                  throw new Error('Could not extract any paragraphs from the generated config');
                 }
 
                 return manualData;
@@ -10400,7 +10469,7 @@ ${examinerComment}
 
             if (!essayData) {
               console.error('All parsing strategies failed. Last error:', lastError);
-              throw new Error('Failed to parse generated essay configuration. The AI may have generated invalid syntax.');
+              throw new Error('Failed to parse the generated essay configuration — the AI produced invalid syntax. Go back to the Generate step and regenerate; nothing was saved.');
             }
 
             // Show warning if fallback strategy was used
@@ -10440,7 +10509,7 @@ ${examinerComment}
           }
 
           if (result.success) {
-            alert('Essay saved successfully!');
+            showToast('Essay saved successfully');
             if (onEssayGenerated) onEssayGenerated();
             // Reset form
             setStep(1);
@@ -10954,9 +11023,14 @@ ${examinerComment}
               )}
 
               {generationStatus && (
-                <div style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
+                <div role="status" aria-live="polite" style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
                   <div style={parseStyle("margin-bottom: var(--space-sm);")}>{generationStatus}</div>
-                  <div className="loading-spinner" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                  <div className="loading-spinner" aria-hidden="true" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                  {isGenerating && (
+                    <button className="btn btn-secondary" style={parseStyle("margin-top: var(--space-md);")} onClick={handleCancelGeneration}>
+                      Stop waiting
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -11138,19 +11212,20 @@ ${examinerComment}
                             <div style={parseStyle("display: flex; gap: 0; margin-bottom: var(--space-sm);")}>
                               {['foundation', 'intermediate', 'advanced'].map(tier => (
                                 <button key={tier}
-                                  className={editExpandedTier === tier ? 'btn btn-primary' : 'btn btn-secondary'}
+                                  className={(editExpandedTiers[idx] || 'foundation') === tier ? 'btn btn-primary' : 'btn btn-secondary'}
                                   style={parseStyle(`font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); border-radius: ${tier === 'foundation' ? 'var(--radius-sm) 0 0 var(--radius-sm)' : tier === 'advanced' ? '0 var(--radius-sm) var(--radius-sm) 0' : '0'};`)}
-                                  onClick={() => setEditExpandedTier(tier)}>
+                                  aria-pressed={(editExpandedTiers[idx] || 'foundation') === tier}
+                                  onClick={() => setEditExpandedTiers(prev => ({ ...prev, [idx]: tier }))}>
                                   {tier.charAt(0).toUpperCase() + tier.slice(1)}
                                 </button>
                               ))}
                             </div>
                             <textarea
-                              value={(para.learningMaterial && para.learningMaterial[editExpandedTier]) || ''}
-                              onChange={e => updateLearningMaterial(idx, editExpandedTier, e.target.value)}
+                              value={(para.learningMaterial && para.learningMaterial[editExpandedTiers[idx] || 'foundation']) || ''}
+                              onChange={e => updateLearningMaterial(idx, editExpandedTiers[idx] || 'foundation', e.target.value)}
                               className="paragraph-editor"
                               style={parseStyle("min-height: 120px; font-size: 0.8rem;")}
-                              placeholder={`Learning material for ${editExpandedTier} tier students...`} />
+                              placeholder={`Learning material for ${editExpandedTiers[idx] || 'foundation'} tier students...`} />
                           </div>
                         </div>
                       )}
