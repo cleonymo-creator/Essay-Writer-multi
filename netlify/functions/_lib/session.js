@@ -58,4 +58,62 @@ async function verifyAnySession(event) {
   return { valid: false, error: 'Invalid or expired session', email: null, role: null };
 }
 
-module.exports = { getSessionToken, verifyAnySession };
+// Verify a token belongs to a valid, unexpired ADMIN teacher session.
+// Checks Firestore first, then the legacy Netlify Blobs stores that predate
+// the Firestore migration (callers must run connectLambda(event) first).
+// Returns { valid, email, name } on success.
+// Extracted here from the near-identical copies in the generate-essay-* and
+// extract-pdf-content functions; manage-essays.js and
+// migrate-to-firebase-auth.js still carry inline copies to be migrated.
+async function verifyAdminSession(sessionToken) {
+  if (!sessionToken) {
+    return { valid: false, error: 'No session token provided' };
+  }
+
+  try {
+    const db = initializeFirebase();
+    if (db) {
+      const sessionDoc = await firestoreTimeout(db.collection('teacherSessions').doc(sessionToken).get());
+      if (sessionDoc.exists) {
+        const session = sessionDoc.data();
+        if (!notExpired(session)) {
+          return { valid: false, error: 'Session expired' };
+        }
+
+        const teacherDoc = await firestoreTimeout(db.collection('teachers').doc(session.email).get());
+        if (!teacherDoc.exists) {
+          return { valid: false, error: 'Teacher not found' };
+        }
+
+        const teacher = teacherDoc.data();
+        if (teacher.role !== 'admin') {
+          return { valid: false, error: 'Admin access required' };
+        }
+
+        return { valid: true, email: session.email, name: teacher.name };
+      }
+    }
+
+    // Legacy Netlify Blobs fallback
+    const { getStore } = require('@netlify/blobs');
+    const session = await getStore('teacher-sessions').get(sessionToken, { type: 'json' });
+    if (!session) {
+      return { valid: false, error: 'Invalid session' };
+    }
+    if (!notExpired(session)) {
+      return { valid: false, error: 'Session expired' };
+    }
+
+    const teacher = await getStore('teachers').get(session.email, { type: 'json' });
+    if (!teacher || teacher.role !== 'admin') {
+      return { valid: false, error: 'Admin access required' };
+    }
+
+    return { valid: true, email: session.email, name: teacher.name };
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return { valid: false, error: 'Session verification failed' };
+  }
+}
+
+module.exports = { getSessionToken, verifyAnySession, verifyAdminSession };
