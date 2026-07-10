@@ -1,0 +1,62 @@
+name: CI
+
+# Runs on every pull request (and pushes to main) so a broken build or a
+# white-screen regression shows as a red check BEFORE merging — previously
+# the first signal was a failed Netlify deploy after the merge.
+#
+# What it checks:
+#   1. Every Netlify function parses (node --check) — catches syntax errors
+#      in backend code that the frontend build wouldn't touch.
+#   2. The Vite build succeeds and the built app boots in headless Chromium
+#      without uncaught errors, rendering both the login screen and the
+#      teacher-login screen (test/smoke.mjs — hermetic, no real network).
+#
+# What it can't check: behavior that needs live services (Claude API,
+# Firebase) — e.g. AI response quality or token limits. Those still need a
+# staging test or manual check after deploy.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax-check Netlify functions
+        run: |
+          set -e
+          for f in netlify/functions/*.js netlify/functions/_lib/*.js; do
+            node --check "$f"
+            echo "OK $f"
+          done
+
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: .pw-browsers
+          key: pw-chromium-${{ runner.os }}-v1
+
+      - name: Install Playwright Chromium
+        # The smoke test uses playwright-core and finds any chromium build
+        # under PLAYWRIGHT_BROWSERS_PATH, so the playwright version here only
+        # needs to be able to download a browser, not match exactly.
+        run: npx playwright@1.48.2 install --with-deps chromium
+
+      - name: Build and smoke test
+        run: npm run test:smoke
