@@ -1,139 +1,92 @@
 // Process essay generation in background - calls Claude and saves result.
 // Uses structured output (forced tool use) so the model returns validated
 // JSON instead of JavaScript source that has to be re-parsed.
-const https = require('https');
+const Anthropic = require('@anthropic-ai/sdk').default;
 const { getStore, connectLambda } = require('@netlify/blobs');
-const { initializeFirebase } = require('./firebase-helper');
+const { getSessionToken, verifyAdminSession } = require('./_lib/session');
 
-// Verify admin session (same as start/check functions)
-async function verifyAdminSession(sessionToken) {
-  if (!sessionToken) {
-    return { valid: false, error: 'No session token provided' };
-  }
-
-  try {
-    const db = initializeFirebase();
-    if (db) {
-      const sessionDoc = await db.collection('teacherSessions').doc(sessionToken).get();
-      if (sessionDoc.exists) {
-        const session = sessionDoc.data();
-        if (new Date(session.expiresAt.toDate ? session.expiresAt.toDate() : session.expiresAt) < new Date()) {
-          return { valid: false, error: 'Session expired' };
-        }
-
-        const teacherDoc = await db.collection('teachers').doc(session.email).get();
-        if (!teacherDoc.exists) {
-          return { valid: false, error: 'Teacher not found' };
-        }
-
-        const teacher = teacherDoc.data();
-        if (teacher.role !== 'admin') {
-          return { valid: false, error: 'Admin access required' };
-        }
-
-        return { valid: true, email: session.email };
-      }
-    }
-
-    // Fallback to Netlify Blobs
-    const teacherSessionsStore = getStore("teacher-sessions");
-    const teachersStore = getStore("teachers");
-
-    const session = await teacherSessionsStore.get(sessionToken, { type: 'json' });
-    if (!session) {
-      return { valid: false, error: 'Invalid session' };
-    }
-
-    if (new Date(session.expiresAt) < new Date()) {
-      return { valid: false, error: 'Session expired' };
-    }
-
-    const teacher = await teachersStore.get(session.email, { type: 'json' });
-    if (!teacher || teacher.role !== 'admin') {
-      return { valid: false, error: 'Admin access required' };
-    }
-
-    return { valid: true, email: session.email };
-  } catch (error) {
-    console.error('Session verification error:', error);
-    return { valid: false, error: 'Session verification failed' };
-  }
+// Lazy so a missing API key becomes a stored job error the teacher can see,
+// not a module-load crash. The SDK retries 429/5xx/connection errors itself.
+let client;
+function getClient() {
+  if (!client) client = new Anthropic({ maxRetries: 2 });
+  return client;
 }
 
-function getSessionToken(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
-  return event.queryStringParameters?.sessionToken || null;
+// Whatever shape an error arrives in, store a human-readable string — the
+// client renders job.error directly ("[object Object]" otherwise).
+function errorToString(err) {
+  if (typeof err === 'string') return err;
+  return err?.error?.error?.message || err?.error?.message || err?.message || JSON.stringify(err);
 }
 
 exports.handler = async (event, context) => {
   connectLambda(event);
 
-  let jobId;
-  let store;
-
   // Verify admin session so job processing can't be triggered anonymously
-  const sessionToken = getSessionToken(event);
-  const authResult = await verifyAdminSession(sessionToken);
+  const authResult = await verifyAdminSession(getSessionToken(event));
   if (!authResult.valid) {
     return { statusCode: 403, body: JSON.stringify({ error: authResult.error }) };
   }
 
+  let jobId;
+  let store;
+
   try {
-    const { jobId: id } = JSON.parse(event.body);
-    jobId = id;
+    ({ jobId } = JSON.parse(event.body));
 
     console.log('Processing essay generation job:', jobId);
 
     store = getStore('essay-generation-jobs');
 
-    let job = await store.get(jobId, { type: 'json' });
+    const job = await store.get(jobId, { type: 'json' });
     if (!job) {
       console.error('Job not found:', jobId);
       return { statusCode: 404, body: JSON.stringify({ error: 'Job not found' }) };
     }
 
-    // Idempotency: don't re-run completed jobs or ones another invocation
-    // picked up recently (re-triggering would double the API spend).
+    // Idempotency: completed jobs are never re-run, and a recent pickup by
+    // another invocation skips this one. The lock lives in a small sidecar
+    // key so re-triggering (e.g. the client's resume path) doesn't rewrite
+    // the full job blob (which contains base64 file uploads). Best-effort,
+    // not atomic — it de-duplicates triggers, it is not a strict mutex.
     if (job.status === 'completed') {
       return { statusCode: 200, body: JSON.stringify({ status: 'completed' }) };
     }
-    if (job.pickedUpAt && Date.now() - job.pickedUpAt < 20 * 60 * 1000 && job.status === 'processing') {
+    const lockKey = jobId + ':lock';
+    const lock = await store.get(lockKey, { type: 'json' });
+    if (lock?.pickedUpAt && Date.now() - lock.pickedUpAt < 20 * 60 * 1000 && job.status === 'processing') {
       console.log('Job already being processed, skipping duplicate trigger');
       return { statusCode: 200, body: JSON.stringify({ status: 'processing' }) };
     }
-    job = { ...job, pickedUpAt: Date.now() };
-    await store.setJSON(jobId, job);
+    await store.setJSON(lockKey, { pickedUpAt: Date.now() });
 
     const body = job.input;
     console.log('Subject:', body.subject);
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       await store.setJSON(jobId, { ...job, status: 'error', error: 'ANTHROPIC_API_KEY not configured' });
       return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured' }) };
     }
 
     console.log('Calling Claude Sonnet (structured output)...');
-    const requestBody = buildRequest(body);
-    const claudeData = await callClaudeWithRetry(apiKey, requestBody);
-    console.log('Claude response received');
-
-    if (claudeData.error) {
-      console.error('Claude error:', JSON.stringify(claudeData.error));
-      await store.setJSON(jobId, { ...job, status: 'error', error: claudeData.error });
+    let response;
+    try {
+      response = await getClient().messages.create(buildRequest(body));
+    } catch (apiErr) {
+      console.error('Claude error:', apiErr);
+      await store.setJSON(jobId, { ...job, status: 'error', error: errorToString(apiErr) });
       return { statusCode: 200, body: JSON.stringify({ status: 'error' }) };
     }
+    console.log('Claude response received');
 
-    if (claudeData.stop_reason === 'max_tokens') {
+    if (response.stop_reason === 'max_tokens') {
       const msg = 'The AI response was cut off before the essay was complete. Try again, or reduce the amount of source material / number of paragraphs.';
       await store.setJSON(jobId, { ...job, status: 'error', error: msg });
       return { statusCode: 200, body: JSON.stringify({ status: 'error' }) };
     }
 
-    const toolBlock = (claudeData.content || []).find(b => b.type === 'tool_use' && b.name === 'create_essay_config');
+    const toolBlock = (response.content || []).find(b => b.type === 'tool_use' && b.name === 'create_essay_config');
     if (!toolBlock || !toolBlock.input) {
       await store.setJSON(jobId, { ...job, status: 'error', error: 'The AI did not return a structured essay configuration. Please try again.' });
       return { statusCode: 200, body: JSON.stringify({ status: 'error' }) };
@@ -161,76 +114,14 @@ exports.handler = async (event, context) => {
     if (store && jobId) {
       try {
         const job = await store.get(jobId, { type: 'json' });
-        await store.setJSON(jobId, { ...job, status: 'error', error: error.message });
+        await store.setJSON(jobId, { ...job, status: 'error', error: errorToString(error) });
       } catch (e) {
         console.error('Failed to save error state:', e);
       }
     }
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    return { statusCode: 500, body: JSON.stringify({ error: errorToString(error) }) };
   }
 };
-
-function makeRequest(apiKey, requestBody) {
-  return new Promise((resolve, reject) => {
-    const bodyStr = JSON.stringify(requestBody);
-
-    const options = {
-      hostname: 'api.anthropic.com',
-      port: 443,
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Length': Buffer.byteLength(bodyStr)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          resolve(res.statusCode !== 200 ? { error: parsed, statusCode: res.statusCode } : parsed);
-        } catch (e) {
-          resolve({ error: data, statusCode: res.statusCode });
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(bodyStr);
-    req.end();
-  });
-}
-
-// One retry with backoff on rate limits, server errors and network failures
-async function callClaudeWithRetry(apiKey, requestBody) {
-  let lastError;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await makeRequest(apiKey, requestBody);
-      if (!res.error) return res;
-      lastError = res;
-      const status = res.statusCode || 0;
-      if (attempt === 0 && (status === 429 || status >= 500)) {
-        console.warn('Claude returned', status, '- retrying in 5s');
-        await new Promise(r => setTimeout(r, 5000));
-        continue;
-      }
-      return res;
-    } catch (err) {
-      lastError = { error: err.message };
-      if (attempt === 0) {
-        console.warn('Network error calling Claude - retrying in 5s:', err.message);
-        await new Promise(r => setTimeout(r, 5000));
-        continue;
-      }
-    }
-  }
-  return lastError;
-}
 
 // JSON schema for the essay config, enforced by the API via forced tool use
 function buildEssayTool(hasGradeBoundaries, examSeries) {
@@ -249,6 +140,7 @@ function buildEssayTool(hasGradeBoundaries, examSeries) {
     essayTitle: { type: 'string', description: 'The exam question exactly as students should see it' },
     instructions: { type: 'string', description: 'Clear instructions for students' },
     originalTask: { type: 'string', description: 'Markdown with two sections: "## Exam Question" (the full question) and "## Mark Scheme Summary" (the key criteria)' },
+    sourceMaterial: { type: 'string', description: 'The complete source material text students must read, copied in full (not summarised) from the provided source files or text. Empty string if there is none.' },
     paragraphs: {
       type: 'array',
       minItems: 4,
@@ -276,7 +168,7 @@ function buildEssayTool(hasGradeBoundaries, examSeries) {
     }
   };
 
-  const required = ['id', 'title', 'essayTitle', 'instructions', 'originalTask', 'paragraphs'];
+  const required = ['id', 'title', 'essayTitle', 'instructions', 'originalTask', 'sourceMaterial', 'paragraphs'];
 
   if (hasGradeBoundaries) {
     properties.gradeBoundaries = {
@@ -398,6 +290,7 @@ Create learning materials at THREE difficulty tiers for EACH paragraph:
 - Use ONLY plain ASCII characters - no special symbols, emojis, or accented characters
 - Use simple dashes (-) or asterisks (*) for bullet points in markdown fields
 - Every paragraph's learningMaterial MUST have substantial content for all three tiers
+- Copy the source material text into sourceMaterial in full - do not summarise it
 
 ## TASK
 Create a complete essay configuration with 4-6 paragraphs (introduction, body paragraphs, conclusion) and call the create_essay_config tool with it.`;
@@ -415,8 +308,6 @@ Create a complete essay configuration with 4-6 paragraphs (introduction, body pa
 }
 
 // Combine the model's structured output with the teacher's actual inputs.
-// Source material and exam metadata come straight from the wizard - no
-// post-hoc regex injection into generated code.
 function assembleEssay(toolInput, body) {
   const paragraphs = (toolInput.paragraphs || []).map((p, i) => ({
     exampleQuotes: [],
@@ -438,6 +329,22 @@ function assembleEssay(toolInput, body) {
       data: f.content
     }));
 
+  // Grading math downstream (grade-paragraph.js weighted fallback, the
+  // criteria percentages shown to students) assumes weights sum to 100;
+  // the schema can't enforce a sum, so normalise here.
+  const gradingCriteria = toolInput.gradingCriteria;
+  if (gradingCriteria) {
+    const keys = Object.keys(gradingCriteria);
+    const sum = keys.reduce((s, k) => s + (Number(gradingCriteria[k]?.weight) || 0), 0);
+    if (sum > 0 && sum !== 100) {
+      keys.forEach(k => {
+        gradingCriteria[k].weight = Math.round(((Number(gradingCriteria[k]?.weight) || 0) / sum) * 100);
+      });
+      const newSum = keys.reduce((s, k) => s + gradingCriteria[k].weight, 0);
+      gradingCriteria[keys[0]].weight += 100 - newSum;
+    }
+  }
+
   return {
     ...toolInput,
     id: (toolInput.id || 'generated-essay').toLowerCase().replace(/[^a-z0-9-]/g, '-'),
@@ -447,7 +354,9 @@ function assembleEssay(toolInput, body) {
     maxAttempts: parseInt(body.maxAttempts) || 3,
     minWordsPerParagraph: parseInt(body.minWords) || 80,
     targetWordsPerParagraph: parseInt(body.targetWords) || 150,
-    sourceMaterial: (body.sourceMaterial || '').trim(),
+    // Teacher-provided text wins; the model's transcription covers the
+    // PDF-only case where the form field was never filled in.
+    sourceMaterial: (body.sourceMaterial || '').trim() || (toolInput.sourceMaterial || '').trim(),
     sourceImages,
     // Exam metadata, persisted on the essay so it can be filtered, reused
     // and consulted by grading later
@@ -462,7 +371,8 @@ function assembleEssay(toolInput, body) {
 
 // Raw-config string for the "view raw" panel and legacy client fallback.
 // Base64 image data is redacted for readability; the parsed essay object is
-// always the source of truth for saving.
+// always the source of truth for saving (the client drops redacted
+// placeholders if it ever has to save from this string).
 function serializeConfig(essay) {
   const display = {
     ...essay,

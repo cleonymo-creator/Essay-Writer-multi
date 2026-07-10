@@ -9832,13 +9832,11 @@ ${examinerComment}
         }
       };
 
-      if (loading) {
-        return (
-          <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center;")}>
-            <LoadingSpinner text="Loading essays..." />
-          </div>
-        );
-      }
+      // Stable identity so the memoized generator panel isn't re-rendered by
+      // unrelated state changes (search box, filters) in this panel.
+      const loadEssaysRef = useRef();
+      loadEssaysRef.current = loadEssays;
+      const handleEssayGenerated = useCallback(() => { setActiveView('manage'); loadEssaysRef.current(); }, []);
 
       return (
         <div>
@@ -9861,11 +9859,18 @@ ${examinerComment}
           {/* Generate View — kept mounted (hidden, not unmounted) so switching
               to Manage Essays mid-wizard doesn't destroy the teacher's inputs */}
           <div style={{ display: activeView === 'generate' ? 'block' : 'none' }}>
-            <EssayGeneratorPanel onEssayGenerated={() => { setActiveView('manage'); loadEssays(); }} />
+            <EssayGeneratorPanel onEssayGenerated={handleEssayGenerated} />
           </div>
 
-          {/* Manage View */}
-          {activeView === 'manage' && (
+          {/* Manage View — the loading spinner renders inside this branch
+              (not as an early return) so the generator above stays mounted
+              while essays reload */}
+          {activeView === 'manage' && loading && (
+            <div className="card" style={parseStyle("padding: var(--space-xl); text-align: center;")}>
+              <LoadingSpinner text="Loading essays..." />
+            </div>
+          )}
+          {activeView === 'manage' && !loading && (
           <>
           {error && (
             <div className="card" style={parseStyle("margin-bottom: var(--space-lg); background: rgba(239, 68, 68, 0.1); border-color: var(--color-error);")}>
@@ -10096,7 +10101,656 @@ ${examinerComment}
     // ESSAY GENERATOR PANEL (Admin Only)
     // =====================================================
 
-    function EssayGeneratorPanel({ onEssayGenerated }) {
+    // Exam paper structure data for each subject/exam board combination.
+    // Module scope: fully static, so it is allocated once instead of on
+    // every render of the (always-mounted) generator panel.
+    const examPaperData = {
+      'GCSE English Language': {
+        'AQA': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Explorations in Creative Reading and Writing',
+              duration: '1 hour 45 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'List four things (4 marks)', marks: 4 },
+                    { id: 'q2', name: 'Question 2', description: 'Language analysis (8 marks)', marks: 8 },
+                    { id: 'q3', name: 'Question 3', description: 'Structure analysis (8 marks)', marks: 8 },
+                    { id: 'q4', name: 'Question 4', description: 'Evaluation (20 marks)', marks: 20 }
+                  ]
+                },
+                {
+                  name: 'Section B: Writing',
+                  questions: [
+                    { id: 'q5', name: 'Question 5', description: 'Descriptive or narrative writing (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Writers\' Viewpoints and Perspectives',
+              duration: '1 hour 45 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'True/False statements (4 marks)', marks: 4 },
+                    { id: 'q2', name: 'Question 2', description: 'Summary of differences (8 marks)', marks: 8 },
+                    { id: 'q3', name: 'Question 3', description: 'Language analysis (12 marks)', marks: 12 },
+                    { id: 'q4', name: 'Question 4', description: 'Compare viewpoints (16 marks)', marks: 16 }
+                  ]
+                },
+                {
+                  name: 'Section B: Writing',
+                  questions: [
+                    { id: 'q5', name: 'Question 5', description: 'Writing to present a viewpoint (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Edexcel': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Fiction and Imaginative Writing',
+              duration: '1 hour 45 minutes',
+              totalMarks: 64,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Short response questions (12 marks)', marks: 12 },
+                    { id: 'q2', name: 'Question 2', description: 'Extended response on language (12 marks)', marks: 12 }
+                  ]
+                },
+                {
+                  name: 'Section B: Imaginative Writing',
+                  questions: [
+                    { id: 'q3', name: 'Question 3', description: 'Imaginative writing (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Non-Fiction and Transactional Writing',
+              duration: '2 hours 5 minutes',
+              totalMarks: 96,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Questions 1-6', description: 'Short response questions on 19th century text (15 marks)', marks: 15 },
+                    { id: 'q2', name: 'Question 7a', description: 'Summary synthesis (6 marks)', marks: 6 },
+                    { id: 'q3', name: 'Question 7b', description: 'Compare and contrast texts (14 marks)', marks: 14 }
+                  ]
+                },
+                {
+                  name: 'Section B: Transactional Writing',
+                  questions: [
+                    { id: 'q4', name: 'Questions 8-9', description: 'Transactional writing tasks (2 x 30 marks)', marks: 60 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Eduqas': {
+          papers: [
+            {
+              id: 'component1',
+              name: 'Component 1: 20th Century Literature Reading and Creative Prose Writing',
+              duration: '1 hour 45 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Question A1', description: 'Retrieval/inference (5 marks)', marks: 5 },
+                    { id: 'q2', name: 'Question A2', description: 'Language analysis (10 marks)', marks: 10 },
+                    { id: 'q3', name: 'Question A3', description: 'Structure/viewpoint (10 marks)', marks: 10 },
+                    { id: 'q4', name: 'Question A4', description: 'Extended response (10 marks)', marks: 10 },
+                    { id: 'q5', name: 'Question A5', description: 'Evaluation (10 marks)', marks: 10 }
+                  ]
+                },
+                {
+                  name: 'Section B: Creative Prose Writing',
+                  questions: [
+                    { id: 'q6', name: 'Question B1', description: 'Proofreading (5 marks)', marks: 5 },
+                    { id: 'q7', name: 'Question B2', description: 'Creative prose writing (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component2',
+              name: 'Component 2: 19th and 21st Century Non-Fiction Reading and Transactional/Persuasive Writing',
+              duration: '2 hours',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Reading',
+                  questions: [
+                    { id: 'q1', name: 'Question A1', description: 'Retrieval (5 marks)', marks: 5 },
+                    { id: 'q2', name: 'Question A2', description: 'Language analysis - 21st C text (10 marks)', marks: 10 },
+                    { id: 'q3', name: 'Question A3', description: 'Language analysis - 19th C text (10 marks)', marks: 10 },
+                    { id: 'q4', name: 'Question A4', description: 'Comparison of texts (10 marks)', marks: 10 }
+                  ]
+                },
+                {
+                  name: 'Section B: Transactional/Persuasive Writing',
+                  questions: [
+                    { id: 'q5', name: 'Question B1', description: 'Proofreading (5 marks)', marks: 5 },
+                    { id: 'q6', name: 'Question B2', description: 'Transactional/persuasive writing (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      'GCSE English Literature': {
+        'AQA': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Shakespeare and the 19th-Century Novel',
+              duration: '1 hour 45 minutes',
+              totalMarks: 64,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare Question', description: 'Extract-based essay on Shakespeare play (30 marks + 4 SPaG)', marks: 34 }
+                  ]
+                },
+                {
+                  name: 'Section B: 19th-Century Novel',
+                  questions: [
+                    { id: 'q2', name: '19th-Century Novel Question', description: 'Extract-based essay on novel (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Modern Texts and Poetry',
+              duration: '2 hours 15 minutes',
+              totalMarks: 96,
+              sections: [
+                {
+                  name: 'Section A: Modern Prose/Drama',
+                  questions: [
+                    { id: 'q1', name: 'Modern Text Question', description: 'Essay on modern prose or drama (30 marks + 4 SPaG)', marks: 34 }
+                  ]
+                },
+                {
+                  name: 'Section B: Poetry Anthology',
+                  questions: [
+                    { id: 'q2', name: 'Poetry Comparison', description: 'Compare anthology poems (30 marks)', marks: 30 }
+                  ]
+                },
+                {
+                  name: 'Section C: Unseen Poetry',
+                  questions: [
+                    { id: 'q3', name: 'Unseen Poetry Analysis', description: 'Analyse unseen poem (24 marks)', marks: 24 },
+                    { id: 'q4', name: 'Unseen Poetry Comparison', description: 'Compare two unseen poems (8 marks)', marks: 8 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Edexcel': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Shakespeare and Post-1914 Literature',
+              duration: '1 hour 45 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare Question', description: 'Extract-based essay (40 marks)', marks: 40 }
+                  ]
+                },
+                {
+                  name: 'Section B: Post-1914 British Play/Novel',
+                  questions: [
+                    { id: 'q2', name: 'Post-1914 Literature', description: 'Essay question (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: 19th-Century Novel and Poetry since 1789',
+              duration: '2 hours 15 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: 19th-Century Novel',
+                  questions: [
+                    { id: 'q1', name: '19th-Century Novel', description: 'Extract-based essay (40 marks)', marks: 40 }
+                  ]
+                },
+                {
+                  name: 'Section B: Poetry',
+                  questions: [
+                    { id: 'q2', name: 'Poetry Anthology', description: 'Anthology poem comparison (20 marks)', marks: 20 },
+                    { id: 'q3', name: 'Unseen Poetry', description: 'Unseen poetry analysis (20 marks)', marks: 20 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Eduqas': {
+          papers: [
+            {
+              id: 'component1',
+              name: 'Component 1: Shakespeare and Poetry',
+              duration: '2 hours',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare Extract', description: 'Extract-based question (15 marks)', marks: 15 },
+                    { id: 'q2', name: 'Shakespeare Essay', description: 'Essay question (25 marks)', marks: 25 }
+                  ]
+                },
+                {
+                  name: 'Section B: Poetry',
+                  questions: [
+                    { id: 'q3', name: 'Poetry Anthology', description: 'Poetry comparison (20 marks)', marks: 20 },
+                    { id: 'q4', name: 'Unseen Poetry', description: 'Unseen poetry analysis (20 marks)', marks: 20 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component2',
+              name: 'Component 2: Post-1914 Prose/Drama and 19th-Century Prose',
+              duration: '2 hours 30 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Section A: Post-1914 Prose/Drama',
+                  questions: [
+                    { id: 'q1', name: 'Post-1914 Text', description: 'Extract-based and essay question (40 marks)', marks: 40 }
+                  ]
+                },
+                {
+                  name: 'Section B: 19th-Century Prose',
+                  questions: [
+                    { id: 'q2', name: '19th-Century Novel', description: 'Extract-based and essay question (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      'A Level English Language': {
+        'AQA': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Language, the Individual and Society',
+              duration: '2 hours 30 minutes',
+              totalMarks: 100,
+              sections: [
+                {
+                  name: 'Section A: Textual Variations and Representations',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Text analysis (25 marks)', marks: 25 },
+                    { id: 'q2', name: 'Question 2', description: 'Text analysis (25 marks)', marks: 25 },
+                    { id: 'q3', name: 'Question 3', description: 'Short response questions (20 marks)', marks: 20 }
+                  ]
+                },
+                {
+                  name: 'Section B: Children\'s Language Development',
+                  questions: [
+                    { id: 'q4', name: 'Question 4/5', description: 'Essay on child language development (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Language Diversity and Change',
+              duration: '2 hours 30 minutes',
+              totalMarks: 100,
+              sections: [
+                {
+                  name: 'Section A: Diversity and Change',
+                  questions: [
+                    { id: 'q1', name: 'Question 1/2', description: 'Analysis of language diversity/change (30 marks)', marks: 30 }
+                  ]
+                },
+                {
+                  name: 'Section B: Language Discourses',
+                  questions: [
+                    { id: 'q2', name: 'Question 3', description: 'Opinion article/directed writing (40 marks)', marks: 40 },
+                    { id: 'q3', name: 'Question 4', description: 'Evaluation of language views (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Edexcel': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Language, the Individual and Society',
+              duration: '2 hours 30 minutes',
+              totalMarks: 72,
+              sections: [
+                {
+                  name: 'Section A: Language Concepts',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Text analysis (24 marks)', marks: 24 },
+                    { id: 'q2', name: 'Question 2', description: 'Text analysis (24 marks)', marks: 24 }
+                  ]
+                },
+                {
+                  name: 'Section B: Essay',
+                  questions: [
+                    { id: 'q3', name: 'Question 3', description: 'Discursive essay (24 marks)', marks: 24 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Child Language',
+              duration: '1 hour 45 minutes',
+              totalMarks: 48,
+              sections: [
+                {
+                  name: 'Child Language Acquisition',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Data analysis (24 marks)', marks: 24 },
+                    { id: 'q2', name: 'Question 2', description: 'Essay on acquisition (24 marks)', marks: 24 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper3',
+              name: 'Paper 3: Investigating Language',
+              duration: '2 hours',
+              totalMarks: 40,
+              sections: [
+                {
+                  name: 'Language Investigation',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Investigation report (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Eduqas': {
+          papers: [
+            {
+              id: 'component1',
+              name: 'Component 1: Language Concepts and Issues',
+              duration: '2 hours',
+              totalMarks: 120,
+              sections: [
+                {
+                  name: 'Section A: Language and Context',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Short questions on archaic language (20 marks)', marks: 20 },
+                    { id: 'q2', name: 'Question 2', description: 'Extended response exploring connections (60 marks)', marks: 60 }
+                  ]
+                },
+                {
+                  name: 'Section B: Contemporary Language',
+                  questions: [
+                    { id: 'q3', name: 'Question 3', description: 'Extended response on language concepts (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component2',
+              name: 'Component 2: Language Change Over Time',
+              duration: '2 hours 15 minutes',
+              totalMarks: 120,
+              sections: [
+                {
+                  name: 'Section A: Historical Texts',
+                  questions: [
+                    { id: 'q1', name: 'Question 1', description: 'Multi-part question on historical texts (40 marks)', marks: 40 },
+                    { id: 'q2', name: 'Question 2', description: 'Comparative essay (40 marks)', marks: 40 }
+                  ]
+                },
+                {
+                  name: 'Section B: Contemporary English',
+                  questions: [
+                    { id: 'q3', name: 'Question 3', description: 'Essay on contemporary English (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component3',
+              name: 'Component 3: Creative and Critical Use of Language',
+              duration: '1 hour 45 minutes',
+              totalMarks: 80,
+              sections: [
+                {
+                  name: 'Original Writing',
+                  questions: [
+                    { id: 'q1', name: 'Task 1', description: 'Original writing task (25 marks)', marks: 25 },
+                    { id: 'q2', name: 'Task 2', description: 'Original writing task (25 marks)', marks: 25 },
+                    { id: 'q3', name: 'Commentary', description: 'Commentary on your writing (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      'A Level English Literature': {
+        'AQA': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Love Through the Ages',
+              duration: '3 hours',
+              totalMarks: 75,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare Question', description: 'Essay on Shakespeare play (25 marks)', marks: 25 }
+                  ]
+                },
+                {
+                  name: 'Section B: Unseen Poetry',
+                  questions: [
+                    { id: 'q2', name: 'Unseen Poetry', description: 'Compare two unseen poems (25 marks)', marks: 25 }
+                  ]
+                },
+                {
+                  name: 'Section C: Comparing Texts',
+                  questions: [
+                    { id: 'q3', name: 'Comparative Essay', description: 'Compare prose/poetry texts (25 marks)', marks: 25 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Texts in Shared Contexts',
+              duration: '2 hours 30 minutes',
+              totalMarks: 75,
+              sections: [
+                {
+                  name: 'Section A: Set Texts',
+                  questions: [
+                    { id: 'q1', name: 'Set Text 1', description: 'Essay on first set text (25 marks)', marks: 25 }
+                  ]
+                },
+                {
+                  name: 'Section B: Set Texts',
+                  questions: [
+                    { id: 'q2', name: 'Set Text 2', description: 'Essay on second set text (25 marks)', marks: 25 }
+                  ]
+                },
+                {
+                  name: 'Section C: Unseen',
+                  questions: [
+                    { id: 'q3', name: 'Unseen Passage', description: 'Analyse unseen passage (25 marks)', marks: 25 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Edexcel': {
+          papers: [
+            {
+              id: 'paper1',
+              name: 'Paper 1: Drama',
+              duration: '2 hours 15 minutes',
+              totalMarks: 60,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare', description: 'Extract-based essay (35 marks)', marks: 35 }
+                  ]
+                },
+                {
+                  name: 'Section B: Other Drama',
+                  questions: [
+                    { id: 'q2', name: 'Other Drama', description: 'Essay question (25 marks)', marks: 25 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper2',
+              name: 'Paper 2: Prose',
+              duration: '1 hour 15 minutes',
+              totalMarks: 40,
+              sections: [
+                {
+                  name: 'Prose Study',
+                  questions: [
+                    { id: 'q1', name: 'Prose Comparison', description: 'Compare two prose texts (40 marks)', marks: 40 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'paper3',
+              name: 'Paper 3: Poetry',
+              duration: '2 hours 15 minutes',
+              totalMarks: 60,
+              sections: [
+                {
+                  name: 'Section A: Post-2000 Poetry',
+                  questions: [
+                    { id: 'q1', name: 'Modern Poetry', description: 'Analyse modern poem with unseen (35 marks)', marks: 35 }
+                  ]
+                },
+                {
+                  name: 'Section B: Specified Poet',
+                  questions: [
+                    { id: 'q2', name: 'Specified Poet', description: 'Essay on specified poet (25 marks)', marks: 25 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        'Eduqas': {
+          papers: [
+            {
+              id: 'component1',
+              name: 'Component 1: Poetry',
+              duration: '2 hours',
+              totalMarks: 60,
+              sections: [
+                {
+                  name: 'Section A: Poetry Pre-1900',
+                  questions: [
+                    { id: 'q1', name: 'Pre-1900 Poetry', description: 'Essay on pre-1900 poet (30 marks)', marks: 30 }
+                  ]
+                },
+                {
+                  name: 'Section B: Poetry Post-1900',
+                  questions: [
+                    { id: 'q2', name: 'Post-1900 Poetry', description: 'Essay on post-1900 poet (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component2',
+              name: 'Component 2: Drama',
+              duration: '2 hours',
+              totalMarks: 60,
+              sections: [
+                {
+                  name: 'Section A: Shakespeare',
+                  questions: [
+                    { id: 'q1', name: 'Shakespeare', description: 'Extract-based essay (30 marks)', marks: 30 }
+                  ]
+                },
+                {
+                  name: 'Section B: Drama',
+                  questions: [
+                    { id: 'q2', name: 'Other Drama', description: 'Essay on drama text (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'component3',
+              name: 'Component 3: Unseen Texts',
+              duration: '2 hours',
+              totalMarks: 60,
+              sections: [
+                {
+                  name: 'Unseen Analysis',
+                  questions: [
+                    { id: 'q1', name: 'Prose Extract', description: 'Analyse unseen prose (30 marks)', marks: 30 },
+                    { id: 'q2', name: 'Poetry', description: 'Analyse unseen poetry (30 marks)', marks: 30 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      'KS3 English': {
+        'AQA': { papers: [] },
+        'Edexcel': { papers: [] },
+        'Eduqas': { papers: [] }
+      }
+    };
+
+    // Memoized: the panel stays mounted behind the Manage view, so without
+    // memo every keystroke in that view would re-render this whole tree.
+    const EssayGeneratorPanel = React.memo(function EssayGeneratorPanel({ onEssayGenerated }) {
       const [step, setStep] = useState(1);
       const [isGenerating, setIsGenerating] = useState(false);
       const [generationStatus, setGenerationStatus] = useState('');
@@ -10149,650 +10803,7 @@ ${examinerComment}
       const [draftNotice, setDraftNotice] = useState('');
       const [maxStepReached, setMaxStepReached] = useState(1);
 
-      // Exam paper structure data for each subject/exam board combination
-      const examPaperData = {
-        'GCSE English Language': {
-          'AQA': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Explorations in Creative Reading and Writing',
-                duration: '1 hour 45 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'List four things (4 marks)', marks: 4 },
-                      { id: 'q2', name: 'Question 2', description: 'Language analysis (8 marks)', marks: 8 },
-                      { id: 'q3', name: 'Question 3', description: 'Structure analysis (8 marks)', marks: 8 },
-                      { id: 'q4', name: 'Question 4', description: 'Evaluation (20 marks)', marks: 20 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Writing',
-                    questions: [
-                      { id: 'q5', name: 'Question 5', description: 'Descriptive or narrative writing (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Writers\' Viewpoints and Perspectives',
-                duration: '1 hour 45 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'True/False statements (4 marks)', marks: 4 },
-                      { id: 'q2', name: 'Question 2', description: 'Summary of differences (8 marks)', marks: 8 },
-                      { id: 'q3', name: 'Question 3', description: 'Language analysis (12 marks)', marks: 12 },
-                      { id: 'q4', name: 'Question 4', description: 'Compare viewpoints (16 marks)', marks: 16 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Writing',
-                    questions: [
-                      { id: 'q5', name: 'Question 5', description: 'Writing to present a viewpoint (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Edexcel': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Fiction and Imaginative Writing',
-                duration: '1 hour 45 minutes',
-                totalMarks: 64,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Short response questions (12 marks)', marks: 12 },
-                      { id: 'q2', name: 'Question 2', description: 'Extended response on language (12 marks)', marks: 12 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Imaginative Writing',
-                    questions: [
-                      { id: 'q3', name: 'Question 3', description: 'Imaginative writing (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Non-Fiction and Transactional Writing',
-                duration: '2 hours 5 minutes',
-                totalMarks: 96,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Questions 1-6', description: 'Short response questions on 19th century text (15 marks)', marks: 15 },
-                      { id: 'q2', name: 'Question 7a', description: 'Summary synthesis (6 marks)', marks: 6 },
-                      { id: 'q3', name: 'Question 7b', description: 'Compare and contrast texts (14 marks)', marks: 14 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Transactional Writing',
-                    questions: [
-                      { id: 'q4', name: 'Questions 8-9', description: 'Transactional writing tasks (2 x 30 marks)', marks: 60 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Eduqas': {
-            papers: [
-              {
-                id: 'component1',
-                name: 'Component 1: 20th Century Literature Reading and Creative Prose Writing',
-                duration: '1 hour 45 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Question A1', description: 'Retrieval/inference (5 marks)', marks: 5 },
-                      { id: 'q2', name: 'Question A2', description: 'Language analysis (10 marks)', marks: 10 },
-                      { id: 'q3', name: 'Question A3', description: 'Structure/viewpoint (10 marks)', marks: 10 },
-                      { id: 'q4', name: 'Question A4', description: 'Extended response (10 marks)', marks: 10 },
-                      { id: 'q5', name: 'Question A5', description: 'Evaluation (10 marks)', marks: 10 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Creative Prose Writing',
-                    questions: [
-                      { id: 'q6', name: 'Question B1', description: 'Proofreading (5 marks)', marks: 5 },
-                      { id: 'q7', name: 'Question B2', description: 'Creative prose writing (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component2',
-                name: 'Component 2: 19th and 21st Century Non-Fiction Reading and Transactional/Persuasive Writing',
-                duration: '2 hours',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Reading',
-                    questions: [
-                      { id: 'q1', name: 'Question A1', description: 'Retrieval (5 marks)', marks: 5 },
-                      { id: 'q2', name: 'Question A2', description: 'Language analysis - 21st C text (10 marks)', marks: 10 },
-                      { id: 'q3', name: 'Question A3', description: 'Language analysis - 19th C text (10 marks)', marks: 10 },
-                      { id: 'q4', name: 'Question A4', description: 'Comparison of texts (10 marks)', marks: 10 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Transactional/Persuasive Writing',
-                    questions: [
-                      { id: 'q5', name: 'Question B1', description: 'Proofreading (5 marks)', marks: 5 },
-                      { id: 'q6', name: 'Question B2', description: 'Transactional/persuasive writing (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        'GCSE English Literature': {
-          'AQA': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Shakespeare and the 19th-Century Novel',
-                duration: '1 hour 45 minutes',
-                totalMarks: 64,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare Question', description: 'Extract-based essay on Shakespeare play (30 marks + 4 SPaG)', marks: 34 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: 19th-Century Novel',
-                    questions: [
-                      { id: 'q2', name: '19th-Century Novel Question', description: 'Extract-based essay on novel (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Modern Texts and Poetry',
-                duration: '2 hours 15 minutes',
-                totalMarks: 96,
-                sections: [
-                  {
-                    name: 'Section A: Modern Prose/Drama',
-                    questions: [
-                      { id: 'q1', name: 'Modern Text Question', description: 'Essay on modern prose or drama (30 marks + 4 SPaG)', marks: 34 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Poetry Anthology',
-                    questions: [
-                      { id: 'q2', name: 'Poetry Comparison', description: 'Compare anthology poems (30 marks)', marks: 30 }
-                    ]
-                  },
-                  {
-                    name: 'Section C: Unseen Poetry',
-                    questions: [
-                      { id: 'q3', name: 'Unseen Poetry Analysis', description: 'Analyse unseen poem (24 marks)', marks: 24 },
-                      { id: 'q4', name: 'Unseen Poetry Comparison', description: 'Compare two unseen poems (8 marks)', marks: 8 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Edexcel': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Shakespeare and Post-1914 Literature',
-                duration: '1 hour 45 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare Question', description: 'Extract-based essay (40 marks)', marks: 40 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Post-1914 British Play/Novel',
-                    questions: [
-                      { id: 'q2', name: 'Post-1914 Literature', description: 'Essay question (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: 19th-Century Novel and Poetry since 1789',
-                duration: '2 hours 15 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: 19th-Century Novel',
-                    questions: [
-                      { id: 'q1', name: '19th-Century Novel', description: 'Extract-based essay (40 marks)', marks: 40 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Poetry',
-                    questions: [
-                      { id: 'q2', name: 'Poetry Anthology', description: 'Anthology poem comparison (20 marks)', marks: 20 },
-                      { id: 'q3', name: 'Unseen Poetry', description: 'Unseen poetry analysis (20 marks)', marks: 20 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Eduqas': {
-            papers: [
-              {
-                id: 'component1',
-                name: 'Component 1: Shakespeare and Poetry',
-                duration: '2 hours',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare Extract', description: 'Extract-based question (15 marks)', marks: 15 },
-                      { id: 'q2', name: 'Shakespeare Essay', description: 'Essay question (25 marks)', marks: 25 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Poetry',
-                    questions: [
-                      { id: 'q3', name: 'Poetry Anthology', description: 'Poetry comparison (20 marks)', marks: 20 },
-                      { id: 'q4', name: 'Unseen Poetry', description: 'Unseen poetry analysis (20 marks)', marks: 20 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component2',
-                name: 'Component 2: Post-1914 Prose/Drama and 19th-Century Prose',
-                duration: '2 hours 30 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Section A: Post-1914 Prose/Drama',
-                    questions: [
-                      { id: 'q1', name: 'Post-1914 Text', description: 'Extract-based and essay question (40 marks)', marks: 40 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: 19th-Century Prose',
-                    questions: [
-                      { id: 'q2', name: '19th-Century Novel', description: 'Extract-based and essay question (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        'A Level English Language': {
-          'AQA': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Language, the Individual and Society',
-                duration: '2 hours 30 minutes',
-                totalMarks: 100,
-                sections: [
-                  {
-                    name: 'Section A: Textual Variations and Representations',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Text analysis (25 marks)', marks: 25 },
-                      { id: 'q2', name: 'Question 2', description: 'Text analysis (25 marks)', marks: 25 },
-                      { id: 'q3', name: 'Question 3', description: 'Short response questions (20 marks)', marks: 20 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Children\'s Language Development',
-                    questions: [
-                      { id: 'q4', name: 'Question 4/5', description: 'Essay on child language development (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Language Diversity and Change',
-                duration: '2 hours 30 minutes',
-                totalMarks: 100,
-                sections: [
-                  {
-                    name: 'Section A: Diversity and Change',
-                    questions: [
-                      { id: 'q1', name: 'Question 1/2', description: 'Analysis of language diversity/change (30 marks)', marks: 30 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Language Discourses',
-                    questions: [
-                      { id: 'q2', name: 'Question 3', description: 'Opinion article/directed writing (40 marks)', marks: 40 },
-                      { id: 'q3', name: 'Question 4', description: 'Evaluation of language views (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Edexcel': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Language, the Individual and Society',
-                duration: '2 hours 30 minutes',
-                totalMarks: 72,
-                sections: [
-                  {
-                    name: 'Section A: Language Concepts',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Text analysis (24 marks)', marks: 24 },
-                      { id: 'q2', name: 'Question 2', description: 'Text analysis (24 marks)', marks: 24 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Essay',
-                    questions: [
-                      { id: 'q3', name: 'Question 3', description: 'Discursive essay (24 marks)', marks: 24 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Child Language',
-                duration: '1 hour 45 minutes',
-                totalMarks: 48,
-                sections: [
-                  {
-                    name: 'Child Language Acquisition',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Data analysis (24 marks)', marks: 24 },
-                      { id: 'q2', name: 'Question 2', description: 'Essay on acquisition (24 marks)', marks: 24 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper3',
-                name: 'Paper 3: Investigating Language',
-                duration: '2 hours',
-                totalMarks: 40,
-                sections: [
-                  {
-                    name: 'Language Investigation',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Investigation report (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Eduqas': {
-            papers: [
-              {
-                id: 'component1',
-                name: 'Component 1: Language Concepts and Issues',
-                duration: '2 hours',
-                totalMarks: 120,
-                sections: [
-                  {
-                    name: 'Section A: Language and Context',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Short questions on archaic language (20 marks)', marks: 20 },
-                      { id: 'q2', name: 'Question 2', description: 'Extended response exploring connections (60 marks)', marks: 60 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Contemporary Language',
-                    questions: [
-                      { id: 'q3', name: 'Question 3', description: 'Extended response on language concepts (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component2',
-                name: 'Component 2: Language Change Over Time',
-                duration: '2 hours 15 minutes',
-                totalMarks: 120,
-                sections: [
-                  {
-                    name: 'Section A: Historical Texts',
-                    questions: [
-                      { id: 'q1', name: 'Question 1', description: 'Multi-part question on historical texts (40 marks)', marks: 40 },
-                      { id: 'q2', name: 'Question 2', description: 'Comparative essay (40 marks)', marks: 40 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Contemporary English',
-                    questions: [
-                      { id: 'q3', name: 'Question 3', description: 'Essay on contemporary English (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component3',
-                name: 'Component 3: Creative and Critical Use of Language',
-                duration: '1 hour 45 minutes',
-                totalMarks: 80,
-                sections: [
-                  {
-                    name: 'Original Writing',
-                    questions: [
-                      { id: 'q1', name: 'Task 1', description: 'Original writing task (25 marks)', marks: 25 },
-                      { id: 'q2', name: 'Task 2', description: 'Original writing task (25 marks)', marks: 25 },
-                      { id: 'q3', name: 'Commentary', description: 'Commentary on your writing (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        'A Level English Literature': {
-          'AQA': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Love Through the Ages',
-                duration: '3 hours',
-                totalMarks: 75,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare Question', description: 'Essay on Shakespeare play (25 marks)', marks: 25 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Unseen Poetry',
-                    questions: [
-                      { id: 'q2', name: 'Unseen Poetry', description: 'Compare two unseen poems (25 marks)', marks: 25 }
-                    ]
-                  },
-                  {
-                    name: 'Section C: Comparing Texts',
-                    questions: [
-                      { id: 'q3', name: 'Comparative Essay', description: 'Compare prose/poetry texts (25 marks)', marks: 25 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Texts in Shared Contexts',
-                duration: '2 hours 30 minutes',
-                totalMarks: 75,
-                sections: [
-                  {
-                    name: 'Section A: Set Texts',
-                    questions: [
-                      { id: 'q1', name: 'Set Text 1', description: 'Essay on first set text (25 marks)', marks: 25 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Set Texts',
-                    questions: [
-                      { id: 'q2', name: 'Set Text 2', description: 'Essay on second set text (25 marks)', marks: 25 }
-                    ]
-                  },
-                  {
-                    name: 'Section C: Unseen',
-                    questions: [
-                      { id: 'q3', name: 'Unseen Passage', description: 'Analyse unseen passage (25 marks)', marks: 25 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Edexcel': {
-            papers: [
-              {
-                id: 'paper1',
-                name: 'Paper 1: Drama',
-                duration: '2 hours 15 minutes',
-                totalMarks: 60,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare', description: 'Extract-based essay (35 marks)', marks: 35 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Other Drama',
-                    questions: [
-                      { id: 'q2', name: 'Other Drama', description: 'Essay question (25 marks)', marks: 25 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper2',
-                name: 'Paper 2: Prose',
-                duration: '1 hour 15 minutes',
-                totalMarks: 40,
-                sections: [
-                  {
-                    name: 'Prose Study',
-                    questions: [
-                      { id: 'q1', name: 'Prose Comparison', description: 'Compare two prose texts (40 marks)', marks: 40 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'paper3',
-                name: 'Paper 3: Poetry',
-                duration: '2 hours 15 minutes',
-                totalMarks: 60,
-                sections: [
-                  {
-                    name: 'Section A: Post-2000 Poetry',
-                    questions: [
-                      { id: 'q1', name: 'Modern Poetry', description: 'Analyse modern poem with unseen (35 marks)', marks: 35 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Specified Poet',
-                    questions: [
-                      { id: 'q2', name: 'Specified Poet', description: 'Essay on specified poet (25 marks)', marks: 25 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          'Eduqas': {
-            papers: [
-              {
-                id: 'component1',
-                name: 'Component 1: Poetry',
-                duration: '2 hours',
-                totalMarks: 60,
-                sections: [
-                  {
-                    name: 'Section A: Poetry Pre-1900',
-                    questions: [
-                      { id: 'q1', name: 'Pre-1900 Poetry', description: 'Essay on pre-1900 poet (30 marks)', marks: 30 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Poetry Post-1900',
-                    questions: [
-                      { id: 'q2', name: 'Post-1900 Poetry', description: 'Essay on post-1900 poet (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component2',
-                name: 'Component 2: Drama',
-                duration: '2 hours',
-                totalMarks: 60,
-                sections: [
-                  {
-                    name: 'Section A: Shakespeare',
-                    questions: [
-                      { id: 'q1', name: 'Shakespeare', description: 'Extract-based essay (30 marks)', marks: 30 }
-                    ]
-                  },
-                  {
-                    name: 'Section B: Drama',
-                    questions: [
-                      { id: 'q2', name: 'Other Drama', description: 'Essay on drama text (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              },
-              {
-                id: 'component3',
-                name: 'Component 3: Unseen Texts',
-                duration: '2 hours',
-                totalMarks: 60,
-                sections: [
-                  {
-                    name: 'Unseen Analysis',
-                    questions: [
-                      { id: 'q1', name: 'Prose Extract', description: 'Analyse unseen prose (30 marks)', marks: 30 },
-                      { id: 'q2', name: 'Poetry', description: 'Analyse unseen poetry (30 marks)', marks: 30 }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        'KS3 English': {
-          'AQA': { papers: [] },
-          'Edexcel': { papers: [] },
-          'Eduqas': { papers: [] }
-        }
-      };
+      // (examPaperData is defined once at module scope above the component)
 
       // Get available papers based on selected subject and exam board
       const getAvailablePapers = () => {
@@ -10808,33 +10819,34 @@ ${examinerComment}
         setSelectedQuestions([]);
       };
 
-      // Handle question toggle
+      // Handle question toggle — applies the selection (marks, time, paper
+      // name) immediately. Applying from the user action rather than a
+      // state-sync effect means a restored draft's manually-edited marks/time
+      // are never clobbered by a recompute on mount.
       const handleQuestionToggle = (questionId) => {
-        setSelectedQuestions(prev =>
-          prev.includes(questionId)
-            ? prev.filter(q => q !== questionId)
-            : [...prev, questionId]
-        );
+        const next = selectedQuestions.includes(questionId)
+          ? selectedQuestions.filter(q => q !== questionId)
+          : [...selectedQuestions, questionId];
+        setSelectedQuestions(next);
+        applySelection(selectedPaper, next);
       };
 
       // Auto-populate form fields based on selection
-      const handleApplySelection = () => {
+      const applySelection = (paperId, questionIds) => {
         const paperData = getAvailablePapers();
         if (!paperData) return;
 
-        const paper = paperData.papers.find(p => p.id === selectedPaper);
+        const paper = paperData.papers.find(p => p.id === paperId);
         if (!paper) return;
 
         setPaperName(paper.name);
 
         // Calculate total marks from selected questions
         let selectedMarks = 0;
-        let questionDescriptions = [];
         paper.sections.forEach(section => {
           section.questions.forEach(q => {
-            if (selectedQuestions.includes(q.id)) {
+            if (questionIds.includes(q.id)) {
               selectedMarks += q.marks;
-              questionDescriptions.push(`${q.name}: ${q.description}`);
             }
           });
         });
@@ -10879,8 +10891,10 @@ ${examinerComment}
         return descriptions;
       };
 
-      // Auto-extract question and source material from PDF text
-      const autoExtractFromPdf = async (pdfText) => {
+      // Auto-extract question and source material from PDF text.
+      // extraNote is appended to whatever summary is shown, so warnings about
+      // skipped files (e.g. scanned PDFs) survive the extraction round-trip.
+      const autoExtractFromPdf = async (pdfText, extraNote = '') => {
         setIsExtracting(true);
         setExtractionStatus('Analysing PDF to extract question and source material...');
         setExtractionSummary('');
@@ -10916,17 +10930,17 @@ ${examinerComment}
             if (result.examSeries && !examSeries.trim()) {
               setExamSeries(result.examSeries);
             }
-            setExtractionSummary(result.summary || 'Content extracted successfully.');
+            setExtractionSummary((result.summary || 'Content extracted successfully.') + extraNote);
             setExtractionStatus('');
           } else {
             setExtractionStatus('');
             console.warn('PDF extraction failed:', result.error);
-            setExtractionSummary('Auto-extraction was not successful. Please enter the question and source material manually.');
+            setExtractionSummary('Auto-extraction was not successful. Please enter the question and source material manually.' + extraNote);
           }
         } catch (err) {
           console.error('PDF extraction error:', err);
           setExtractionStatus('');
-          setExtractionSummary('Auto-extraction encountered an error. Please enter the question and source material manually.');
+          setExtractionSummary('Auto-extraction encountered an error. Please enter the question and source material manually.' + extraNote);
         } finally {
           setIsExtracting(false);
         }
@@ -10935,6 +10949,7 @@ ${examinerComment}
       // File handling
       const handleSourceFileUpload = async (files) => {
         let allExtractedText = '';
+        const skippedScanned = [];
 
         for (const file of files) {
           if (file.size > 10 * 1024 * 1024) {
@@ -10947,7 +10962,7 @@ ${examinerComment}
             if (file.type === 'application/pdf') {
               const extractedText = await extractPdfText(file);
               if (!extractedText || extractedText.trim().length < 50) {
-                setExtractionSummary('"' + file.name + '" appears to be a scanned PDF with no selectable text, so nothing could be extracted from it. Please enter the question and source material manually, or upload photos of the pages as images instead.');
+                skippedScanned.push(file.name);
                 continue;
               }
               fileData = { name: file.name, type: 'text/plain', extractedText, originalType: 'application/pdf' };
@@ -10968,9 +10983,16 @@ ${examinerComment}
           }
         }
 
-        // Auto-extract question and source material from PDF text
+        // Auto-extract question and source material from PDF text. The
+        // skipped-file warning rides along as a note so it isn't wiped when
+        // another PDF in the same batch extracts successfully.
+        const scannedNote = skippedScanned.length > 0
+          ? ' Warning: ' + skippedScanned.join(', ') + ' appear(s) to be scanned with no selectable text and could not be read - enter that content manually or upload photos of those pages as images instead.'
+          : '';
         if (allExtractedText.trim()) {
-          autoExtractFromPdf(allExtractedText.trim());
+          autoExtractFromPdf(allExtractedText.trim(), scannedNote);
+        } else if (skippedScanned.length > 0) {
+          setExtractionSummary(scannedNote.trim());
         }
       };
 
@@ -11049,7 +11071,8 @@ ${examinerComment}
       // remount. Transient poll failures retry instead of aborting,
       // and the teacher can cancel out of the wait.
       // -----------------------------------------------------
-      const PENDING_JOB_KEY = 'essayGenPendingJob';
+      // Per-teacher so a shared machine can't resume another account's job
+      const PENDING_JOB_KEY = 'essayGenPendingJob:' + teacherEmail;
       const cancelGenerationRef = useRef(false);
 
       const handleGenerationResult = (result) => {
@@ -11125,7 +11148,11 @@ ${examinerComment}
           if (outcome.timedOut) {
             throw new Error('Generation timed out. The job may still finish — return to this tab in a few minutes to resume checking.');
           }
-          localStorage.removeItem(PENDING_JOB_KEY);
+          // Deliberately keep PENDING_JOB_KEY: the completed result lives on
+          // the server, so if this panel unmounts before the teacher saves
+          // (sidebar tab switch, refresh), the resume effect can recover the
+          // generated essay instead of losing a paid generation. The key is
+          // cleared on save, cancel, or form reset.
           handleGenerationResult(outcome.result);
         } catch (err) {
           console.error('Generation error:', err);
@@ -11144,6 +11171,14 @@ ${examinerComment}
           if (pending?.jobId) {
             setStep(4);
             setGenerationStatus('Resuming a generation job that was still running...');
+            // Re-fire the background trigger in case the original request was
+            // lost (fire-and-forget) — the server's pickup guard makes this
+            // safe for jobs that are already running or complete.
+            fetch('/.netlify/functions/generate-essay-background', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+              body: JSON.stringify({ jobId: pending.jobId })
+            }).catch(() => {});
             runGenerationJob(pending.jobId);
           }
         } catch (e) {
@@ -11208,15 +11243,9 @@ ${examinerComment}
 
       useEffect(() => { setMaxStepReached(m => Math.max(m, step)); }, [step]);
 
-      // Auto-apply the paper/question selection (marks, time, paper name) as
-      // it changes — no separate "Apply Selection" click needed.
-      useEffect(() => {
-        if (selectedPaper && selectedQuestions.length > 0) handleApplySelection();
-      }, [selectedPaper, selectedQuestions]);
-
       const resetForm = () => {
         if (!confirm('Clear the whole form and start over?')) return;
-        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(PENDING_JOB_KEY); } catch (e) {}
         setStep(1); setMaxStepReached(1);
         setGeneratedConfig(null); setServerParsedEssay(null); setEditableEssay(null); setEditExpandedParagraph(null);
         setSubject(''); setYearGroup(''); setExamBoard(''); setExamSeries(''); setTotalMarks('');
@@ -11248,6 +11277,9 @@ ${examinerComment}
       const handleGenerate = async () => {
         const settingsError = validateGenerationSettings();
         if (settingsError) { setError(settingsError); return; }
+        // Re-check the earlier steps: step-jumping and draft restore (which
+        // cannot restore uploaded files) can invalidate them after the fact.
+        if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
 
         setIsGenerating(true);
         setError('');
@@ -11325,7 +11357,15 @@ ${examinerComment}
             if (match) {
               try {
                 essayData = new Function('return (' + match[2] + ')')();
-                if (essayData) essayData.id = match[1];
+                if (essayData) {
+                  essayData.id = match[1];
+                  // The raw config redacts base64 image data for readability;
+                  // drop placeholders rather than saving corrupted images.
+                  if (Array.isArray(essayData.sourceImages)) {
+                    essayData.sourceImages = essayData.sourceImages.filter(img =>
+                      img && typeof img.data === 'string' && !img.data.startsWith('[base64'));
+                  }
+                }
               } catch (e) {
                 console.error('Config parse failed:', e);
                 essayData = null;
@@ -11369,6 +11409,7 @@ ${examinerComment}
             try {
               localStorage.setItem(DEFAULTS_KEY, JSON.stringify({ subject, yearGroup, examBoard, minWords, targetWords, maxAttempts }));
               localStorage.removeItem(DRAFT_KEY);
+              localStorage.removeItem(PENDING_JOB_KEY);
             } catch (e) {}
             if (onEssayGenerated) onEssayGenerated();
             // Keep the exam details (teachers often set several questions from
@@ -11515,7 +11556,16 @@ ${examinerComment}
             const clickable = canJumpToStep(s);
             return (
             <div key={s}
-              onClick={() => { if (clickable) setStep(s); }}
+              onClick={() => {
+                if (!clickable) return;
+                // Forward jumps must still pass the intermediate validations
+                if (s > step) {
+                  for (let i = step; i < s && i <= 3; i++) {
+                    if (!validateStep(i)) return;
+                  }
+                }
+                setStep(s);
+              }}
               role={clickable ? 'button' : undefined}
               title={clickable ? 'Go to ' + stepLabels[s - 1] : undefined}
               style={parseStyle(`display: flex; flex-direction: column; align-items: center; gap: var(--space-xs); cursor: ${clickable ? 'pointer' : 'default'};`)}>
@@ -12181,7 +12231,7 @@ ${examinerComment}
           )}
         </div>
       );
-    }
+    });
 
     // =====================================================
     // TEACHER MANAGEMENT PANEL (Admin Only)
