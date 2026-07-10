@@ -4,8 +4,10 @@
   "description": "Guided essay-writing platform: students write essays paragraph-by-paragraph with AI feedback; teachers manage classes, students, and essays via a dashboard. Netlify Functions + Firestore + Claude.",
   "private": true,
   "scripts": {
-    "start": "npx serve .",
+    "dev": "vite",
+    "start": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "test": "npm run test:smoke",
     "test:smoke": "vite build && node test/smoke.mjs"
   },
