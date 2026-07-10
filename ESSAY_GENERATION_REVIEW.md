@@ -379,13 +379,20 @@ choice: **"Start from a past paper"** (pick/upload → everything auto-fills) vs
    generation now forces a `create_essay_config` tool call with a full JSON schema;
    the generator's client-side multi-strategy parser was reduced to a single direct
    parse (the import dialog keeps its tolerant parser for hand-pasted configs).*
-8. Grade-boundaries UI in Step 3 → activates existing student-side authentic
-   descriptors (A5).
-9. Mark-scheme AI extraction + store mark scheme on the essay (A5, A6).
-10. Native PDF `document` blocks for extraction (A4 full version).
+8. ✅ Grade-boundaries UI in Step 3 → activates existing student-side authentic
+   descriptors (A5). *Boundaries are also auto-detected from uploaded mark
+   schemes and pre-filled.*
+9. ✅ Mark-scheme AI extraction + store mark scheme on the essay (A5, A6).
+   *Uploaded mark schemes get an AI structuring pass (level descriptors into
+   the text field, grade boundaries detected); storage landed with item 4.*
+10. ✅ Native PDF `document` blocks for extraction (A4 full version). *Scanned
+    question papers and mark schemes under ~3MB are now sent as base64 PDFs
+    and read with Claude's document support; larger scans get a clear warning.*
 11. Teacher profile defaults in Firestore (B2); Level/Subject/Board restructure
     with data-driven catalogue (B3).
-12. Student-view preview + per-paragraph regenerate (D5).
+12. ✅ Student-view preview + per-paragraph regenerate (D5). *Step 5 renders
+    each tier's learning material as students see it, and any paragraph can be
+    regenerated with an optional instruction without losing edits elsewhere.*
 
 **Larger (the step-change in user-friendliness)**
 13. Past-paper picker with official board links per series (A1) + fetch-by-URL (A2).
