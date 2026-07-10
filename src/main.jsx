@@ -2083,7 +2083,8 @@ import * as ReactDOM from 'react-dom/client';
             <div style={parseStyle("margin-top: var(--space-md);")}>
               {status === 'submitted' && (
                 <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); color: var(--color-success);")}>
-                  <span>Submitted</span>
+                  <Icon name={ICONS.trophy} size={18} />
+                  <span style={parseStyle("font-weight: 600;")}>Submitted — well done!</span>
                   {submission?.grade && (
                     <span style={parseStyle("background: var(--color-success-bg); padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 600;")}>
                       {submission.grade}
@@ -2091,7 +2092,7 @@ import * as ReactDOM from 'react-dom/client';
                   )}
                 </div>
               )}
-              
+
               {status === 'in-progress' && (
                 <div>
                   <div style={parseStyle("display: flex; justify-content: space-between; margin-bottom: var(--space-xs); font-size: 0.85rem;")}>
@@ -2103,16 +2104,27 @@ import * as ReactDOM from 'react-dom/client';
                   </div>
                 </div>
               )}
-              
+
               {status === 'not-started' && (
                 <span style={parseStyle("color: var(--color-text-muted); font-size: 0.85rem;")}>
-                  Not started
+                  Ready to start
                 </span>
               )}
             </div>
           </div>
         );
       };
+
+      // The single clearest next action: the in-progress essay closest to
+      // done, otherwise the first unstarted assignment.
+      const heroEssay = (() => {
+        if (essaysLoading) return null;
+        const inProgressEssays = assignedEssays
+          .filter(e => getEssayStatus(e.id) === 'in-progress')
+          .sort((a, b) => (progressData[b.id]?.percentComplete || 0) - (progressData[a.id]?.percentComplete || 0));
+        if (inProgressEssays.length) return inProgressEssays[0];
+        return assignedEssays.find(e => getEssayStatus(e.id) === 'not-started') || null;
+      })();
 
       return (
         <div className="app-container">
@@ -2150,19 +2162,63 @@ import * as ReactDOM from 'react-dom/client';
               </div>
             </div>
 
+            {/* Hero next-action card: the dashboard leads with ONE clear
+                thing to do next, not a flat file list. */}
+            {!essaysLoading && heroEssay && (() => {
+              const heroProg = progressData[heroEssay.id];
+              const heroPct = heroProg?.percentComplete || 0;
+              const heroStarted = getEssayStatus(heroEssay.id) === 'in-progress';
+              return (
+                <div className="card victorian-border" style={parseStyle("margin-bottom: var(--space-xl); padding: var(--space-xl);")}>
+                  <div style={parseStyle("font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-primary-light); margin-bottom: var(--space-sm);")}>
+                    {heroStarted ? 'Pick up where you left off' : 'Your next essay'}
+                  </div>
+                  <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-xs);")}>{heroEssay.title}</h2>
+                  {heroEssay.essayTitle && (
+                    <p style={parseStyle("font-style: italic; color: var(--color-text-muted); margin-bottom: var(--space-md);")}>
+                      "{heroEssay.essayTitle}"
+                    </p>
+                  )}
+                  {heroStarted ? (
+                    <div style={parseStyle("margin-bottom: var(--space-lg);")}>
+                      <div style={parseStyle("display: flex; justify-content: space-between; margin-bottom: var(--space-xs); font-size: 0.9rem;")}>
+                        <span>You're <strong>{heroPct}%</strong> of the way through</span>
+                        {heroProg?.totalParagraphs && (
+                          <span style={parseStyle("color: var(--color-text-muted);")}>{heroProg.completedParagraphs || 0} of {heroProg.totalParagraphs} paragraphs done</span>
+                        )}
+                      </div>
+                      <div role="progressbar" aria-valuenow={heroPct} aria-valuemin={0} aria-valuemax={100} aria-label="Essay progress" style={parseStyle("height: 12px; background: var(--color-border); border-radius: 6px; overflow: hidden;")}>
+                        <div style={{ width: heroPct + '%', height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))', borderRadius: '6px' }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={parseStyle("color: var(--color-text-muted); margin-bottom: var(--space-lg);")}>
+                      A fresh page is waiting for you.
+                    </p>
+                  )}
+                  <button className="btn btn-primary btn-large" onClick={() => onSelectEssay(heroEssay.id)} style={parseStyle("display: inline-flex; align-items: center; gap: 8px;")}>
+                    {heroStarted ? 'Continue Writing' : 'Start This Essay'} <Icon name={ICONS.chevronRight} size={18} />
+                  </button>
+                </div>
+              );
+            })()}
+
             {assignedEssays.length > 0 && (
               <div style={parseStyle("margin-bottom: var(--space-2xl);")}>
                 <h2 style={parseStyle("font-family: var(--font-display); font-size: 1.3rem; color: var(--color-primary-light); margin-bottom: var(--space-lg);")}>
                   Your Assigned Work
                 </h2>
-                
+
                 {essaysLoading ? (
                   <p style={parseStyle("color: var(--color-text-muted);")}>Loading...</p>
                 ) : (
                   <div className="essay-grid">
-                    {assignedEssays.map(essay => (
+                    {assignedEssays.filter(essay => essay.id !== heroEssay?.id).map(essay => (
                       <EssayCard key={essay.id} essay={essay} isAssigned={true} />
                     ))}
+                    {assignedEssays.length === 1 && heroEssay && (
+                      <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>That's everything for now — your next essay is above.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -2171,11 +2227,16 @@ import * as ReactDOM from 'react-dom/client';
             {assignedEssays.length === 0 && (
               <div style={parseStyle("text-align: center; padding: var(--space-2xl); background: var(--glass-bg); border-radius: var(--radius-lg); margin-bottom: var(--space-xl);")}>
                 <p style={parseStyle("font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: var(--space-md);")}>
-                  No work has been assigned to you yet.
+                  Nothing from your teacher yet.
                 </p>
-                <p style={parseStyle("color: var(--color-text-muted);")}>
-                  Your teacher will assign essays when they are ready. In the meantime, you can explore available essays below.
+                <p style={parseStyle("color: var(--color-text-muted); margin-bottom: var(--space-lg);")}>
+                  New essays will appear here as soon as they're set. Fancy a head start?
                 </p>
+                {otherEssays.length > 0 && (
+                  <button className="btn btn-primary" onClick={() => setShowExplore(true)}>
+                    Explore extra challenges
+                  </button>
+                )}
               </div>
             )}
 
@@ -6833,13 +6894,29 @@ ${examinerComment}
       
       return (
         <div className="ghost-appear">
+          {/* Celebration beat: finishing an essay is the biggest moment in
+              the product — mark it before any grading chrome appears. */}
+          <div className="card victorian-border score-reveal" style={parseStyle("text-align: center; padding: var(--space-xl); margin-bottom: var(--space-lg);")}>
+            <div style={parseStyle("color: var(--color-accent); margin-bottom: var(--space-sm);")}>
+              <Icon name={ICONS.trophy} size={44} />
+            </div>
+            <h2 className="gold-glow" style={parseStyle("margin-bottom: var(--space-xs);")}>You finished your essay!</h2>
+            <p style={parseStyle("color: var(--color-text-muted); margin: 0;")}>
+              Every paragraph written, checked and improved — that's real work, {studentName.split(' ')[0]}. Here it is in full.
+            </p>
+          </div>
+
           {/* Show loading indicator while feedback is being generated */}
           {isLoadingFeedback && (
             <div className="card" style={parseStyle("text-align: center; padding: var(--space-lg); margin-bottom: var(--space-lg); background: linear-gradient(135deg, rgba(184, 134, 11, 0.1), rgba(184, 134, 11, 0.05)); border: 1px solid var(--color-primary);")}>
-              <LoadingSpinner text="Generating feedback on your complete essay..." />
+              <StagedLoadingIndicator stages={[
+                'Reading your whole essay from start to finish...',
+                'Weighing it against the grade descriptors...',
+                'Writing feedback on the complete piece...'
+              ]} />
             </div>
           )}
-          
+
           {/* Essay Section */}
           <div className="essay-compilation">
             <div className="essay-compilation-header">
