@@ -3,6 +3,7 @@
 // enough output to return directly, so the teacher can iterate on weak
 // guidance without regenerating (and paying for) the whole essay.
 const Anthropic = require('@anthropic-ai/sdk').default;
+const { connectLambda } = require('@netlify/blobs');
 const { getSessionToken, verifyAdminSession } = require('./_lib/session');
 
 let client;
@@ -42,6 +43,8 @@ const truncate = (str, len) => {
 };
 
 exports.handler = async (event, context) => {
+  connectLambda(event); // enables the legacy Blobs session fallback
+
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',

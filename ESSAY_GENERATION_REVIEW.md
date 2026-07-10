@@ -388,8 +388,14 @@ choice: **"Start from a past paper"** (pick/upload → everything auto-fills) vs
 10. ✅ Native PDF `document` blocks for extraction (A4 full version). *Scanned
     question papers and mark schemes under ~3MB are now sent as base64 PDFs
     and read with Claude's document support; larger scans get a clear warning.*
-11. Teacher profile defaults in Firestore (B2); Level/Subject/Board restructure
-    with data-driven catalogue (B3).
+11. ✅ Teacher profile defaults in Firestore (B2); Level/Subject/Board restructure
+    with data-driven catalogue (B3). *Defaults roam via a `teacher-preferences`
+    function (localStorage still wins locally); Step 1 now has separate Level /
+    Subject / Board selectors driven by a `QUALIFICATION_LEVELS` table, the
+    composed subject string keeps existing essays compatible, KS3 no longer
+    shows a meaningless board picker, and generation phrases the three tiers
+    for the chosen level. Remaining from B3: hosting the catalogue in
+    Firestore so admins can extend it without a deploy.*
 12. ✅ Student-view preview + per-paragraph regenerate (D5). *Step 5 renders
     each tier's learning material as students see it, and any paragraph can be
     regenerated with an optional instruction without losing edits elsewhere.*

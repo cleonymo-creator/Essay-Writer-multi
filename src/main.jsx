@@ -10101,6 +10101,26 @@ ${examinerComment}
     // ESSAY GENERATOR PANEL (Admin Only)
     // =====================================================
 
+    // Qualification structure: level → subjects and exam boards. Drives the
+    // Step 1 selectors. The composed "subject" string (e.g. "GCSE English
+    // Language") is what gets stored on essays and keys examPaperData, so
+    // existing essays and drafts keep working unchanged.
+    const QUALIFICATION_LEVELS = {
+      'KS3': { subjects: ['English'], boards: [] },
+      'GCSE': { subjects: ['English Language', 'English Literature'], boards: ['AQA', 'Edexcel', 'Eduqas'] },
+      'A Level': { subjects: ['English Language', 'English Literature'], boards: ['AQA', 'Edexcel', 'Eduqas'] }
+    };
+    const composeSubject = (level, subjectName) =>
+      (level && subjectName) ? level + ' ' + subjectName : '';
+    const splitSubject = (subject) => {
+      for (const level of Object.keys(QUALIFICATION_LEVELS)) {
+        if (subject && subject.startsWith(level + ' ')) {
+          return { level, subjectName: subject.slice(level.length + 1) };
+        }
+      }
+      return { level: '', subjectName: '' };
+    };
+
     // Exam paper structure data for each subject/exam board combination.
     // Module scope: fully static, so it is allocated once instead of on
     // every render of the (always-mounted) generator panel.
@@ -10758,8 +10778,17 @@ ${examinerComment}
       const [serverParsedEssay, setServerParsedEssay] = useState(null);
       const [error, setError] = useState('');
 
-      // Form state
-      const [subject, setSubject] = useState('');
+      // Form state. Level and subject are chosen separately; the composed
+      // string (e.g. "GCSE English Language") is what everything downstream
+      // (payload, drafts, saved essays, examPaperData) uses as "subject".
+      const [level, setLevel] = useState('');
+      const [subjectName, setSubjectName] = useState('');
+      const subject = composeSubject(level, subjectName);
+      const setSubject = (composed) => {
+        const s = splitSubject(composed || '');
+        setLevel(s.level);
+        setSubjectName(s.subjectName);
+      };
       const [yearGroup, setYearGroup] = useState('');
       const [examBoard, setExamBoard] = useState('');
       const [examSeries, setExamSeries] = useState('');
@@ -11117,7 +11146,7 @@ ${examinerComment}
       // Validation
       const validateStep = (stepNum) => {
         if (stepNum === 1) {
-          if (!subject.trim()) { alert('Subject is required'); return false; }
+          if (!subject.trim()) { alert('Please choose a level and subject'); return false; }
           if (!yearGroup.trim()) { alert('Year Group is required'); return false; }
           if (!totalMarks) { alert('Total Marks is required'); return false; }
         }
@@ -11268,9 +11297,11 @@ ${examinerComment}
       // Restore an unsaved draft (or, failing that, the teacher's last-used
       // defaults) on mount, so a refresh or expired session doesn't lose work.
       useEffect(() => {
+        let hadDraft = false;
         try {
           const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
           if (draft && (draft.subject || draft.examQuestion || draft.markScheme || draft.sourceMaterial)) {
+            hadDraft = true;
             setSubject(draft.subject || ''); setYearGroup(draft.yearGroup || '');
             setExamBoard(draft.examBoard || ''); setExamSeries(draft.examSeries || '');
             setTotalMarks(draft.totalMarks || ''); setTimeAllowed(draft.timeAllowed || '');
@@ -11299,6 +11330,31 @@ ${examinerComment}
             }
           }
         } catch (e) { /* corrupt draft — start clean */ }
+
+        // Cross-device defaults from the teacher's Firestore profile. Local
+        // drafts and already-set local values always win; these only fill
+        // fields that are still at their initial value.
+        if (!hadDraft) {
+          fetch('/.netlify/functions/teacher-preferences', {
+            headers: { 'Authorization': 'Bearer ' + sessionToken }
+          })
+            .then(r => r.json())
+            .then(result => {
+              if (!result?.success || !result.defaults) return;
+              const d = result.defaults;
+              if (d.subject) {
+                const s = splitSubject(d.subject);
+                setLevel(prev => prev || s.level);
+                setSubjectName(prev => prev || s.subjectName);
+              }
+              if (d.yearGroup) setYearGroup(prev => prev || d.yearGroup);
+              if (d.examBoard) setExamBoard(prev => prev || d.examBoard);
+              if (d.minWords) setMinWords(prev => prev === '80' ? String(d.minWords) : prev);
+              if (d.targetWords) setTargetWords(prev => prev === '150' ? String(d.targetWords) : prev);
+              if (d.maxAttempts) setMaxAttempts(prev => prev === '3' ? String(d.maxAttempts) : prev);
+            })
+            .catch(() => { /* roaming defaults are best-effort */ });
+        }
       }, []);
 
       // Debounced draft autosave. File contents are too large for
@@ -11373,7 +11429,7 @@ ${examinerComment}
 
         try {
           const payload = {
-            subject, yearGroup, examBoard, examSeries, totalMarks: parseInt(totalMarks),
+            subject, level, yearGroup, examBoard, examSeries, totalMarks: parseInt(totalMarks),
             timeAllowed: timeAllowed ? parseInt(timeAllowed) : null,
             paperName, examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
             additionalNotes, minWords: parseInt(minWords), targetWords: parseInt(targetWords),
@@ -11500,6 +11556,12 @@ ${examinerComment}
               localStorage.removeItem(DRAFT_KEY);
               localStorage.removeItem(PENDING_JOB_KEY);
             } catch (e) {}
+            // Cross-device copy of the same defaults on the teacher profile
+            fetch('/.netlify/functions/teacher-preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+              body: JSON.stringify({ defaults: { subject, yearGroup, examBoard, minWords, targetWords, maxAttempts } })
+            }).catch(() => {});
             if (onEssayGenerated) onEssayGenerated();
             // Keep the exam details (teachers often set several questions from
             // the same paper in a row) — clear only question-specific content.
@@ -11733,18 +11795,30 @@ ${examinerComment}
             <div className="card">
               <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Information</h4>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
                 <div>
-                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
-                  <select value={subject} onChange={e => { setSubject(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Level *</label>
+                  <select value={level} onChange={e => {
+                      const newLevel = e.target.value;
+                      const subjects = QUALIFICATION_LEVELS[newLevel]?.subjects || [];
+                      setLevel(newLevel);
+                      setSubjectName(subjects.length === 1 ? subjects[0] : (subjects.includes(subjectName) ? subjectName : ''));
+                      if (!(QUALIFICATION_LEVELS[newLevel]?.boards || []).includes(examBoard)) setExamBoard('');
+                      setSelectedPaper(''); setSelectedQuestions([]);
+                    }}
                     className="form-input"
                     style={parseStyle("cursor: pointer;")}>
-                    <option value="">Select a subject...</option>
-                    <option value="KS3 English">KS3 English</option>
-                    <option value="GCSE English Language">GCSE English Language</option>
-                    <option value="GCSE English Literature">GCSE English Literature</option>
-                    <option value="A Level English Language">A Level English Language</option>
-                    <option value="A Level English Literature">A Level English Literature</option>
+                    <option value="">Select level...</option>
+                    {Object.keys(QUALIFICATION_LEVELS).map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
+                  <select value={subjectName} onChange={e => { setSubjectName(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
+                    className="form-input"
+                    style={parseStyle("cursor: pointer;")} disabled={!level}>
+                    <option value="">{level ? 'Select subject...' : 'Choose a level first'}</option>
+                    {(QUALIFICATION_LEVELS[level]?.subjects || []).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
@@ -11759,11 +11833,10 @@ ${examinerComment}
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
                   <select value={examBoard} onChange={e => { setExamBoard(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
                     className="form-input"
-                    style={parseStyle("cursor: pointer;")}>
-                    <option value="">Select exam board...</option>
-                    <option value="AQA">AQA</option>
-                    <option value="Edexcel">Edexcel</option>
-                    <option value="Eduqas">Eduqas</option>
+                    style={parseStyle("cursor: pointer;")}
+                    disabled={!level || (QUALIFICATION_LEVELS[level]?.boards || []).length === 0}>
+                    <option value="">{level === 'KS3' ? 'Not applicable (school-set)' : 'Select exam board...'}</option>
+                    {(QUALIFICATION_LEVELS[level]?.boards || []).map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
                 <div>
@@ -11863,7 +11936,7 @@ ${examinerComment}
               )}
 
               {/* Message for KS3 which has no exam board papers */}
-              {subject === 'KS3 English' && examBoard && (
+              {level === 'KS3' && (
                 <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
                   <p style={parseStyle("margin: 0; font-size: 0.85rem; color: var(--color-text-muted);")}>
                     KS3 assessments are internally set by schools. Please enter the paper details manually below.
