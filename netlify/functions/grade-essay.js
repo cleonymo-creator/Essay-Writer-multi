@@ -433,8 +433,9 @@ Remember:
 - ${abilityTier === 'foundation' ? 'Celebrate every positive aspect' : 'Acknowledge achievements while maintaining high expectations'}`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2500,
+      model: "claude-sonnet-5",
+      thinking: { type: "disabled" },
+      max_tokens: 4000,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt
     });

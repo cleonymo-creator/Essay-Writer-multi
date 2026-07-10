@@ -34,7 +34,14 @@ function getResponseText(response) {
   if (response && response.stop_reason === 'max_tokens') {
     throw new Error('Claude response was truncated (max_tokens reached) before valid JSON could be produced');
   }
-  return response.content[0].text;
+  // Find the first text block rather than assuming content[0] is text —
+  // responses can lead with non-text blocks (e.g. thinking) depending on
+  // model and request settings.
+  const textBlock = response.content.find((b) => b.type === 'text');
+  if (!textBlock) {
+    throw new Error('Claude response contained no text content');
+  }
+  return textBlock.text;
 }
 
 module.exports = { parseJsonResponse, getResponseText };

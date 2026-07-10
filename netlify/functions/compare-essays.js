@@ -167,8 +167,9 @@ ${improvedEssay}
 Please grade both versions and provide a detailed comparison showing the impact of the student's improvements.`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
+      model: "claude-sonnet-5",
+      thinking: { type: "disabled" },
+      max_tokens: 3000,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt
     });

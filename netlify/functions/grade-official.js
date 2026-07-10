@@ -224,8 +224,9 @@ ${p.finalText}`).join('\n\n')}
 Note: The student did not make revisions, so there is only one version to grade. Please grade this single version according to the official ${examBoard || officialMarkScheme.examBoard} mark scheme. For the comparison section, indicate that no changes were made.`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
+      model: "claude-sonnet-5",
+      thinking: { type: "disabled" },
+      max_tokens: 6000,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt
     });
