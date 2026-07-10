@@ -688,7 +688,11 @@ ${responseFormat}
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 1500,
+      // Generous headroom: the response format (grades, justifications,
+      // detailed feedback, example revision, authenticity check, and the
+      // inline annotations) exceeds 1500 tokens on verbose gradings, and a
+      // truncated response fails the whole grading request.
+      max_tokens: 3000,
       messages: [
         {
           role: "user",
