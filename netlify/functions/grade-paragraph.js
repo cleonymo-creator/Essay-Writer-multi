@@ -533,6 +533,10 @@ ${!isLastAttempt ? `5. Guide next revision` : `5. Summarise achievement`}`;
   "levelJustification": "<1-2 sentences explaining why the COMPLETE ESSAY achieves this grade, citing the STRONGEST paragraph/moment>",
   "strengths": ["<specific strength from the NEW paragraph '${paragraphConfig.title}'>", "<another strength from this new paragraph>"],
   "improvements": [${abilityTier === 'foundation' ? '"<ONE focused improvement for the NEW paragraph \'' + paragraphConfig.title + '\'>"' : abilityTier === 'high' ? '"<improvement for new paragraph 1>", "<improvement for new paragraph 2>", "<improvement for new paragraph 3>"' : '"<clear improvement for NEW paragraph 1>", "<improvement for NEW paragraph 2>"'}],
+  "annotations": [
+    {"quote": "<EXACT phrase copied character-for-character from the student's NEW paragraph, 4-12 words>", "type": "strength", "comment": "<one sentence, spoken directly to the student, about why THIS phrase works>"},
+    {"quote": "<another EXACT phrase from the student's NEW paragraph>", "type": "improve", "comment": "<one sentence suggesting how to improve THIS phrase>"}
+  ],
   "tieredHint": {
     "level": "${abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)} Level",
     "targetGrade": "${targetGrade}",
@@ -563,6 +567,10 @@ ${Object.entries(gradingCriteria)
   },
   "strengths": ["<specific strength 1>", "<specific strength 2>"],
   "improvements": [${abilityTier === 'foundation' ? '"<ONE focused, achievable improvement with a helpful hint>"' : '"<specific, actionable improvement 1>", "<specific, actionable improvement 2>"'}],
+  "annotations": [
+    {"quote": "<EXACT phrase copied character-for-character from the student's paragraph, 4-12 words>", "type": "strength", "comment": "<one sentence, spoken directly to the student, about why THIS phrase works>"},
+    {"quote": "<another EXACT phrase from the student's paragraph>", "type": "improve", "comment": "<one sentence suggesting how to improve THIS phrase>"}
+  ],
   "detailedFeedback": "<${abilityTier === 'foundation' ? '1-2 short, encouraging paragraphs' : abilityTier === 'high' ? '2-3 paragraphs of substantive, challenging feedback' : '2-3 paragraphs of balanced feedback'}>",
   "exampleRevision": "<${approach.example_style}>",
   "progressNote": "<if revision: ${approach.encouragement}>",
@@ -670,7 +678,13 @@ Remember: A student who shows one moment of Grade 8 analysis mixed with Grade 6 
 
 ## Response Format
 You must respond with valid JSON in this exact format:
-${responseFormat}`;
+${responseFormat}
+
+## Annotation Rules
+- Provide 2-4 annotations, mixing "strength" and "improve" types.
+- Each "quote" MUST be copied character-for-character (including punctuation and capitalisation) from the student's NEW paragraph — it will be string-matched to highlight their own words back to them. Never paraphrase, trim, or correct the quote.
+- Choose short, distinctive phrases (4-12 words) so the match is unambiguous.
+- Comments speak directly to the student in plain language appropriate to their target grade.`;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",

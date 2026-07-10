@@ -4611,7 +4611,78 @@ import * as ReactDOM from 'react-dom/client';
     // FEEDBACK DISPLAY COMPONENT
     // =====================================================
     
-    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade, authenticityCheck, referenceMode = false }) {
+    // Renders the student's own paragraph with the AI's annotations anchored
+    // to their exact phrases: gold underline = strength, dashed blue =
+    // something to improve. Tapping a phrase shows the comment. Quotes that
+    // don't string-match the text are silently dropped, so a hallucinated
+    // quote can never mis-highlight.
+    function AnnotatedText({ text, annotations }) {
+      const [activeId, setActiveId] = useState(null);
+
+      if (!text || !annotations || !annotations.length) return null;
+
+      // Anchor each annotation to its first exact occurrence
+      const anchored = [];
+      annotations.forEach((a, i) => {
+        if (!a || !a.quote || !a.comment) return;
+        const start = text.indexOf(a.quote);
+        if (start === -1) return;
+        anchored.push({ ...a, id: i, start, end: start + a.quote.length });
+      });
+      anchored.sort((a, b) => a.start - b.start);
+
+      // Drop overlapping spans (keep the earliest)
+      const spans = [];
+      let cursor = 0;
+      anchored.forEach(a => {
+        if (a.start >= cursor) {
+          spans.push(a);
+          cursor = a.end;
+        }
+      });
+      if (!spans.length) return null;
+
+      // Slice the text into plain and annotated segments
+      const segments = [];
+      let pos = 0;
+      spans.forEach(a => {
+        if (a.start > pos) segments.push({ text: text.slice(pos, a.start) });
+        segments.push({ text: text.slice(a.start, a.end), ann: a });
+        pos = a.end;
+      });
+      if (pos < text.length) segments.push({ text: text.slice(pos) });
+
+      const activeAnn = spans.find(s => s.id === activeId);
+
+      return (
+        <div className="feedback-section">
+          <div className="feedback-section-title"><span>&#9998; Your Writing, Annotated</span></div>
+          <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); font-style: italic; margin-bottom: var(--space-sm);")}>
+            Tap a highlighted phrase to see the comment about it.
+          </p>
+          <div className="annotated-text">
+            {segments.map((seg, i) => seg.ann ? (
+              <button
+                key={i}
+                type="button"
+                className={`annotation-mark ${seg.ann.type === 'strength' ? 'annotation-strength' : 'annotation-improve'} ${activeId === seg.ann.id ? 'active' : ''}`}
+                aria-expanded={activeId === seg.ann.id}
+                onClick={() => setActiveId(activeId === seg.ann.id ? null : seg.ann.id)}
+              >{seg.text}</button>
+            ) : (
+              <span key={i}>{seg.text}</span>
+            ))}
+          </div>
+          {activeAnn && (
+            <div role="status" className={`annotation-comment ${activeAnn.type === 'strength' ? 'strength' : 'improve'}`}>
+              <strong>{activeAnn.type === 'strength' ? 'What works here: ' : 'Try this: '}</strong>{activeAnn.comment}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function FeedbackDisplay({ feedback, attemptNumber, canRevise, cumulativeInfo, onRevise, onAccept, targetGrade, authenticityCheck, referenceMode = false, submittedText = '' }) {
       const scoreClass = getScoreClass(feedback.overallScore || 0);
       const grade = feedback.estimatedGrade || feedback.awardedGrade;
       const hasAuthenticGrade = Boolean(grade);
@@ -4682,6 +4753,8 @@ import * as ReactDOM from 'react-dom/client';
           <div style={parseStyle("margin-bottom: var(--space-md);")}>
             <TextToSpeech text={buildFeedbackText()} label="Read feedback aloud" targetGrade={targetGrade} />
           </div>
+
+          <AnnotatedText text={submittedText} annotations={feedback.annotations} />
 
           {feedback.strengths && feedback.strengths.length > 0 && (
             <div className="feedback-section">
@@ -6249,6 +6322,9 @@ import * as ReactDOM from 'react-dom/client';
               targetGrade={targetGrade}
               authenticityCheck={authenticityCheck}
               referenceMode={isRevising}
+              submittedText={paragraphState?.feedbackHistory?.length
+                ? paragraphState.feedbackHistory[paragraphState.feedbackHistory.length - 1].text
+                : (paragraphState?.currentText || text)}
             />
           )}
           </div>
