@@ -159,10 +159,14 @@
       
       /* Text on Dark */
       --color-text: #e8e8e8;
-      --color-text-secondary: #e8e8e8;
+      --color-text-secondary: #c9c9d6;
       --color-text-muted: #c0c0c0;
       --color-text-inverse: #1a1a2e;
       --color-text-gold: #daa520;
+      --color-gold: #daa520;
+
+      /* Secondary surface (panels, collapsed headers) */
+      --color-bg-secondary: rgba(30, 30, 50, 0.6);
       
       /* Semantic Colors */
       --color-success: #22c55e;
@@ -247,6 +251,26 @@
     #root {
       position: relative;
       z-index: 1;
+    }
+
+    /* Visible keyboard focus everywhere (mouse clicks stay ring-free).
+       !important so the ring appears instantly even on components that
+       declare `transition: all` (which would otherwise fade it in). */
+    :focus-visible {
+      outline: 2px solid var(--color-accent) !important;
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+      transition: none !important;
+    }
+
+    /* Respect users who opt out of motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
     
     /* =====================================================
@@ -413,6 +437,16 @@
       transition: all 0.15s ease;
       border-left: 3px solid transparent;
       font-size: 0.9rem;
+    }
+
+    /* Sidebar items are real <button>s for keyboard access — strip UA styles */
+    button.sidebar-item {
+      width: 100%;
+      background: none;
+      border: none;
+      border-left: 3px solid transparent;
+      font-family: inherit;
+      text-align: left;
     }
 
     .sidebar-item:hover {
@@ -693,6 +727,7 @@
       width: 40px;
       height: 40px;
       border-radius: var(--radius-md);
+      font-family: inherit;
       font-weight: 600;
       font-size: 0.9rem;
       cursor: pointer;
@@ -701,6 +736,11 @@
       background: rgba(30, 30, 50, 0.8);
       color: var(--color-text-muted);
       position: relative;
+      padding: 0;
+    }
+
+    .question-tracker-item:disabled {
+      cursor: not-allowed;
     }
     
     .question-tracker-item:hover:not(.locked) {
@@ -4633,7 +4673,13 @@
 
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Static loading shell shown until essays load and React mounts -->
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;" role="status">
+      <div class="spinner"></div>
+      <p style="color: var(--color-text-muted); font-size: 1.1rem;">Loading Essay Writing Assistant&hellip;</p>
+    </div>
+  </div>
   
   <script type="module" src="/src/main.jsx"></script>
 </body>

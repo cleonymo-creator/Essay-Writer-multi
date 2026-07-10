@@ -98,6 +98,7 @@ import * as ReactDOM from 'react-dom/client';
 
       return React.createElement('span', {
         className: `lucide-icon ${className}`,
+        'aria-hidden': 'true',
         style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }
       },
         React.createElement('svg', {
@@ -1336,8 +1337,8 @@ import * as ReactDOM from 'react-dom/client';
             </>
           )}
           <div className="tts-speed">
-            <label>Speed:</label>
-            <select value={speechRate || 0.9} onChange={handleRateChange}>
+            <label aria-hidden="true">Speed:</label>
+            <select value={speechRate || 0.9} onChange={handleRateChange} aria-label="Reading speed">
               <option value="0.6">Slower</option>
               <option value="0.8">Slow</option>
               <option value="0.9">Normal</option>
@@ -1355,13 +1356,213 @@ import * as ReactDOM from 'react-dom/client';
     
     function LoadingSpinner({ text = "Loading..." }) {
       return (
-        <div className="grading-indicator">
-          <div className="spinner"></div>
+        <div className="grading-indicator" role="status" aria-live="polite">
+          <div className="spinner" aria-hidden="true"></div>
           <span className="grading-text">{text}</span>
         </div>
       );
     }
-    
+
+    // =====================================================
+    // SHARED UI PRIMITIVES (Modal, Field, ConfirmDialog, Toast)
+    // =====================================================
+
+    // Accessible modal: role=dialog, focus trap, Escape-to-close, initial
+    // focus, and focus restoration to the opener on close. All app dialogs
+    // should be built on this instead of hand-rolled overlay divs.
+    function Modal({ title, onClose, children, width = 560, closeOnOverlay = true }) {
+      const panelRef = useRef(null);
+
+      useEffect(() => {
+        const opener = document.activeElement;
+        const node = panelRef.current;
+        const getFocusables = () => node
+          ? Array.from(node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.disabled && el.offsetParent !== null)
+          : [];
+        const autoTarget = node?.querySelector('[data-autofocus]') || getFocusables()[0];
+        if (autoTarget) autoTarget.focus();
+
+        const onKey = (e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            if (onClose) onClose();
+          } else if (e.key === 'Tab') {
+            const els = getFocusables();
+            if (!els.length) return;
+            const first = els[0];
+            const last = els[els.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => {
+          document.removeEventListener('keydown', onKey, true);
+          if (opener && typeof opener.focus === 'function') opener.focus();
+        };
+      }, []);
+
+      return (
+        <div
+          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+          onClick={closeOnOverlay && onClose ? (e) => { if (e.target === e.currentTarget) onClose(); } : undefined}
+        >
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            className="card"
+            style={{ maxWidth: width, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 'var(--space-xl)' }}
+          >
+            {title && <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>{title}</h3>}
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    // Form field with a programmatically associated label, plus hint and
+    // error slots. Wrap exactly one input/select/textarea.
+    let __fieldIdCounter = 0;
+    function Field({ label, hint, error, children }) {
+      const idRef = useRef(null);
+      if (!idRef.current) idRef.current = `field-${++__fieldIdCounter}`;
+      const id = idRef.current;
+      const child = React.Children.only(children);
+      return (
+        <div style={parseStyle("margin-bottom: var(--space-md);")}>
+          <label htmlFor={id} style={parseStyle("display: block; font-weight: 600; margin-bottom: var(--space-xs);")}>{label}</label>
+          {React.cloneElement(child, { id, 'aria-invalid': error ? true : undefined })}
+          {hint && !error && <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>{hint}</p>}
+          {error && <p role="alert" style={parseStyle("font-size: 0.85rem; color: var(--color-error); margin-top: var(--space-xs);")}>{error}</p>}
+        </div>
+      );
+    }
+
+    // Confirmation dialog to replace native confirm() for destructive
+    // actions. Destructive button is visually distinct and NOT autofocused.
+    function ConfirmDialog({ title, message, confirmLabel = 'Confirm', destructive = false, onConfirm, onCancel }) {
+      return (
+        <Modal title={title} onClose={onCancel} width={440}>
+          <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>{message}</p>
+          <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: flex-end;")}>
+            <button className="btn btn-secondary" data-autofocus onClick={onCancel}>Cancel</button>
+            <button
+              className="btn"
+              style={destructive
+                ? { background: 'var(--color-error)', color: '#fff' }
+                : { background: 'var(--color-primary)', color: 'var(--color-text-inverse)' }}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // Lightweight global toasts: call showToast('Saved', 'success'|'error'|'info')
+    // from anywhere; ToastHost (mounted once at the root) renders them.
+    let __toastCounter = 0;
+    function showToast(message, type = 'success') {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: { message, type, id: ++__toastCounter } }));
+    }
+
+    function ToastHost() {
+      const [toasts, setToasts] = useState([]);
+      useEffect(() => {
+        const onToast = (e) => {
+          const toast = e.detail;
+          setToasts(prev => [...prev, toast]);
+          setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toast.id)), 4500);
+        };
+        window.addEventListener('app-toast', onToast);
+        return () => window.removeEventListener('app-toast', onToast);
+      }, []);
+
+      if (!toasts.length) return null;
+      const typeStyles = {
+        success: 'border-color: var(--color-success); color: var(--color-success);',
+        error: 'border-color: var(--color-error); color: var(--color-error);',
+        info: 'border-color: var(--color-info); color: var(--color-info);'
+      };
+      return (
+        <div aria-live="polite" style={parseStyle("position: fixed; bottom: var(--space-lg); left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: var(--space-sm); align-items: center; pointer-events: none;")}>
+          {toasts.map(t => (
+            <div key={t.id} className="card" style={parseStyle(`padding: var(--space-sm) var(--space-lg); border: 1px solid; background: var(--color-bg-alt); box-shadow: var(--shadow-lg); font-weight: 500; ${typeStyles[t.type] || typeStyles.info}`)}>
+              {t.message}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Single source of truth for score -> colour so every panel agrees.
+    function scoreColor(score) {
+      if (score === null || score === undefined) return 'var(--color-text-muted)';
+      if (score >= 80) return 'var(--color-success)';
+      if (score >= 60) return 'var(--color-info)';
+      if (score >= 40) return 'var(--color-warning)';
+      return 'var(--color-error)';
+    }
+
+    // Shows one-time credentials (e.g. a reset password) in a copyable
+    // dialog instead of a native alert(), which loses the value forever
+    // the moment it's dismissed.
+    function CredentialDialog({ title, message, credentials, onClose }) {
+      const [copied, setCopied] = useState(false);
+      const credText = credentials.map(c => `${c.label}: ${c.value}`).join('\n');
+
+      const handleCopy = async () => {
+        try {
+          await navigator.clipboard.writeText(credText);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (e) {
+          debug('Clipboard copy failed:', e);
+        }
+      };
+
+      useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [onClose]);
+
+      return (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+        >
+          <div className="card" style={parseStyle("max-width: 440px; width: 100%; padding: var(--space-xl);")}>
+            <h3 style={parseStyle("margin-bottom: var(--space-md);")}>{title}</h3>
+            {message && <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>{message}</p>}
+            <div style={parseStyle("background: rgba(0, 0, 0, 0.3); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md);")}>
+              {credentials.map((c, i) => (
+                <div key={i} style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); padding: var(--space-xs) 0;")}>
+                  <span style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem;")}>{c.label}</span>
+                  <code style={parseStyle("font-family: var(--font-mono); font-size: 1rem; color: var(--color-primary-light); user-select: all;")}>{c.value}</code>
+                </div>
+              ))}
+            </div>
+            <p style={parseStyle("margin-bottom: var(--space-lg); font-size: 0.85rem; color: var(--color-warning);")}>
+              <Icon name={ICONS.alertTriangle} size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              Save this now — it will not be shown again.
+            </p>
+            <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: flex-end;")}>
+              <button className="btn btn-secondary" onClick={handleCopy}>
+                {copied ? 'Copied ✓' : 'Copy'}
+              </button>
+              <button className="btn btn-primary" autoFocus onClick={onClose}>Done</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // =====================================================
     // STUDENT LOGIN SCREEN
     // =====================================================
@@ -1527,39 +1728,43 @@ import * as ReactDOM from 'react-dom/client';
 
             <form onSubmit={handleLogin}>
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                <label htmlFor="student-login-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                   School Email
                 </label>
                 <input
+                  id="student-login-email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                  className="form-input"
                   autoFocus
                   disabled={isLoading}
                 />
               </div>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                <label htmlFor="student-login-password" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                   Password
                 </label>
                 <div style={parseStyle("position: relative;")}>
                   <input
+                    id="student-login-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(''); }}
                     placeholder="Enter your password"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-md); padding-right: 50px;")}
+                    className="form-input"
+                    style={parseStyle("padding-right: 50px;")}
                     disabled={isLoading}
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
-                    style={parseStyle("position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem;")}
+                    style={parseStyle("position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem; padding: var(--space-sm) var(--space-md); min-height: 44px;")}
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
@@ -1600,13 +1805,17 @@ import * as ReactDOM from 'react-dom/client';
                 </p>
                 <form onSubmit={handleForgotPassword}>
                   <div style={parseStyle("margin-bottom: var(--space-md);")}>
+                    <label htmlFor="student-reset-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      School Email
+                    </label>
                     <input
+                      id="student-reset-email"
                       type="email"
+                      autoComplete="email"
                       value={resetEmail}
                       onChange={(e) => { setResetEmail(e.target.value); setError(''); }}
                       placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
-                      className="paragraph-editor"
-                      style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                      className="form-input"
                       disabled={isLoading}
                     />
                   </div>
@@ -1763,10 +1972,15 @@ import * as ReactDOM from 'react-dom/client';
         const progress = progressData[essay.id];
         const submission = submissionData[essay.id];
 
+        const openEssay = () => isAssigned ? onSelectEssay(essay.id) : onExploreEssay(essay.id);
         return (
-          <div 
+          <div
             className="essay-card"
-            onClick={() => isAssigned ? onSelectEssay(essay.id) : onExploreEssay(essay.id)}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open essay: ${essay.title}`}
+            onClick={openEssay}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEssay(); } }}
             style={parseStyle(status === 'submitted' ? "border-color: var(--color-success);" : "")}
           >
             {isAssigned && (
@@ -1802,7 +2016,7 @@ import * as ReactDOM from 'react-dom/client';
                     <span style={parseStyle("color: var(--color-warning);")}>In Progress</span>
                     <span>{progress?.percentComplete || 0}%</span>
                   </div>
-                  <div style={parseStyle("height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
+                  <div role="progressbar" aria-valuenow={progress?.percentComplete || 0} aria-valuemin={0} aria-valuemax={100} aria-label="Essay progress" style={parseStyle("height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
                     <div style={{ width: (progress?.percentComplete || 0) + '%', height: '100%', background: 'var(--color-warning)' }} />
                   </div>
                 </div>
@@ -1885,17 +2099,19 @@ import * as ReactDOM from 'react-dom/client';
 
             {otherEssays.length > 0 && (
               <div>
-                <div 
+                <button
+                  type="button"
+                  aria-expanded={showExplore}
                   onClick={() => setShowExplore(!showExplore)}
-                  style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}
+                  style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-md); background: var(--glass-bg); border: none; border-radius: var(--radius-md); margin-bottom: var(--space-lg); width: 100%; font-family: inherit;")}
                 >
                   <h2 style={parseStyle("font-family: var(--font-display); font-size: 1.1rem; color: var(--color-text-muted); margin: 0;")}>
                     Explore Other Essays ({otherEssays.length})
                   </h2>
-                  <span style={parseStyle("color: var(--color-text-muted); font-size: 1.2rem;")}>
-                    {showExplore ? '[-]' : '[+]'}
+                  <span style={parseStyle("color: var(--color-text-muted);")}>
+                    <Icon name={showExplore ? ICONS.chevronUp : ICONS.chevronDown} size={20} />
                   </span>
-                </div>
+                </button>
                 
                 {showExplore && (
                   <div className="essay-grid">
@@ -1914,7 +2130,7 @@ import * as ReactDOM from 'react-dom/client';
               onClose={() => setShowPasswordModal(false)}
               onSuccess={() => {
                 setShowPasswordModal(false);
-                alert('Password changed successfully!');
+                showToast('Password changed successfully');
               }}
             />
           )}
@@ -1980,70 +2196,58 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h2>
-            
-            <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+        <Modal title="Change Password" onClose={isLoading ? undefined : onClose} width={400}>
+          <form onSubmit={handleSubmit}>
+            <Field label="Current Password" hint="Ask your teacher if you've forgotten it.">
+              <input
+                type="password"
+                autoComplete="current-password"
+                data-autofocus
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+            <Field label="New Password" hint="At least 6 characters.">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+            <Field label="Confirm New Password">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
-                  {error}
-                </div>
-              )}
-
-              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
-                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                  {isLoading ? 'Saving...' : 'Change Password'}
-                </button>
+            {error && (
+              <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                {error}
               </div>
-            </form>
-          </div>
-        </div>
+            )}
+
+            <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Change Password'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       );
     }
     
@@ -2197,10 +2401,11 @@ import * as ReactDOM from 'react-dom/client';
       // Get grade color
       const getGradeColor = (grade) => {
         if (!grade) return 'var(--color-text-muted)';
-        const g = grade.toUpperCase();
-        if (g.includes('A') || g === '9' || g === '8') return 'var(--color-success)';
-        if (g.includes('B') || g === '7' || g === '6') return '#22d3ee';
-        if (g.includes('C') || g === '5' || g === '4') return 'var(--color-warning)';
+        const g = String(grade).trim().toUpperCase();
+        if (g === 'UNGRADED' || g === 'N/A' || g === 'NA' || g === '-' || g === 'PENDING') return 'var(--color-text-muted)';
+        if (g.startsWith('A') || g === '9' || g === '8') return 'var(--color-success)';
+        if (g.startsWith('B') || g === '7' || g === '6') return 'var(--color-info)';
+        if (g.startsWith('C') || g === '5' || g === '4') return 'var(--color-warning)';
         return 'var(--color-error)';
       };
 
@@ -2208,7 +2413,7 @@ import * as ReactDOM from 'react-dom/client';
       const getScoreColor = (score) => {
         if (score === null || score === undefined) return 'var(--color-text-muted)';
         if (score >= 80) return 'var(--color-success)';
-        if (score >= 60) return '#22d3ee';
+        if (score >= 60) return 'var(--color-info)';
         if (score >= 40) return 'var(--color-warning)';
         return 'var(--color-error)';
       };
@@ -2321,8 +2526,12 @@ import * as ReactDOM from 'react-dom/client';
                     <div key={essayId} className="card" style={parseStyle("margin-bottom: var(--space-md);")}>
                       {/* Essay Header */}
                       <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
                         style={parseStyle("display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: var(--space-sm);") }
                         onClick={() => setExpandedEssay(isExpanded ? null : essayId)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedEssay(isExpanded ? null : essayId); } }}
                       >
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md);")}>
                           <span style={parseStyle("font-size: 1.5rem;")}>{essayInfo.icon}</span>
@@ -2383,11 +2592,11 @@ import * as ReactDOM from 'react-dom/client';
                                 <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
                                   <thead>
                                     <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Score</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Grade</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Submitted</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Score</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Grade</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Submitted</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2420,11 +2629,11 @@ import * as ReactDOM from 'react-dom/client';
                                 <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.9rem;")}>
                                   <thead>
                                     <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: center;")}>Progress</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Current Section</th>
-                                      <th style={parseStyle("padding: var(--space-sm); text-align: left;")}>Last Active</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Student</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Email</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: center;")}>Progress</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Current Section</th>
+                                      <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left;")}>Last Active</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2434,8 +2643,12 @@ import * as ReactDOM from 'react-dom/client';
                                       return (
                                         <React.Fragment key={idx}>
                                           <tr
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-expanded={isExpanded}
                                             style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
                                             onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedProgress(isExpanded ? null : progressKey); } }}
                                             title="Click to view paragraph details"
                                           >
                                             <td style={parseStyle("padding: var(--space-sm);")}>
@@ -2473,7 +2686,7 @@ import * as ReactDOM from 'react-dom/client';
                                                         const isCurrentPara = pIdx === (prog.currentParagraphIndex || 0);
                                                         const hasScore = para.score !== undefined && para.score !== null;
                                                         const scoreColor = hasScore
-                                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-error)')
                                                           : 'var(--color-text-muted)';
                                                         return (
                                                           <div
@@ -2482,7 +2695,7 @@ import * as ReactDOM from 'react-dom/client';
                                                               padding: var(--space-xs) var(--space-sm);
                                                               border-radius: var(--radius-sm);
                                                               background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
-                                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                                              color: ${isCurrentPara ? 'var(--color-text-inverse)' : scoreColor};
                                                               border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
                                                               min-width: 65px;
                                                               text-align: center;
@@ -2511,7 +2724,7 @@ import * as ReactDOM from 'react-dom/client';
                                                               padding: var(--space-xs) var(--space-sm);
                                                               border-radius: var(--radius-sm);
                                                               background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
-                                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                                              color: ${isCurrentPara || isCompleted ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'};
                                                               min-width: 65px;
                                                               text-align: center;
                                                               font-size: 0.8rem;
@@ -2564,12 +2777,12 @@ import * as ReactDOM from 'react-dom/client';
                   <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                     <thead>
                       <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
-                        <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Class</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Completed</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>In Progress</th>
+                        <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Avg Score</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2694,11 +2907,11 @@ import * as ReactDOM from 'react-dom/client';
                     <table style={parseStyle("width: 100%; border-collapse: collapse; font-size: 0.85rem;")}>
                       <thead>
                         <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                          <th style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
+                          <th scope="col" style={parseStyle("padding: var(--space-sm); text-align: left; position: sticky; left: 0; background: var(--color-surface); min-width: 150px;")}>Student</th>
                           {assignedEssayIds.map(essayId => {
                             const essayInfo = getEssayInfo(essayId);
                             return (
-                              <th key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
+                              <th scope="colgroup" key={essayId} colSpan="2" style={parseStyle("padding: var(--space-sm); text-align: center; border-left: 2px solid var(--color-border);")}>
                                 <div style={parseStyle("font-size: 0.8rem;")}>{essayInfo.icon}</div>
                                 <div style={parseStyle("max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;")} title={essayInfo.title}>
                                   {essayInfo.title || essayId}
@@ -2708,11 +2921,11 @@ import * as ReactDOM from 'react-dom/client';
                           })}
                         </tr>
                         <tr style={parseStyle("border-bottom: 1px solid var(--color-border); background: var(--color-bg);")}>
-                          <th style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
+                          <th scope="col" style={parseStyle("padding: var(--space-xs); position: sticky; left: 0; background: var(--color-bg);")}></th>
                           {assignedEssayIds.map(essayId => (
                             <React.Fragment key={essayId}>
-                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
-                              <th style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border);")}>1st Draft</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-xs); text-align: center; font-size: 0.75rem; color: var(--color-text-muted);")}>Final</th>
                             </React.Fragment>
                           ))}
                         </tr>
@@ -2739,7 +2952,7 @@ import * as ReactDOM from 'react-dom/client';
                                   background: noActivity ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
                                 }}
                               >
-                                <td style={parseStyle("padding: var(--space-sm); position: sticky; left: 0; background: inherit;")}>
+                                <td style={parseStyle(`padding: var(--space-sm); position: sticky; left: 0; background: ${noActivity ? '#3a2438' : 'var(--color-bg-alt)'};`)}>
                                   <div style={parseStyle("font-weight: 500;")}>{student.name || '-'}</div>
                                   <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>{student.email || '-'}</div>
                                   {noActivity && (
@@ -2848,7 +3061,7 @@ import * as ReactDOM from 'react-dom/client';
                           <span style={parseStyle("color: var(--color-success);")}>■</span> 80%+ (Excellent)
                         </div>
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
-                          <span style={{ color: '#22d3ee' }}>■</span> 60-79% (Good)
+                          <span style={parseStyle("color: var(--color-info);")}>■</span> 60-79% (Good)
                         </div>
                         <div style={parseStyle("display: flex; align-items: center; gap: var(--space-xs);")}>
                           <span style={parseStyle("color: var(--color-warning);")}>■</span> 40-59% (Developing)
@@ -2879,6 +3092,8 @@ import * as ReactDOM from 'react-dom/client';
     function StudentManagementPanel() {
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
+      const [credentialDialog, setCredentialDialog] = useState(null);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [showAddStudent, setShowAddStudent] = useState(false);
@@ -2946,7 +3161,14 @@ import * as ReactDOM from 'react-dom/client';
           result = await response.json();
 
           if (result.success) {
-            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Give this new password to the student.',
+              credentials: [
+                { label: 'Student', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -3032,9 +3254,7 @@ import * as ReactDOM from 'react-dom/client';
         alert(msg);
       };
 
-      const handleDeleteStudent = async (email, name) => {
-        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
-        
+      const performDeleteStudent = async (email) => {
         try {
           let result;
           const firebaseReady = await FirebaseDB.isReady();
@@ -3046,19 +3266,30 @@ import * as ReactDOM from 'react-dom/client';
             });
             result = await response.json();
           }
-          
+
           if (result.success) {
             setStudents(students.filter(s => s.email !== email));
+            showToast('Student deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting student');
+          showToast('Error deleting student', 'error');
         }
       };
 
+      const handleDeleteStudent = (email, name) => {
+        setConfirmAction({
+          title: 'Delete Student',
+          message: `Delete ${name} (${email})? This cannot be undone.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteStudent(email); }
+        });
+      };
+
       if (loading) {
-        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}> Loading students...</p></div>;
+        return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}>Loading students...</p></div>;
       }
 
       return (
@@ -3091,8 +3322,8 @@ import * as ReactDOM from 'react-dom/client';
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+              className="form-input"
+              style={parseStyle("flex: 1; min-width: 200px;")}
             />
             <select
               value={selectedClass}
@@ -3110,11 +3341,11 @@ import * as ReactDOM from 'react-dom/client';
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Last Login</th>
-                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Last Login</th>
+                  <th scope="col" style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -3175,7 +3406,14 @@ import * as ReactDOM from 'react-dom/client';
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
+                setCredentialDialog({
+                  title: 'Student Created',
+                  message: 'Give this password to the student.',
+                  credentials: [
+                    { label: 'Email', value: newStudent.email },
+                    { label: 'Password', value: password }
+                  ]
+                });
               }}
             />
           )}
@@ -3200,10 +3438,18 @@ import * as ReactDOM from 'react-dom/client';
               }}
             />
           )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
+          )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
-    
+
     // =====================================================
     // ADD STUDENT MODAL
     // =====================================================
@@ -3266,34 +3512,28 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Student</h2>
-            
+        <Modal title="Add Student" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+              <Field label="Full Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. John Smith"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email *</label>
+              <Field label="Email *">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. jsmith@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes (select multiple)</label>
@@ -3321,23 +3561,18 @@ import * as ReactDOM from 'react-dom/client';
                 )}
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Password (optional)</label>
+              <Field label="Password (optional)" hint="If left blank, a random password will be generated.">
                 <input
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Leave blank to auto-generate"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
-                  If left blank, a random password will be generated.
-                </p>
-              </div>
+              </Field>
 
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
                   {error}
                 </div>
               )}
@@ -3349,8 +3584,7 @@ import * as ReactDOM from 'react-dom/client';
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -3473,10 +3707,7 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow-y: auto;")}>
-          <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Import Students from CSV</h2>
-            
+        <Modal title="Import Students from CSV" onClose={onClose} width={600}>
             {!results ? (
               <>
                 <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md);")}>
@@ -3491,18 +3722,17 @@ import * as ReactDOM from 'react-dom/client';
                   </p>
                 </div>
 
-                <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Upload CSV File</label>
+                <Field label="Upload CSV File">
                   <input
                     type="file"
                     accept=".csv"
+                    data-autofocus
                     onChange={handleFileUpload}
                     style={parseStyle("width: 100%;")}
                   />
-                </div>
+                </Field>
 
-                <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Or Paste CSV Content</label>
+                <Field label="Or Paste CSV Content">
                   <textarea
                     value={csvContent}
                     onChange={(e) => setCsvContent(e.target.value)}
@@ -3510,7 +3740,7 @@ import * as ReactDOM from 'react-dom/client';
                     className="paragraph-editor"
                     style={parseStyle("min-height: 150px;")}
                   />
-                </div>
+                </Field>
 
                 <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                   <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Also add ALL students to these classes:</label>
@@ -3580,6 +3810,26 @@ import * as ReactDOM from 'react-dom/client';
                     <p style={parseStyle("font-size: 0.85rem; color: var(--color-warning); margin-top: var(--space-sm);")}>
                       Save these passwords! They will not be shown again.
                     </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={parseStyle("margin-top: var(--space-sm); display: inline-flex; align-items: center; gap: 6px;")}
+                      onClick={() => {
+                        const rows = [['Name', 'Email', 'Password'], ...results.results.created.map(s => [s.name || '', s.email || '', s.password || ''])];
+                        const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'student-passwords.csv';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Icon name={ICONS.download} size={16} /> Download credentials CSV
+                    </button>
                   </div>
                 )}
 
@@ -3590,8 +3840,7 @@ import * as ReactDOM from 'react-dom/client';
                 </div>
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -3646,74 +3895,62 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Create Class</h2>
-            
+        <Modal title="Create Class" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+              <Field label="Class Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. 10B English"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);")}>
+                <Field label="Subject">
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. English"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                </Field>
+                <Field label="Year Group">
                   <input
                     type="text"
                     value={yearGroup}
                     onChange={(e) => setYearGroup(e.target.value)}
                     placeholder="e.g. Year 10"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+              <Field label="Teacher Name">
                 <input
                   type="text"
                   value={teacher}
                   onChange={(e) => setTeacher(e.target.value)}
                   placeholder="e.g. Mr Davies"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+              <Field label="Teacher Email">
                 <input
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
                   placeholder="e.g. pdavies@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
                   {error}
                 </div>
               )}
@@ -3725,8 +3962,7 @@ import * as ReactDOM from 'react-dom/client';
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -4100,10 +4336,14 @@ import * as ReactDOM from 'react-dom/client';
                 {getEssayList().map((essay) => {
                   const savedProgress = getSavedProgress(essay.id);
                   return (
-                    <div 
-                      key={essay.id} 
+                    <div
+                      key={essay.id}
                       className="essay-card"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open essay: ${essay.title}`}
                       onClick={() => onSelectEssay(essay.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectEssay(essay.id); } }}
                       style={savedProgress ? { borderColor: 'var(--color-primary)' } : {}}
                     >
                       {savedProgress && (
@@ -4126,8 +4366,8 @@ import * as ReactDOM from 'react-dom/client';
                         <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted);")}>
                           <strong style={parseStyle("color: var(--color-primary-light);")}>{savedProgress.studentName}</strong>
                           <span> - {savedProgress.completedCount}/{savedProgress.totalParagraphs} paragraphs</span>
-                          <div style={parseStyle("margin-top: var(--space-xs); height: 4px; background: var(--color-border); border-radius: 2px; overflow: hidden;")}>
-                            <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '2px' }} />
+                          <div role="progressbar" aria-valuenow={savedProgress.percentComplete} aria-valuemin={0} aria-valuemax={100} aria-label="Essay progress" style={parseStyle("margin-top: var(--space-xs); height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden;")}>
+                            <div style={{ width: `${savedProgress.percentComplete}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '4px' }} />
                           </div>
                         </div>
                       )}
@@ -4206,7 +4446,7 @@ import * as ReactDOM from 'react-dom/client';
           aria-label="Show original task"
           title="Show original task"
         >
-          
+          <Icon name={ICONS.clipboard} size={24} />
         </button>
       );
     }
@@ -4239,10 +4479,15 @@ import * as ReactDOM from 'react-dom/client';
               else if (isInProgress) className += ' in-progress';
               if (isLocked) className += ' locked';
               
+              const statusText = isCompleted ? 'complete' : isInProgress ? 'in progress' : isLocked ? 'locked' : 'not started';
               return (
-                <div
+                <button
+                  type="button"
                   key={para.id}
                   className={className}
+                  disabled={isLocked && !previewMode}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  aria-label={`Paragraph ${index + 1}: ${para.title} (${statusText})`}
                   onClick={() => {
                     if (!isLocked || previewMode) {
                       onNavigate(index);
@@ -4251,7 +4496,7 @@ import * as ReactDOM from 'react-dom/client';
                   title={para.title}
                 >
                   {index + 1}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -4329,7 +4574,7 @@ import * as ReactDOM from 'react-dom/client';
       };
       
       return (
-        <div className="feedback-panel ghost-appear">
+        <div className="feedback-panel ghost-appear" role="region" aria-live="polite" aria-label="Feedback on your paragraph">
           {/* Authenticity Warning - shown if suspicious */}
           {hasAuthenticityWarning && (
             <div style={{
@@ -4544,11 +4789,11 @@ import * as ReactDOM from 'react-dom/client';
           <div className="revision-actions">
             {canRevise ? (
               <>
-                <button className="btn btn-primary" onClick={onRevise}>
-                  ? Revise My Paragraph
+                <button className="btn btn-primary" onClick={onRevise} style={parseStyle("display: inline-flex; align-items: center; justify-content: center; gap: 8px;")}>
+                  <Icon name={ICONS.edit} size={18} /> Revise My Paragraph
                 </button>
-                <button className="btn btn-success" onClick={onAccept}>
-                  ? Accept & Continue
+                <button className="btn btn-success" onClick={onAccept} style={parseStyle("display: inline-flex; align-items: center; justify-content: center; gap: 8px;")}>
+                  <Icon name={ICONS.check} size={18} /> Accept & Continue
                 </button>
               </>
             ) : (
@@ -4779,32 +5024,32 @@ import * as ReactDOM from 'react-dom/client';
                 ) : (
                   <>
                     <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      <label htmlFor="entry-student-name" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                         Your full name:
                       </label>
                       <input
+                        id="entry-student-name"
                         type="text"
                         value={studentName}
                         onChange={(e) => { setStudentName(e.target.value); setError(''); }}
                         placeholder="e.g. John Smith"
-                        className="paragraph-editor"
-                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                        className="form-input"
                         autoFocus
                       />
                     </div>
 
                     <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                      <label style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
+                      <label htmlFor="entry-student-email" style={parseStyle("display: block; margin-bottom: var(--space-sm); font-weight: 600;")}>
                         Your school email:
                       </label>
                       <input
+                        id="entry-student-email"
                         type="email"
                         value={studentEmail}
                         onChange={(e) => { setStudentEmail(e.target.value); setError(''); setExistingProgress(null); }}
                         onBlur={(e) => checkExistingProgress(e.target.value)}
                         placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
-                        className="paragraph-editor"
-                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                        className="form-input"
                       />
                       <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
                         Must end with {REQUIRED_EMAIL_DOMAIN}
@@ -4875,10 +5120,11 @@ import * as ReactDOM from 'react-dom/client';
 
                   {abilityTier && (
                     <div className={`grade-info-box ${abilityTier}`}>
-                      <div className="grade-info-title">
-                        {abilityTier === 'high' ? '&#128640; Aiming High!' :
-                         abilityTier === 'foundation' ? '&#128679; Building Strong Foundations' :
-                         '&#128200; Solid Progress'}
+                      <div className="grade-info-title" style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
+                        <Icon name={abilityTier === 'high' ? ICONS.trophy : abilityTier === 'foundation' ? ICONS.target : ICONS.chart} size={18} />
+                        {abilityTier === 'high' ? 'Aiming High!' :
+                         abilityTier === 'foundation' ? 'Building Strong Foundations' :
+                         'Solid Progress'}
                       </div>
                       <div className="grade-info-text">
                         {gradeSystemInfo.descriptions[abilityTier]}
@@ -5144,9 +5390,12 @@ import * as ReactDOM from 'react-dom/client';
       
       return (
         <div className={`source-material-card ${!isExpanded ? 'collapsed' : ''}`}>
-          <div 
+          <button
+            type="button"
             className="source-material-header"
+            aria-expanded={isExpanded}
             onClick={() => setIsExpanded(!isExpanded)}
+            style={parseStyle("width: 100%; background: none; border: none; font-family: inherit; text-align: left; cursor: pointer;")}
           >
             <h3 className="source-material-title">
               <span className="source-material-title-icon"><Icon name={ICONS.book} size={20} /></span>
@@ -5156,7 +5405,7 @@ import * as ReactDOM from 'react-dom/client';
               <span>{isExpanded ? 'Click to collapse' : 'Click to expand'}</span>
               <span className="source-material-toggle-icon"><Icon name={isExpanded ? ICONS.chevronUp : ICONS.chevronDown} size={16} /></span>
             </div>
-          </div>
+          </button>
           
           {!isExpanded && (
             <div className="source-material-hint">
@@ -5202,9 +5451,31 @@ import * as ReactDOM from 'react-dom/client';
         return error.correctionTarget || error.errorText;
       };
 
-      // Apply correction to the text
-      const applyCorrection = (text, targetText, correction) => {
-        // Find and replace the correction target with the student's correction
+      // Apply correction to the text.
+      // A bare text.replace() would always hit the FIRST occurrence, so a
+      // repeated word could get corrected in the wrong place. Anchor the
+      // replacement using the error's context/position instead.
+      const applyCorrection = (text, targetText, correction, error) => {
+        const context = error?.errorContext;
+        if (context) {
+          const ctxIdx = text.indexOf(context);
+          if (ctxIdx !== -1) {
+            const targetIdx = context.indexOf(targetText);
+            if (targetIdx !== -1) {
+              const abs = ctxIdx + targetIdx;
+              return text.slice(0, abs) + correction + text.slice(abs + targetText.length);
+            }
+          }
+        }
+        if (typeof error?.startIndex === 'number') {
+          let best = -1;
+          let idx = text.indexOf(targetText);
+          while (idx !== -1) {
+            if (best === -1 || Math.abs(idx - error.startIndex) < Math.abs(best - error.startIndex)) best = idx;
+            idx = text.indexOf(targetText, idx + 1);
+          }
+          if (best !== -1) return text.slice(0, best) + correction + text.slice(best + targetText.length);
+        }
         return text.replace(targetText, correction);
       };
 
@@ -5240,7 +5511,7 @@ import * as ReactDOM from 'react-dom/client';
         setCorrectionMessage('Excellent! You\'ve corrected this error.');
 
         // Apply the correction to the text
-        const updatedText = applyCorrection(currentText, target, correctionInput);
+        const updatedText = applyCorrection(currentText, target, correctionInput, currentError);
         setCurrentText(updatedText);
         onUpdateText(updatedText);
         
@@ -5468,8 +5739,9 @@ import * as ReactDOM from 'react-dom/client';
 // PARAGRAPH SCREEN
     // =====================================================
     
-    function ParagraphScreen({ paragraph, paragraphState, paragraphStates, onSubmitAttempt, onComplete, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
+    function ParagraphScreen({ paragraph, paragraphState, paragraphStates, onSubmitAttempt, onComplete, onDraftChange, previewMode, config, gradingCriteria, gradeBoundaries, totalMarks, targetGrade, gradeSystem }) {
       const [text, setText] = useState(paragraphState?.currentText || '');
+      const [draftStatus, setDraftStatus] = useState('idle'); // 'idle' | 'unsaved' | 'saved'
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [showFeedback, setShowFeedback] = useState(false);
       const [currentFeedback, setCurrentFeedback] = useState(null);
@@ -5483,7 +5755,28 @@ import * as ReactDOM from 'react-dom/client';
       const [originalTextBeforeCorrections, setOriginalTextBeforeCorrections] = useState(null); // Captures text before any corrections
       
       const textareaRef = useRef(null);
-      
+
+      // Autosave the unsubmitted draft into paragraphStates so navigating
+      // away (tracker, refresh, crash) never silently discards typed work.
+      useEffect(() => {
+        if (previewMode || !onDraftChange || paragraphState?.completed) return;
+        if (text === (paragraphState?.currentText || '')) return;
+        setDraftStatus('unsaved');
+        const timer = setTimeout(() => {
+          onDraftChange(text);
+          setDraftStatus('saved');
+        }, 800);
+        return () => clearTimeout(timer);
+      }, [text]);
+
+      // Warn before the tab closes while a draft change hasn't been saved yet
+      useEffect(() => {
+        if (draftStatus !== 'unsaved') return;
+        const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+      }, [draftStatus]);
+
       const wordCount = countWords(text);
       const minWords = config?.minWordsPerParagraph || 50;
       const targetWords = config?.targetWordsPerParagraph || 100;
@@ -5806,6 +6099,7 @@ import * as ReactDOM from 'react-dom/client';
                   alert('Drag and drop is not allowed. Please type your response.');
                 }}
                 placeholder="Start writing your paragraph here..."
+                aria-label={`Write your ${paragraph.title || 'paragraph'} here`}
                 disabled={isSubmitting || submissionStage === 'grading'}
                 spellCheck={false}
                 autoCorrect="off"
@@ -5818,6 +6112,11 @@ import * as ReactDOM from 'react-dom/client';
               
               <div className={`word-count ${wordCountClass}`}>
                 <span>{wordCount} words {wordCount < minWords && `(minimum ${minWords})`}</span>
+                {!previewMode && draftStatus !== 'idle' && (
+                  <span role="status" style={parseStyle(`font-size: 0.85rem; color: ${draftStatus === 'saved' ? 'var(--color-success)' : 'var(--color-text-muted)'};`)}>
+                    {draftStatus === 'saved' ? 'Draft saved ✓' : 'Saving…'}
+                  </span>
+                )}
                 <span>Target: {targetWords} words</span>
               </div>
               
@@ -6290,7 +6589,7 @@ ${examinerComment}
             <div className="holistic-feedback" style={parseStyle("margin-top: var(--space-xl);")}>
               <div className="holistic-header">
                 <div>
-                  <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Official Mark Scheme Grading</h2>
+                  <h2 style={parseStyle("margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.award} size={22} /> Official Mark Scheme Grading</h2>
                   <p style={parseStyle("color: var(--color-text-muted);")}>
                     {config.officialMarkScheme.examBoard} {config.officialMarkScheme.qualification}  {config.officialMarkScheme.paper}
                   </p>
@@ -6307,7 +6606,7 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>Grade {initialVersion.grade}</div>
                   </div>
 
-                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")}></div>
+                  <div style={parseStyle("font-size: 2rem; color: var(--color-primary);")} aria-hidden="true">&rarr;</div>
 
                   <div>
                     <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);")}>Improved</div>
@@ -6386,7 +6685,7 @@ ${examinerComment}
                 <div className="holistic-feedback">
                   <div className="holistic-header">
                     <div>
-                      <h2 style={parseStyle("margin-bottom: var(--space-sm);")}> Essay Feedback</h2>
+                      <h2 style={parseStyle("margin-bottom: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.fileText} size={22} /> Essay Feedback</h2>
                       <p style={parseStyle("color: var(--color-text-muted);")}>Overall assessment of your complete essay</p>
                     </div>
                     <div className="final-grade">
@@ -6411,7 +6710,7 @@ ${examinerComment}
                   
                   {essayFeedback.bestQuotation && (
                     <div className="best-quote">
-                      <div className="best-quote-label"> Your Best Writing</div>
+                      <div className="best-quote-label">Your Best Writing</div>
                       "{essayFeedback.bestQuotation}"
                     </div>
                   )}
@@ -6550,7 +6849,7 @@ ${examinerComment}
             <>
               {!showOfficialGrading && !isLoadingOfficialGrading && (
                 <div className="card" style={parseStyle("margin-top: var(--space-xl); text-align: center; padding: var(--space-xl); background: linear-gradient(135deg, rgba(25, 35, 55, 0.95), rgba(20, 30, 50, 0.98)); border: 2px solid var(--color-primary);")}>
-                  <h3 style={parseStyle("margin-bottom: var(--space-md);")}> 📋 Official Mark Scheme Grading</h3>
+                  <h3 style={parseStyle("margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);")}><Icon name={ICONS.clipboard} size={20} /> Official Mark Scheme Grading</h3>
                   <p style={parseStyle("margin-bottom: var(--space-md); color: var(--color-text-secondary);")}>
                     Grade your essay against the official <strong>{config.officialMarkScheme.examBoard}</strong> mark scheme for {config.officialMarkScheme.qualification}.
                   </p>
@@ -6618,6 +6917,26 @@ ${examinerComment}
       const [studentSearch, setStudentSearch] = useState('');
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
+
+      // Deep-linkable dashboard tabs: #/teacher/<tab> survives refresh and
+      // Back/Forward steps between tabs.
+      const DASHBOARD_TABS = ['submissions', 'performance', 'students', 'assignments', 'essays', 'teachers', 'admin-students', 'admin-classes'];
+      useEffect(() => {
+        const applyHashTab = () => {
+          const m = window.location.hash.match(/^#\/teacher\/([a-z-]+)/);
+          if (m && DASHBOARD_TABS.includes(m[1])) setActiveTab(m[1]);
+        };
+        applyHashTab();
+        window.addEventListener('hashchange', applyHashTab);
+        return () => window.removeEventListener('hashchange', applyHashTab);
+      }, []);
+      useEffect(() => {
+        const target = `#/teacher/${activeTab}`;
+        const current = window.location.hash;
+        if (current === target || !current.startsWith('#/teacher')) return;
+        if (current === '#/teacher') window.history.replaceState(null, '', target);
+        else window.history.pushState(null, '', target);
+      }, [activeTab]);
       const [sidebarOpen, setSidebarOpen] = useState(false);
       const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
       const [classes, setClasses] = useState([]);
@@ -6919,76 +7238,84 @@ ${examinerComment}
                 {/* Main Navigation */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Overview</div>
-                  <div className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
+                  <button type="button" className={`sidebar-item ${activeTab === 'submissions' ? 'active' : ''}`}
+                    aria-current={activeTab === 'submissions' ? 'page' : undefined}
                     onClick={() => { setActiveTab('submissions'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.inbox} size={18} /></span>
                     <span>Submissions</span>
                     {submissions.length > 0 && <span className="sidebar-item-badge">{submissions.length}</span>}
-                  </div>
-                  <div className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
+                  </button>
+                  <button type="button" className={`sidebar-item ${activeTab === 'performance' ? 'active' : ''}`}
+                    aria-current={activeTab === 'performance' ? 'page' : undefined}
                     onClick={() => { setActiveTab('performance'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.chart} size={18} /></span>
                     <span>Performance</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Class Management */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Class Management</div>
-                  <div className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
+                  <button type="button" className={`sidebar-item ${activeTab === 'students' ? 'active' : ''}`}
+                    aria-current={activeTab === 'students' ? 'page' : undefined}
                     onClick={() => { setActiveTab('students'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
                     <span>Students</span>
-                  </div>
-                  <div className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
+                  </button>
+                  <button type="button" className={`sidebar-item ${activeTab === 'assignments' ? 'active' : ''}`}
+                    aria-current={activeTab === 'assignments' ? 'page' : undefined}
                     onClick={() => { setActiveTab('assignments'); setSidebarOpen(false); }}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.clipboard} size={18} /></span>
                     <span>Assignments</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Admin Section */}
                 {isAdmin && (
                   <div className="sidebar-section">
                     <div className="sidebar-section-title">Administration</div>
-                    <div className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
+                    <button type="button" className={`sidebar-item ${activeTab === 'essays' ? 'active' : ''}`}
+                      aria-current={activeTab === 'essays' ? 'page' : undefined}
                       onClick={() => { setActiveTab('essays'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.fileText} size={18} /></span>
                       <span>Essays</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'teachers' ? 'active' : ''}`}
+                      aria-current={activeTab === 'teachers' ? 'page' : undefined}
                       onClick={() => { setActiveTab('teachers'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.graduationCap} size={18} /></span>
                       <span>Teachers</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'admin-students' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'admin-students' ? 'active' : ''}`}
+                      aria-current={activeTab === 'admin-students' ? 'page' : undefined}
                       onClick={() => { setActiveTab('admin-students'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.users} size={18} /></span>
                       <span>Students</span>
-                    </div>
-                    <div className={`sidebar-item ${activeTab === 'admin-classes' ? 'active' : ''}`}
+                    </button>
+                    <button type="button" className={`sidebar-item ${activeTab === 'admin-classes' ? 'active' : ''}`}
+                      aria-current={activeTab === 'admin-classes' ? 'page' : undefined}
                       onClick={() => { setActiveTab('admin-classes'); setSidebarOpen(false); }}>
                       <span className="sidebar-item-icon"><Icon name={ICONS.book} size={18} /></span>
                       <span>Classes</span>
-                    </div>
+                    </button>
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="sidebar-section">
                   <div className="sidebar-section-title">Actions</div>
-                  <div className="sidebar-item" onClick={handleRefresh}>
+                  <button type="button" className="sidebar-item" onClick={handleRefresh}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.refresh} size={18} /></span>
                     <span>Refresh Data</span>
-                  </div>
-                  <div className="sidebar-item" onClick={() => setShowChangePassword(true)}>
+                  </button>
+                  <button type="button" className="sidebar-item" onClick={() => setShowChangePassword(true)}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.key} size={18} /></span>
                     <span>Change Password</span>
-                  </div>
-                  <div className="sidebar-item" onClick={onLogout}>
+                  </button>
+                  <button type="button" className="sidebar-item" onClick={onLogout}>
                     <span className="sidebar-item-icon"><Icon name={ICONS.logout} size={18} /></span>
                     <span>Logout</span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* User Info */}
@@ -7110,8 +7437,7 @@ ${examinerComment}
                   value={studentSearch}
                   onChange={e => setStudentSearch(e.target.value)}
                   placeholder="Search by name or email..."
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
               </div>
               {/* Clear Filters */}
@@ -7140,8 +7466,12 @@ ${examinerComment}
           {/* Preview Essays - Collapsible, grouped by Subject then Year Group */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4
+              role="button"
+              tabIndex={0}
+              aria-expanded={showPreviewEssays}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowPreviewEssays(!showPreviewEssays)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowPreviewEssays(!showPreviewEssays); } }}
             >
               <span>Preview Essays ({allEssays.length})</span>
               <span style={parseStyle(`transform: rotate(${showPreviewEssays ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7199,8 +7529,12 @@ ${examinerComment}
           {/* In-Progress Students */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-xl);")}>
             <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={showInProgress}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowInProgress(!showInProgress)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowInProgress(!showInProgress); } }}
             >
               <span>In Progress ({filteredInProgress.length})</span>
               <span style={parseStyle(`transform: rotate(${showInProgress ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7215,12 +7549,12 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                      {filterEssayId === 'all' && <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Current Section</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Progress</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Last Active</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                      {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Current Section</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Progress</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Last Active</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -7232,8 +7566,12 @@ ${examinerComment}
                       return (
                         <React.Fragment key={index}>
                           <tr
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded}
                             style={parseStyle(`border-bottom: 1px solid var(--color-border-light); cursor: pointer; ${isExpanded ? 'background: var(--color-bg-secondary);' : ''}`)}
                             onClick={() => setExpandedProgress(isExpanded ? null : progressKey)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedProgress(isExpanded ? null : progressKey); } }}
                             title="Click to view paragraph details"
                           >
                             <td style={parseStyle("padding: var(--space-md);")}>
@@ -7276,7 +7614,7 @@ ${examinerComment}
                                         const isCurrentPara = pIdx === (student.currentParagraphIndex || 0);
                                         const hasScore = para.score !== undefined && para.score !== null;
                                         const scoreColor = hasScore
-                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)')
+                                          ? (para.score >= 80 ? 'var(--color-success)' : para.score >= 60 ? 'var(--color-warning)' : 'var(--color-error)')
                                           : 'var(--color-text-muted)';
                                         return (
                                           <div
@@ -7285,7 +7623,7 @@ ${examinerComment}
                                               padding: var(--space-sm) var(--space-md);
                                               border-radius: var(--radius-md);
                                               background: ${isCurrentPara ? 'var(--color-primary)' : hasScore ? 'var(--color-bg)' : 'var(--color-border-light)'};
-                                              color: ${isCurrentPara ? 'white' : scoreColor};
+                                              color: ${isCurrentPara ? 'var(--color-text-inverse)' : scoreColor};
                                               border: 1px solid ${isCurrentPara ? 'var(--color-primary)' : hasScore ? scoreColor : 'var(--color-border)'};
                                               min-width: 80px;
                                               text-align: center;
@@ -7313,7 +7651,7 @@ ${examinerComment}
                                               padding: var(--space-sm) var(--space-md);
                                               border-radius: var(--radius-md);
                                               background: ${isCurrentPara ? 'var(--color-primary)' : isCompleted ? 'var(--color-success)' : 'var(--color-border-light)'};
-                                              color: ${isCurrentPara || isCompleted ? 'white' : 'var(--color-text-muted)'};
+                                              color: ${isCurrentPara || isCompleted ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'};
                                               min-width: 80px;
                                               text-align: center;
                                             `)}
@@ -7349,8 +7687,12 @@ ${examinerComment}
           {/* Completed Submissions */}
           <div className="card">
             <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={showCompleted}
               style={parseStyle("margin-bottom: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;")}
               onClick={() => setShowCompleted(!showCompleted)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowCompleted(!showCompleted); } }}
             >
               <span>Completed Essays ({filteredSubmissions.length})</span>
               <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
@@ -7365,14 +7707,14 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
-                      {filterEssayId === 'all' && <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
-                      <th style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Student</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Email</th>
+                      {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -7389,11 +7731,11 @@ ${examinerComment}
                               {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
                             </td>
                           )}
-                          <td style={parseStyle("padding: var(--space-md); text-align: center; font-weight: 600; color: var(--color-success);")}>{sub.score}%</td>
+                          <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${sub.score >= 80 ? 'var(--color-success)' : sub.score >= 60 ? 'var(--color-info)' : sub.score >= 40 ? 'var(--color-warning)' : 'var(--color-error)'};`)}>{sub.score}%</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}> Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}> Official Grading</span>
+                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
+                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
                           </td>
                           <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
                           <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
@@ -7409,15 +7751,11 @@ ${examinerComment}
           </div>
           
           {selectedSubmission && (
-            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow: auto;")} onClick={() => setSelectedSubmission(null)}>
-              <div className="card" style={parseStyle("max-width: 900px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={(e) => e.stopPropagation()}>
-                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
-                  <div>
-                    <h3 style={parseStyle("margin-bottom: var(--space-xs);")}>{selectedSubmission.studentName}'s Essay</h3>
-                    {selectedSubmission.studentEmail && (
-                      <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin: 0;")}>{selectedSubmission.studentEmail}</p>
-                    )}
-                  </div>
+            <Modal title={`${selectedSubmission.studentName}'s Essay`} onClose={() => setSelectedSubmission(null)} width={900}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); margin-top: calc(-1 * var(--space-md));")}>
+                  {selectedSubmission.studentEmail ? (
+                    <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin: 0;")}>{selectedSubmission.studentEmail}</p>
+                  ) : <span />}
                   <button className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Close</button>
                 </div>
                 
@@ -7439,7 +7777,7 @@ ${examinerComment}
                   <div style={parseStyle("margin-bottom: var(--space-xl);")}>
                     {selectedSubmission.originalEssay && selectedSubmission.essaysAreDifferent ? (
                       <>
-                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essays: Original vs Improved</h4>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Essays: Original vs Improved</h4>
                         <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);")}>
                           {/* Original Essay */}
                           <div>
@@ -7467,7 +7805,7 @@ ${examinerComment}
                       </>
                     ) : (
                       <>
-                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}> Essay</h4>
+                        <h4 style={parseStyle("margin-bottom: var(--space-md);")}>Essay</h4>
                         <div className="compiled-essay" style={parseStyle("background: var(--color-bg); padding: var(--space-lg); border-radius: var(--radius-md);")}>
                           {selectedSubmission.essay.split('\n\n').map((para, i) => (
                             <p key={i} className="compiled-paragraph">{para}</p>
@@ -7554,8 +7892,7 @@ ${examinerComment}
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
+            </Modal>
               )}
               </>
               )}
@@ -7567,7 +7904,7 @@ ${examinerComment}
               onClose={() => setShowChangePassword(false)}
               onSuccess={() => {
                 setShowChangePassword(false);
-                alert('Password changed successfully');
+                showToast('Password changed successfully');
               }}
             />
           )}
@@ -7923,64 +8260,64 @@ ${examinerComment}
           <form onSubmit={mode === 'setup' ? handleSetup : handleLogin}>
             {mode === 'setup' && (
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                <label htmlFor="teacher-setup-name" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                   Your Name
                 </label>
                 <input
+                  id="teacher-setup-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
               </div>
             )}
             
             <div style={parseStyle("margin-bottom: var(--space-md);")}>
-              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+              <label htmlFor="teacher-login-email" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                 Email
               </label>
               <input
+                id="teacher-login-email"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="teacher@school.com"
-                className="paragraph-editor"
-                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                className="form-input"
                 disabled={isLoading}
                 autoFocus
               />
             </div>
             
             <div style={parseStyle("margin-bottom: var(--space-md);")}>
-              <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+              <label htmlFor="teacher-login-password" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                 Password
               </label>
               <input
+                id="teacher-login-password"
                 type="password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 placeholder={mode === 'setup' ? 'At least 8 characters' : 'Enter password'}
-                className="paragraph-editor"
-                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                className="form-input"
                 disabled={isLoading}
               />
             </div>
             
             {mode === 'setup' && (
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
+                <label htmlFor="teacher-setup-confirm" style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
                   Confirm Password
                 </label>
                 <input
+                  id="teacher-setup-confirm"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                   placeholder="Confirm your password"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
               </div>
@@ -8578,8 +8915,7 @@ ${examinerComment}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search by title, ID, or subject..."
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
               </div>
               <div style={parseStyle("min-width: 150px;")}>
@@ -8618,10 +8954,8 @@ ${examinerComment}
 
           {/* Import Modal */}
           {showImport && (
-            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")} onClick={() => setShowImport(false)}>
-              <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
-                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
-                  <h3 style={parseStyle("margin: 0;")}>Import Essay</h3>
+            <Modal title="Import Essay" onClose={() => setShowImport(false)} width={600}>
+                <div style={parseStyle("display: flex; justify-content: flex-end; margin-bottom: var(--space-md); margin-top: calc(-1 * var(--space-md));")}>
                   <button className="btn btn-secondary" onClick={() => setShowImport(false)}>Close</button>
                 </div>
 
@@ -8678,8 +9012,7 @@ ${examinerComment}
                     {importLoading ? 'Importing...' : 'Import Essay'}
                   </button>
                 </div>
-              </div>
-            </div>
+            </Modal>
           )}
 
           {/* All Essays - Grouped by Subject */}
@@ -8704,7 +9037,11 @@ ${examinerComment}
                 {Object.entries(groupBySubject(filterEssays(customEssays))).map(([subject, essayGroup]) => (
                   <div key={subject} style={parseStyle("margin-bottom: var(--space-md); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); overflow: hidden;")}>
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedCategories['essay-' + subject] !== false}
                       onClick={() => toggleCategory('essay-' + subject)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCategory('essay-' + subject); } }}
                       style={parseStyle("display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: rgba(255,255,255,0.03); cursor: pointer; user-select: none;")}
                     >
                       <div style={parseStyle("display: flex; align-items: center; gap: var(--space-sm);")}>
@@ -8718,11 +9055,11 @@ ${examinerComment}
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
                             <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: rgba(0,0,0,0.1);")}>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Source</th>
-                              <th style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Title</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Year</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Paras</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: left; font-size: 0.8rem; font-weight: 500;")}>Source</th>
+                              <th scope="col" style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.8rem; font-weight: 500;")}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -8795,7 +9132,9 @@ ${examinerComment}
       // Editable essay state (for Step 5 review & edit)
       const [editableEssay, setEditableEssay] = useState(null);
       const [editExpandedParagraph, setEditExpandedParagraph] = useState(null);
-      const [editExpandedTier, setEditExpandedTier] = useState('foundation');
+      // Tier tab selection is PER PARAGRAPH (keyed by index) — a single shared
+      // value silently changed which tier every other paragraph's editor showed.
+      const [editExpandedTiers, setEditExpandedTiers] = useState({});
 
       // Paper and question selection state
       const [selectedPaper, setSelectedPaper] = useState('');
@@ -9691,6 +10030,122 @@ ${examinerComment}
         if (step > 1) setStep(step - 1);
       };
 
+      // -----------------------------------------------------
+      // Essay generation as a DURABLE job: the jobId is persisted
+      // to localStorage so switching tabs or refreshing mid-generation
+      // no longer orphans a multi-minute AI job; polling resumes on
+      // remount. Transient poll failures retry instead of aborting,
+      // and the teacher can cancel out of the wait.
+      // -----------------------------------------------------
+      const PENDING_JOB_KEY = 'essayGenPendingJob';
+      const cancelGenerationRef = useRef(false);
+
+      const handleGenerationResult = (result) => {
+        setGeneratedConfig(result.config);
+        setServerParsedEssay(result.parsedEssay || null);
+        setGenerationStatus('');
+
+        // Parse into editable essay object for the review step
+        let parsed = result.parsedEssay || null;
+        if (parsed && parsed.paragraphs) {
+          setEditableEssay(JSON.parse(JSON.stringify(parsed))); // deep clone
+          setEditExpandedParagraph(0);
+        } else if (result.config) {
+          // Try quick client-side parse as fallback
+          try {
+            const window = { ESSAYS: {} };
+            const fn = new Function('window', result.config);
+            fn(window);
+            const essays = Object.values(window.ESSAYS);
+            if (essays.length > 0 && essays[0].paragraphs) {
+              setEditableEssay(JSON.parse(JSON.stringify(essays[0])));
+              setEditExpandedParagraph(0);
+            }
+          } catch (parseErr) {
+            console.warn('Client-side parse for editor failed:', parseErr.message);
+          }
+        }
+        setStep(5);
+      };
+
+      const pollForResult = async (jobId) => {
+        let consecutiveFailures = 0;
+        for (let i = 0; i < 120; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (cancelGenerationRef.current) return { cancelled: true };
+          try {
+            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
+              headers: { 'Authorization': 'Bearer ' + sessionToken }
+            });
+            const checkData = await checkRes.json();
+            consecutiveFailures = 0;
+
+            if (checkData.status === 'completed') return { result: checkData };
+            if (checkData.status === 'error') {
+              const fatal = new Error(checkData.error || 'Generation failed');
+              fatal.isFatal = true;
+              throw fatal;
+            }
+            setGenerationStatus('Processing with AI... (' + Math.round((i + 1) * 3 / 60) + ' min — the job keeps running even if you close this tab)');
+          } catch (err) {
+            if (err.isFatal) throw err;
+            // Transient network failure: retry with backoff instead of
+            // abandoning a multi-minute job over one dropped request.
+            consecutiveFailures++;
+            if (consecutiveFailures >= 5) {
+              throw new Error('Lost connection while checking the job. The generation may still complete — return to this tab in a few minutes to resume checking.');
+            }
+            setGenerationStatus('Connection hiccup — retrying...');
+            await new Promise(r => setTimeout(r, 2000 * consecutiveFailures));
+          }
+        }
+        return { timedOut: true };
+      };
+
+      const runGenerationJob = async (jobId) => {
+        setIsGenerating(true);
+        setError('');
+        cancelGenerationRef.current = false;
+
+        try {
+          const outcome = await pollForResult(jobId);
+          if (outcome.cancelled) return;
+          if (outcome.timedOut) {
+            throw new Error('Generation timed out. The job may still finish — return to this tab in a few minutes to resume checking.');
+          }
+          localStorage.removeItem(PENDING_JOB_KEY);
+          handleGenerationResult(outcome.result);
+        } catch (err) {
+          console.error('Generation error:', err);
+          if (err.isFatal) localStorage.removeItem(PENDING_JOB_KEY);
+          setError(err.message || 'Generation failed');
+          setGenerationStatus('');
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      // Resume a pending generation job after tab switch / refresh
+      useEffect(() => {
+        try {
+          const pending = JSON.parse(localStorage.getItem(PENDING_JOB_KEY) || 'null');
+          if (pending?.jobId) {
+            setStep(4);
+            setGenerationStatus('Resuming a generation job that was still running...');
+            runGenerationJob(pending.jobId);
+          }
+        } catch (e) {
+          localStorage.removeItem(PENDING_JOB_KEY);
+        }
+      }, []);
+
+      const handleCancelGeneration = () => {
+        cancelGenerationRef.current = true;
+        localStorage.removeItem(PENDING_JOB_KEY);
+        setIsGenerating(false);
+        setGenerationStatus('');
+      };
+
       // Generate essay
       const handleGenerate = async () => {
         setIsGenerating(true);
@@ -9717,6 +10172,7 @@ ${examinerComment}
           if (!startData.success) throw new Error(startData.error || 'Failed to start generation');
 
           const jobId = startData.jobId;
+          localStorage.setItem(PENDING_JOB_KEY, JSON.stringify({ jobId, startedAt: new Date().toISOString() }));
           setGenerationStatus('Processing with AI (this may take a few minutes)...');
 
           // Trigger background processing
@@ -9726,59 +10182,11 @@ ${examinerComment}
             body: JSON.stringify({ jobId })
           }).catch(() => {});
 
-          // Poll for result
-          let result = null;
-          for (let i = 0; i < 120; i++) {
-            await new Promise(r => setTimeout(r, 3000));
-
-            const checkRes = await fetch('/.netlify/functions/generate-essay-check?jobId=' + jobId, {
-              headers: { 'Authorization': 'Bearer ' + sessionToken }
-            });
-            const checkData = await checkRes.json();
-
-            if (checkData.status === 'completed') {
-              result = checkData;
-              break;
-            } else if (checkData.status === 'error') {
-              throw new Error(checkData.error || 'Generation failed');
-            }
-
-            setGenerationStatus('Processing with AI... (' + Math.round((i+1)*3/60) + ' min)');
-          }
-
-          if (!result) throw new Error('Generation timed out');
-
-          setGeneratedConfig(result.config);
-          setServerParsedEssay(result.parsedEssay || null);
-          setGenerationStatus('');
-
-          // Parse into editable essay object for the review step
-          let parsed = result.parsedEssay || null;
-          if (parsed && parsed.paragraphs) {
-            setEditableEssay(JSON.parse(JSON.stringify(parsed))); // deep clone
-            setEditExpandedParagraph(0);
-          } else if (result.config) {
-            // Try quick client-side parse as fallback
-            try {
-              const window = { ESSAYS: {} };
-              const fn = new Function('window', result.config);
-              fn(window);
-              const essays = Object.values(window.ESSAYS);
-              if (essays.length > 0 && essays[0].paragraphs) {
-                setEditableEssay(JSON.parse(JSON.stringify(essays[0])));
-                setEditExpandedParagraph(0);
-              }
-            } catch (parseErr) {
-              console.warn('Client-side parse for editor failed:', parseErr.message);
-            }
-          }
-          setStep(5);
-
+          await runGenerationJob(jobId);
         } catch (err) {
-          console.error('Generation error:', err);
+          console.error('Generation start error:', err);
           setError(err.message || 'Generation failed');
           setGenerationStatus('');
-        } finally {
           setIsGenerating(false);
         }
       };
@@ -10029,13 +10437,11 @@ ${examinerComment}
                   }
                 });
 
-                // If we couldn't extract paragraphs, create default structure
+                // If we couldn't extract any paragraphs, fail honestly rather
+                // than fabricating empty placeholder paragraphs that would be
+                // saved as if generation had succeeded.
                 if (manualData.paragraphs.length === 0) {
-                  manualData.paragraphs = [
-                    { id: 1, title: 'Introduction', type: 'introduction', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
-                    { id: 2, title: 'Main Body', type: 'body', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] },
-                    { id: 3, title: 'Conclusion', type: 'conclusion', learningMaterial: { foundation: '', intermediate: '', advanced: '' }, writingPrompt: '', keyPoints: [], exampleQuotes: [] }
-                  ];
+                  throw new Error('Could not extract any paragraphs from the generated config');
                 }
 
                 return manualData;
@@ -10063,7 +10469,7 @@ ${examinerComment}
 
             if (!essayData) {
               console.error('All parsing strategies failed. Last error:', lastError);
-              throw new Error('Failed to parse generated essay configuration. The AI may have generated invalid syntax.');
+              throw new Error('Failed to parse the generated essay configuration — the AI produced invalid syntax. Go back to the Generate step and regenerate; nothing was saved.');
             }
 
             // Show warning if fallback strategy was used
@@ -10103,7 +10509,7 @@ ${examinerComment}
           }
 
           if (result.success) {
-            alert('Essay saved successfully!');
+            showToast('Essay saved successfully');
             if (onEssayGenerated) onEssayGenerated();
             // Reset form
             setStep(1);
@@ -10265,8 +10671,8 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
                   <select value={subject} onChange={e => { setSubject(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    className="form-input"
+                    style={parseStyle("cursor: pointer;")}>
                     <option value="">Select a subject...</option>
                     <option value="KS3 English">KS3 English</option>
                     <option value="GCSE English Language">GCSE English Language</option>
@@ -10278,8 +10684,7 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Year Group *</label>
                   <input type="text" value={yearGroup} onChange={e => setYearGroup(e.target.value)}
-                    placeholder="e.g., Year 11" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., Year 11" className="form-input" />
                 </div>
               </div>
 
@@ -10287,8 +10692,8 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
                   <select value={examBoard} onChange={e => { setExamBoard(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    className="form-input"
+                    style={parseStyle("cursor: pointer;")}>
                     <option value="">Select exam board...</option>
                     <option value="AQA">AQA</option>
                     <option value="Edexcel">Edexcel</option>
@@ -10298,20 +10703,17 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Series</label>
                   <input type="text" value={examSeries} onChange={e => setExamSeries(e.target.value)}
-                    placeholder="e.g., June 2024" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., June 2024" className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
                   <input type="number" value={totalMarks} onChange={e => setTotalMarks(e.target.value)}
-                    placeholder="e.g., 40" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., 40" className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Time (minutes)</label>
                   <input type="number" value={timeAllowed} onChange={e => setTimeAllowed(e.target.value)}
-                    placeholder="e.g., 45" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., 45" className="form-input" />
                 </div>
               </div>
 
@@ -10412,8 +10814,7 @@ ${examinerComment}
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                 <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Paper/Component Name</label>
                 <input type="text" value={paperName} onChange={e => setPaperName(e.target.value)}
-                  placeholder="e.g., Paper 2 Section B" className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  placeholder="e.g., Paper 2 Section B" className="form-input" />
               </div>
 
               <div style={parseStyle("display: flex; justify-content: flex-end;")}>
@@ -10601,17 +11002,17 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Min Words/Para</label>
                   <input type="number" value={minWords} onChange={e => setMinWords(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Target Words/Para</label>
                   <input type="number" value={targetWords} onChange={e => setTargetWords(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Max Attempts</label>
                   <input type="number" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
               </div>
 
@@ -10622,9 +11023,14 @@ ${examinerComment}
               )}
 
               {generationStatus && (
-                <div style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
+                <div role="status" aria-live="polite" style={parseStyle("text-align: center; padding: var(--space-lg); color: var(--color-primary);")}>
                   <div style={parseStyle("margin-bottom: var(--space-sm);")}>{generationStatus}</div>
-                  <div className="loading-spinner" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                  <div className="loading-spinner" aria-hidden="true" style={parseStyle("width: 32px; height: 32px; margin: 0 auto;")}></div>
+                  {isGenerating && (
+                    <button className="btn btn-secondary" style={parseStyle("margin-top: var(--space-md);")} onClick={handleCancelGeneration}>
+                      Stop waiting
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -10672,12 +11078,12 @@ ${examinerComment}
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
                     <input type="text" value={editableEssay.title || ''} onChange={e => updateEssayField('title', e.target.value)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Essay ID</label>
                     <input type="text" value={editableEssay.id || ''} onChange={e => updateEssayField('id', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: monospace; font-size: 0.8rem;")} />
+                      className="form-input" style={parseStyle("font-family: monospace; font-size: 0.8rem;")} />
                   </div>
                 </div>
 
@@ -10709,17 +11115,17 @@ ${examinerComment}
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Total Marks</label>
                     <input type="number" value={editableEssay.totalMarks || ''} onChange={e => updateEssayField('totalMarks', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Min Words/Para</label>
                     <input type="number" value={editableEssay.minWordsPerParagraph || ''} onChange={e => updateEssayField('minWordsPerParagraph', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Target Words/Para</label>
                     <input type="number" value={editableEssay.targetWordsPerParagraph || ''} onChange={e => updateEssayField('targetWordsPerParagraph', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                 </div>
               </div>
@@ -10738,7 +11144,7 @@ ${examinerComment}
                     <div key={idx} style={parseStyle(`margin-bottom: var(--space-sm); border: 1px solid ${isExpanded ? 'var(--color-primary)' : 'var(--color-border)'}; border-radius: var(--radius-md); overflow: hidden;`)}>
                       {/* Paragraph header - always visible */}
                       <div
-                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'var(--color-primary-light, #f0f4ff)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
+                        style={parseStyle(`display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: ${isExpanded ? 'rgba(184, 134, 11, 0.18)' : 'var(--color-bg-secondary)'}; cursor: pointer;`)}
                         onClick={() => setEditExpandedParagraph(isExpanded ? null : idx)}>
                         <span style={parseStyle("font-weight: 600; font-size: 0.85rem; min-width: 24px; text-align: center; color: var(--color-primary);")}>{idx + 1}</span>
                         <span style={parseStyle("flex: 1; font-size: 0.85rem; font-weight: 500;")}>{para.title || 'Untitled'}</span>
@@ -10763,12 +11169,12 @@ ${examinerComment}
                             <div>
                               <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
                               <input type="text" value={para.title || ''} onChange={e => updateParagraph(idx, 'title', e.target.value)}
-                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                                className="form-input" />
                             </div>
                             <div>
                               <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Type</label>
                               <select value={para.type || 'body'} onChange={e => updateParagraph(idx, 'type', e.target.value)}
-                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                                className="form-input" style={parseStyle("cursor: pointer;")}>
                                 <option value="introduction">Introduction</option>
                                 <option value="body">Body</option>
                                 <option value="conclusion">Conclusion</option>
@@ -10793,7 +11199,7 @@ ${examinerComment}
                             {(para.keyPoints || []).map((kp, kpIdx) => (
                               <div key={kpIdx} style={parseStyle("display: flex; gap: var(--space-xs); margin-bottom: var(--space-xs);")}>
                                 <input type="text" value={kp} onChange={e => updateKeyPoints(idx, kpIdx, e.target.value)}
-                                  className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-xs) var(--space-sm); flex: 1; font-size: 0.8rem;")} />
+                                  className="form-input" style={parseStyle("flex: 1; font-size: 0.8rem;")} />
                                 <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 6px; color: var(--color-error, #dc3545);")}
                                   onClick={() => removeKeyPoint(idx, kpIdx)}>x</button>
                               </div>
@@ -10806,19 +11212,20 @@ ${examinerComment}
                             <div style={parseStyle("display: flex; gap: 0; margin-bottom: var(--space-sm);")}>
                               {['foundation', 'intermediate', 'advanced'].map(tier => (
                                 <button key={tier}
-                                  className={editExpandedTier === tier ? 'btn btn-primary' : 'btn btn-secondary'}
+                                  className={(editExpandedTiers[idx] || 'foundation') === tier ? 'btn btn-primary' : 'btn btn-secondary'}
                                   style={parseStyle(`font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); border-radius: ${tier === 'foundation' ? 'var(--radius-sm) 0 0 var(--radius-sm)' : tier === 'advanced' ? '0 var(--radius-sm) var(--radius-sm) 0' : '0'};`)}
-                                  onClick={() => setEditExpandedTier(tier)}>
+                                  aria-pressed={(editExpandedTiers[idx] || 'foundation') === tier}
+                                  onClick={() => setEditExpandedTiers(prev => ({ ...prev, [idx]: tier }))}>
                                   {tier.charAt(0).toUpperCase() + tier.slice(1)}
                                 </button>
                               ))}
                             </div>
                             <textarea
-                              value={(para.learningMaterial && para.learningMaterial[editExpandedTier]) || ''}
-                              onChange={e => updateLearningMaterial(idx, editExpandedTier, e.target.value)}
+                              value={(para.learningMaterial && para.learningMaterial[editExpandedTiers[idx] || 'foundation']) || ''}
+                              onChange={e => updateLearningMaterial(idx, editExpandedTiers[idx] || 'foundation', e.target.value)}
                               className="paragraph-editor"
                               style={parseStyle("min-height: 120px; font-size: 0.8rem;")}
-                              placeholder={`Learning material for ${editExpandedTier} tier students...`} />
+                              placeholder={`Learning material for ${editExpandedTiers[idx] || 'foundation'} tier students...`} />
                           </div>
                         </div>
                       )}
@@ -10899,6 +11306,8 @@ ${examinerComment}
 
     function TeacherManagementPanel() {
       const [teachers, setTeachers] = React.useState([]);
+      const [credentialDialog, setCredentialDialog] = React.useState(null);
+      const [confirmAction, setConfirmAction] = React.useState(null);
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState('');
       const [showAddTeacher, setShowAddTeacher] = React.useState(false);
@@ -10950,7 +11359,14 @@ ${examinerComment}
           const result = await response.json();
           
           if (result.success) {
-            alert('New password: ' + result.newPassword + '\n\nPlease save this password and share it securely with the teacher.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Share this password securely with the teacher.',
+              credentials: [
+                { label: 'Teacher', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Error: ' + result.error);
           }
@@ -10961,11 +11377,9 @@ ${examinerComment}
         setActionLoading(null);
       };
 
-      const handleDeleteTeacher = async (email) => {
-        if (!confirm('Delete teacher account for ' + email + '?\n\nThis will unassign all their classes.')) return;
-        
+      const performDeleteTeacher = async (email) => {
         setActionLoading(email);
-        
+
         try {
           const response = await fetch('/.netlify/functions/teacher-auth', {
             method: 'POST',
@@ -10976,19 +11390,30 @@ ${examinerComment}
               teacherEmail: email
             })
           });
-          
+
           const result = await response.json();
-          
+
           if (result.success) {
             loadTeachers();
+            showToast('Teacher account deleted');
           } else {
-            alert('Error: ' + result.error);
+            showToast('Error: ' + result.error, 'error');
           }
         } catch (e) {
-          alert('Connection failed');
+          showToast('Connection failed', 'error');
         }
-        
+
         setActionLoading(null);
+      };
+
+      const handleDeleteTeacher = (email) => {
+        setConfirmAction({
+          title: 'Delete Teacher',
+          message: `Delete the teacher account for ${email}? This will unassign all their classes.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteTeacher(email); }
+        });
       };
 
       // Send password reset email to teacher via server-side endpoint
@@ -11150,11 +11575,11 @@ ${examinerComment}
                 <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                   <thead>
                     <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Name</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Email</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Role</th>
-                      <th style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Last Login</th>
-                      <th style={parseStyle("text-align: right; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Actions</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Name</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Email</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Role</th>
+                      <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Last Login</th>
+                      <th scope="col" style={parseStyle("text-align: right; padding: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted);")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -11235,10 +11660,18 @@ ${examinerComment}
               }}
             />
           )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
+          )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
-    
+
     // =====================================================
     // ADD TEACHER MODAL
     // =====================================================
@@ -11308,13 +11741,11 @@ ${examinerComment}
 
       if (createdPassword) {
         return (
-          <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-            <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+          <Modal title="Teacher Account Created" onClose={onSuccess} width={450} closeOnOverlay={false}>
               <div style={parseStyle("text-align: center; margin-bottom: var(--space-lg);")}>
-                <div style={parseStyle("font-size: 3rem; margin-bottom: var(--space-md);")}>&#10003;</div>
-                <h3 style={parseStyle("color: var(--color-success);")}>Teacher Account Created</h3>
+                <div style={parseStyle("font-size: 3rem; color: var(--color-success);")}>&#10003;</div>
               </div>
-              
+
               <div style={parseStyle("background: var(--glass-bg); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
                 <p style={parseStyle("margin-bottom: var(--space-md);")}>
                   <strong>Email:</strong> {email}
@@ -11337,86 +11768,65 @@ ${examinerComment}
               <button className="btn btn-primary" style={parseStyle("width: 100%;")} onClick={onSuccess}>
                 Done
               </button>
-            </div>
-          </div>
+          </Modal>
         );
       }
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Teacher</h3>
-            
+        <Modal title="Add Teacher" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Name
-                </label>
+              <Field label="Name">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Teacher's full name"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Email
-                </label>
+              </Field>
+
+              <Field label="Email">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="teacher@school.com"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Password
-                </label>
+              </Field>
+
+              <Field label="Password" hint="Auto-generated. You can modify it if needed.">
                 <input
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: var(--font-mono);")}
+                  className="form-input"
+                  style={parseStyle("font-family: var(--font-mono);")}
                   disabled={isLoading}
                 />
-                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
-                  Auto-generated. You can modify it if needed.
-                </p>
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Role
-                </label>
+              </Field>
+
+              <Field label="Role">
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 >
                   <option value="teacher">Teacher</option>
                   <option value="admin">Admin</option>
                 </select>
-              </div>
-              
+              </Field>
+
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
                   {error}
                 </div>
               )}
-              
+
               <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
                 <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
                   Cancel
@@ -11426,8 +11836,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -11438,6 +11847,8 @@ ${examinerComment}
     function AdminStudentsPanel() {
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
+      const [credentialDialog, setCredentialDialog] = useState(null);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [searchTerm, setSearchTerm] = useState('');
@@ -11487,8 +11898,7 @@ ${examinerComment}
         return matchesSearch && matchesClass;
       });
 
-      const handleDeleteStudent = async (email, name) => {
-        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
+      const performDeleteStudent = async (email) => {
         try {
           let result;
           const firebaseReady = await FirebaseDB.isReady();
@@ -11502,12 +11912,23 @@ ${examinerComment}
           }
           if (result.success) {
             setStudents(students.filter(s => s.email !== email));
+            showToast('Student deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting student');
+          showToast('Error deleting student', 'error');
         }
+      };
+
+      const handleDeleteStudent = (email, name) => {
+        setConfirmAction({
+          title: 'Delete Student',
+          message: `Delete ${name} (${email})? This cannot be undone.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteStudent(email); }
+        });
       };
 
       const handleResetPassword = async (email) => {
@@ -11521,7 +11942,14 @@ ${examinerComment}
           });
           const result = await response.json();
           if (result.success) {
-            alert('Password reset!\n\nNew password: ' + result.newPassword + '\n\nPlease give this to the student.');
+            setCredentialDialog({
+              title: 'Password Reset',
+              message: 'Give this new password to the student.',
+              credentials: [
+                { label: 'Student', value: email },
+                { label: 'New password', value: result.newPassword }
+              ]
+            });
           } else {
             alert('Failed to reset password: ' + (result.error || 'Unknown error'));
           }
@@ -11598,8 +12026,8 @@ ${examinerComment}
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+              className="form-input"
+              style={parseStyle("flex: 1; min-width: 200px;")}
             />
             <select
               value={selectedClass}
@@ -11617,11 +12045,11 @@ ${examinerComment}
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
-                  <th style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Year Group</th>
-                  <th style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
+                  <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Year Group</th>
+                  <th scope="col" style={parseStyle("text-align: right; padding: var(--space-md); color: var(--color-text-muted);")}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -11693,7 +12121,14 @@ ${examinerComment}
               onSuccess={(newStudent, password) => {
                 setStudents([...students, newStudent]);
                 setShowAddStudent(false);
-                alert('Student created!\n\nPassword: ' + password + '\n\nPlease give this to the student.');
+                setCredentialDialog({
+                  title: 'Student Created',
+                  message: 'Give this password to the student.',
+                  credentials: [
+                    { label: 'Email', value: newStudent.email },
+                    { label: 'Password', value: password }
+                  ]
+                });
               }}
             />
           )}
@@ -11707,6 +12142,14 @@ ${examinerComment}
                 setShowImportCSV(false);
               }}
             />
+          )}
+
+          {credentialDialog && (
+            <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
+          )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
           )}
         </div>
       );
@@ -11784,10 +12227,7 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Student</h2>
-
+        <Modal title="Edit Student" onClose={onClose} width={500}>
             <form onSubmit={handleSubmit}>
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email</label>
@@ -11796,28 +12236,25 @@ ${examinerComment}
                 </div>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+              <Field label="Full Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+              <Field label="Year Group">
                 <input
                   type="text"
                   value={yearGroup}
                   onChange={(e) => setYearGroup(e.target.value)}
                   placeholder="e.g. Year 10"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes</label>
@@ -11858,8 +12295,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
 
@@ -11870,6 +12306,7 @@ ${examinerComment}
     function AdminClassesPanel() {
       const [classes, setClasses] = useState([]);
       const [students, setStudents] = useState([]);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [searchTerm, setSearchTerm] = useState('');
       const [editingClass, setEditingClass] = useState(null);
@@ -11927,13 +12364,7 @@ ${examinerComment}
         return students.filter(s => classStudentEmails.includes(s.email));
       };
 
-      const handleDeleteClass = async (cls) => {
-        const studentCount = getStudentCount(cls);
-        const msg = 'Delete class "' + cls.name + '"?' +
-          (studentCount > 0 ? '\n\nThis class has ' + studentCount + ' student(s). They will be removed from this class.' : '') +
-          '\n\nThis cannot be undone.';
-        if (!confirm(msg)) return;
-
+      const performDeleteClass = async (cls) => {
         try {
           const firebaseReady = await FirebaseDB.isReady();
           let result;
@@ -11950,12 +12381,26 @@ ${examinerComment}
 
           if (result.success) {
             setClasses(classes.filter(c => c.id !== cls.id));
+            showToast('Class deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting class: ' + (err.message || 'Unknown error'));
+          showToast('Error deleting class: ' + (err.message || 'Unknown error'), 'error');
         }
+      };
+
+      const handleDeleteClass = (cls) => {
+        const studentCount = getStudentCount(cls);
+        setConfirmAction({
+          title: 'Delete Class',
+          message: `Delete class "${cls.name}"?` +
+            (studentCount > 0 ? ` This class has ${studentCount} student(s); they will be removed from it.` : '') +
+            ' This cannot be undone.',
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteClass(cls); }
+        });
       };
 
       const handleClassUpdated = (updatedClass) => {
@@ -11984,8 +12429,8 @@ ${examinerComment}
               placeholder="Search by name, subject, teacher, or year group..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); width: 100%;")}
+              className="form-input"
+              style={parseStyle("width: 100%;")}
             />
           </div>
 
@@ -12044,9 +12489,9 @@ ${examinerComment}
                         <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
                           <thead>
                             <tr style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Name</th>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Email</th>
-                              <th style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Year Group</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Name</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Email</th>
+                              <th scope="col" style={parseStyle("text-align: left; padding: var(--space-sm); color: var(--color-text-muted); font-size: 0.85rem;")}>Year Group</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -12089,6 +12534,10 @@ ${examinerComment}
                 setShowAddClass(false);
               }}
             />
+          )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
           )}
         </div>
       );
@@ -12162,71 +12611,59 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Class</h2>
-
+        <Modal title="Edit Class" onClose={onClose} width={500}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+              <Field label="Class Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. 10B English"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);")}>
+                <Field label="Subject">
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. English"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                </Field>
+                <Field label="Year Group">
                   <input
                     type="text"
                     value={yearGroup}
                     onChange={(e) => setYearGroup(e.target.value)}
                     placeholder="e.g. Year 10"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+              <Field label="Teacher Name">
                 <input
                   type="text"
                   value={teacher}
                   onChange={(e) => setTeacher(e.target.value)}
                   placeholder="e.g. Mr Davies"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+              <Field label="Teacher Email">
                 <input
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
                   placeholder="e.g. pdavies@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               {error && (
                 <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
@@ -12241,8 +12678,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
 
@@ -12307,60 +12743,49 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
-            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h3>
-            
+        <Modal title="Change Password" onClose={isLoading ? undefined : onClose} width={400}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Current Password
-                </label>
+              <Field label="Current Password">
                 <input
                   type="password"
+                  autoComplete="current-password"
+                  data-autofocus
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  New Password
-                </label>
+              </Field>
+
+              <Field label="New Password">
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Confirm New Password
-                </label>
+              </Field>
+
+              <Field label="Confirm New Password">
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
+              </Field>
+
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
                   {error}
                 </div>
               )}
-              
+
               <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
                 <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
                   Cancel
@@ -12370,8 +12795,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -12484,6 +12908,15 @@ ${examinerComment}
 
       // Handle student logout
       const handleStudentLogout = () => {
+        // Clear cached essay progress so the next student on a shared
+        // device can't see (or resume into) this student's name and work.
+        try {
+          Object.keys(localStorage)
+            .filter(key => key.startsWith('essay_app_'))
+            .forEach(key => localStorage.removeItem(key));
+        } catch (e) {
+          debug('Error clearing local progress on logout:', e);
+        }
         setIsAuthenticated(false);
         setCurrentStudent(null);
         setSessionToken(null);
@@ -12534,7 +12967,14 @@ ${examinerComment}
           if (localSaved) {
             try {
               const data = JSON.parse(localSaved);
-              if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
+              // Never resume localStorage progress saved by a different
+              // account (shared school devices) — it would leak the previous
+              // student's work and adopt their identity.
+              const belongsToCurrentStudent = !studentEmail || !data.studentEmail ||
+                data.studentEmail.toLowerCase() === studentEmail.toLowerCase();
+              if (!belongsToCurrentStudent) {
+                localStorage.removeItem(essayConfig.LOCAL_STORAGE_KEY);
+              } else if (data.studentName && data.paragraphStates && Object.keys(data.paragraphStates).length > 0) {
                 debug('Loading progress from localStorage:', data);
                 setStudentName(data.studentName);
                 if (data.studentEmail) setStudentEmail(data.studentEmail);
@@ -12614,6 +13054,69 @@ ${examinerComment}
           setScreen('entry');
         }
       }, [isAuthenticated]);
+
+      // -----------------------------------------------------
+      // Hash router: mirror the screen state into the URL hash
+      // so the browser Back button navigates within the app
+      // instead of exiting the site, and screens are shareable.
+      // -----------------------------------------------------
+      const hashInitializedRef = useRef(false);
+
+      const screenToHash = (scr, essayId) => {
+        switch (scr) {
+          case 'login': return '#/login';
+          case 'student-dashboard': return '#/home';
+          case 'select-essay': return '#/essays';
+          case 'preview-entry': return '#/preview';
+          case 'dashboard': return '#/teacher';
+          case 'entry': return essayId ? `#/essay/${encodeURIComponent(essayId)}/start` : '#/essays';
+          case 'writing': return essayId ? `#/essay/${encodeURIComponent(essayId)}/write` : '#/essays';
+          case 'compilation': return essayId ? `#/essay/${encodeURIComponent(essayId)}/review` : '#/essays';
+          default: return '#/';
+        }
+      };
+
+      // Screen -> URL (push so Back steps through app screens)
+      useEffect(() => {
+        const target = screenToHash(screen, selectedEssayId);
+        // The teacher dashboard manages sub-tab hashes (#/teacher/<tab>) itself.
+        const current = window.location.hash;
+        if (screen === 'dashboard' && current.startsWith('#/teacher')) return;
+        if (current === target) return;
+        if (!hashInitializedRef.current) {
+          window.history.replaceState(null, '', target);
+          hashInitializedRef.current = true;
+        } else {
+          window.history.pushState(null, '', target);
+        }
+      }, [screen, selectedEssayId]);
+
+      // URL -> screen (Back/Forward). Only allows transitions that are
+      // safe for the current auth/essay state; anything else falls back
+      // to the appropriate home screen.
+      useEffect(() => {
+        const onPopState = () => {
+          const hash = window.location.hash || '#/';
+          let next = null;
+          const essayMatch = hash.match(/^#\/essay\/([^/]+)\/(start|write|review)$/);
+          if (essayMatch && decodeURIComponent(essayMatch[1]) === selectedEssayId) {
+            next = essayMatch[2] === 'start' ? 'entry' : essayMatch[2] === 'write' ? 'writing' : 'compilation';
+          } else if (hash.startsWith('#/teacher')) {
+            next = teacherData ? 'dashboard' : 'login';
+          } else if (hash.startsWith('#/essays')) {
+            next = 'select-essay';
+          } else if (hash.startsWith('#/home')) {
+            next = isAuthenticated ? 'student-dashboard' : 'login';
+          } else if (hash.startsWith('#/login')) {
+            next = isAuthenticated ? 'student-dashboard' : 'login';
+          } else {
+            next = teacherData ? 'dashboard' : isAuthenticated ? 'student-dashboard' : 'login';
+          }
+          if (next) setScreen(next);
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+      }, [isAuthenticated, teacherData, selectedEssayId]);
       
       // Load saved state for selected essay - check Firebase first, then localStorage.
       // Only runs when arriving at the 'entry' screen (e.g. from essay picker or URL param).
@@ -12646,6 +13149,12 @@ ${examinerComment}
           if (localSaved) {
             try {
               localProgress = JSON.parse(localSaved);
+              // Discard progress saved by a different account (shared devices)
+              if (studentEmail && localProgress?.studentEmail &&
+                  localProgress.studentEmail.toLowerCase() !== studentEmail.toLowerCase()) {
+                localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+                localProgress = null;
+              }
             } catch (e) {
               debug('Error parsing localStorage:', e);
             }
@@ -12818,6 +13327,16 @@ ${examinerComment}
         setScreen('login');
       };
       
+      // Persist an in-progress (unsubmitted) draft so tracker navigation,
+      // refreshes, and crashes never lose typed work.
+      const handleDraftChange = useCallback((paragraphId, draftText) => {
+        setParagraphStates(prev => {
+          const current = prev[paragraphId] || { attempts: 0, feedbackHistory: [] };
+          if (current.completed || current.currentText === draftText) return prev;
+          return { ...prev, [paragraphId]: { ...current, currentText: draftText } };
+        });
+      }, []);
+
       const handleSubmitAttempt = (paragraphId, attemptData) => {
         setParagraphStates(prev => {
           const current = prev[paragraphId] || { attempts: 0, feedbackHistory: [] };
@@ -13413,6 +13932,7 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
                 paragraphStates={paragraphStates}
                 onSubmitAttempt={(data) => handleSubmitAttempt(currentParagraph.id, data)}
                 onComplete={(text, feedback) => handleCompleteParagraph(currentParagraph.id, text, feedback)}
+                onDraftChange={(draftText) => handleDraftChange(currentParagraph.id, draftText)}
                 previewMode={isPreviewMode}
                 config={CONFIG}
                 gradingCriteria={GRADING_CRITERIA}
@@ -13448,6 +13968,6 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
     // Wait for essays to load before rendering the app
     loadEssays().then(() => {
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<App />);
+      root.render(<><App /><ToastHost /></>);
     });
   
