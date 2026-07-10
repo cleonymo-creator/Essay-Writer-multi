@@ -234,7 +234,7 @@ exports.handler = async (event, context) => {
 
       // Assign essay to class
       if (action === 'assignToClass') {
-        const { classId, essayId } = body;
+        const { classId, essayId, dueDate } = body;
 
         if (!classId || !essayId) {
           return {
@@ -255,13 +255,17 @@ exports.handler = async (event, context) => {
 
         const classData = ownershipCheck.classData;
         const assignments = [...(classData.assignedEssays || [])];
-        if (!assignments.includes(essayId)) {
-          assignments.push(essayId);
-          await db.collection('classes').doc(classId).update({
-            assignedEssays: assignments,
-            updatedAt: new Date().toISOString()
-          });
-        }
+        if (!assignments.includes(essayId)) assignments.push(essayId);
+        // Optional due date, stored per essay in a map on the class doc.
+        // Re-assigning with a new (or empty) date updates/clears it.
+        const dueDates = { ...(classData.assignmentDueDates || {}) };
+        if (dueDate && /^\d{4}-\d{2}-\d{2}$/.test(dueDate)) dueDates[essayId] = dueDate;
+        else delete dueDates[essayId];
+        await db.collection('classes').doc(classId).update({
+          assignedEssays: assignments,
+          assignmentDueDates: dueDates,
+          updatedAt: new Date().toISOString()
+        });
 
         return {
           statusCode: 200,
@@ -297,8 +301,11 @@ exports.handler = async (event, context) => {
 
         const classData = ownershipCheck.classData;
         const assignments = (classData.assignedEssays || []).filter(id => id !== essayId);
+        const dueDates = { ...(classData.assignmentDueDates || {}) };
+        delete dueDates[essayId];
         await db.collection('classes').doc(classId).update({
           assignedEssays: assignments,
+          assignmentDueDates: dueDates,
           updatedAt: new Date().toISOString()
         });
 
@@ -315,7 +322,7 @@ exports.handler = async (event, context) => {
 
       // Assign essay to individual student
       if (action === 'assignToStudent') {
-        const { studentEmail, essayId } = body;
+        const { studentEmail, essayId, dueDate } = body;
 
         if (!studentEmail || !essayId) {
           return {
@@ -349,13 +356,15 @@ exports.handler = async (event, context) => {
         }
 
         const assignments = [...(studentData.individualAssignments || [])];
-        if (!assignments.includes(essayId)) {
-          assignments.push(essayId);
-          await db.collection('students').doc(emailLower).update({
-            individualAssignments: assignments,
-            updatedAt: new Date().toISOString()
-          });
-        }
+        if (!assignments.includes(essayId)) assignments.push(essayId);
+        const dueDates = { ...(studentData.assignmentDueDates || {}) };
+        if (dueDate && /^\d{4}-\d{2}-\d{2}$/.test(dueDate)) dueDates[essayId] = dueDate;
+        else delete dueDates[essayId];
+        await db.collection('students').doc(emailLower).update({
+          individualAssignments: assignments,
+          assignmentDueDates: dueDates,
+          updatedAt: new Date().toISOString()
+        });
 
         return {
           statusCode: 200,
@@ -403,8 +412,11 @@ exports.handler = async (event, context) => {
         }
 
         const assignments = (studentData.individualAssignments || []).filter(id => id !== essayId);
+        const dueDates = { ...(studentData.assignmentDueDates || {}) };
+        delete dueDates[essayId];
         await db.collection('students').doc(emailLower).update({
           individualAssignments: assignments,
+          assignmentDueDates: dueDates,
           updatedAt: new Date().toISOString()
         });
 

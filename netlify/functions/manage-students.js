@@ -715,6 +715,30 @@ exports.handler = async (event, context) => {
         }
       }
 
+      // Additive class membership (used by roster bulk operations): unions
+      // the given classes into the student's memberships without touching
+      // their other classes.
+      if (Array.isArray(updates.addClassIds) && updates.addClassIds.length > 0) {
+        const currentIds = existing.classIds || (existing.classId ? [existing.classId] : []);
+        const added = [];
+        for (const cid of updates.addClassIds) {
+          if (currentIds.includes(cid) || added.includes(cid)) continue;
+          const cDoc = await db.collection('classes').doc(cid).get();
+          if (!cDoc.exists) continue;
+          const cData = cDoc.data();
+          if (sessionCheck.valid && !sessionCheck.isAdmin && cData.teacherEmail !== sessionCheck.email) continue;
+          const roster = [...(cData.students || [])];
+          if (!roster.includes(emailLower)) {
+            roster.push(emailLower);
+            await db.collection('classes').doc(cid).update({ students: roster });
+          }
+          added.push(cid);
+        }
+        if (added.length) {
+          updateObj.classIds = [...currentIds, ...added];
+        }
+      }
+
       updateObj.updatedAt = new Date().toISOString();
       await db.collection('students').doc(emailLower).update(updateObj);
 

@@ -1010,27 +1010,33 @@ import * as ReactDOM from 'react-dom/client';
       },
 
       // Assign essay to class
-      async assignToClass(classId, essayId) {
+      async assignToClass(classId, essayId, dueDate) {
         await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
-          await db.collection('classes').doc(classId).update({
+          const update = {
             assignedEssays: firebase.firestore.FieldValue.arrayUnion(essayId)
-          });
+          };
+          // Optional due date, stored per essay in a map on the class doc
+          update[`assignmentDueDates.${essayId}`] = dueDate
+            ? dueDate
+            : firebase.firestore.FieldValue.delete();
+          await db.collection('classes').doc(classId).update(update);
           return { success: true };
         } catch (error) {
           console.error('Assign to class error:', error);
           return { success: false, error: error.message };
         }
       },
-      
+
       // Remove essay from class
       async unassignFromClass(classId, essayId) {
         await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('classes').doc(classId).update({
-            assignedEssays: firebase.firestore.FieldValue.arrayRemove(essayId)
+            assignedEssays: firebase.firestore.FieldValue.arrayRemove(essayId),
+            [`assignmentDueDates.${essayId}`]: firebase.firestore.FieldValue.delete()
           });
           return { success: true };
         } catch (error) {
@@ -1038,29 +1044,34 @@ import * as ReactDOM from 'react-dom/client';
           return { success: false, error: error.message };
         }
       },
-      
+
       // Assign essay to individual student
-      async assignToStudent(studentEmail, essayId) {
+      async assignToStudent(studentEmail, essayId, dueDate) {
         await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
-          await db.collection('students').doc(studentEmail.toLowerCase()).update({
+          const update = {
             individualAssignments: firebase.firestore.FieldValue.arrayUnion(essayId)
-          });
+          };
+          update[`assignmentDueDates.${essayId}`] = dueDate
+            ? dueDate
+            : firebase.firestore.FieldValue.delete();
+          await db.collection('students').doc(studentEmail.toLowerCase()).update(update);
           return { success: true };
         } catch (error) {
           console.error('Assign to student error:', error);
           return { success: false, error: error.message };
         }
       },
-      
+
       // Remove essay from individual student
       async unassignFromStudent(studentEmail, essayId) {
         await firebaseReadyPromise;
         if (!db) return { success: false };
         try {
           await db.collection('students').doc(studentEmail.toLowerCase()).update({
-            individualAssignments: firebase.firestore.FieldValue.arrayRemove(essayId)
+            individualAssignments: firebase.firestore.FieldValue.arrayRemove(essayId),
+            [`assignmentDueDates.${essayId}`]: firebase.firestore.FieldValue.delete()
           });
           return { success: true };
         } catch (error) {
@@ -1070,6 +1081,42 @@ import * as ReactDOM from 'react-dom/client';
       }
     };
     
+    // Format an assignment due date ('YYYY-MM-DD') for display, with a tone
+    // for styling: overdue / urgent (today-tomorrow) / soon (within a week) /
+    // normal. Returns null for missing or unparseable dates.
+    const formatDueDate = (dateStr) => {
+      if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+      const dueDay = new Date(dateStr + 'T00:00:00');
+      if (isNaN(dueDay)) return null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const days = Math.round((dueDay - today) / 86400000);
+      const label = dueDay.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+      if (days < 0) return { label: `Was due ${label}`, tone: 'overdue', days };
+      if (days === 0) return { label: 'Due today', tone: 'urgent', days };
+      if (days === 1) return { label: 'Due tomorrow', tone: 'urgent', days };
+      if (days <= 7) return { label: `Due ${label}`, tone: 'soon', days };
+      return { label: `Due ${label}`, tone: 'normal', days };
+    };
+
+    // Small due-date chip used on student cards and teacher lists
+    function DueDateChip({ dateStr, size = '0.75rem' }) {
+      const due = formatDueDate(dateStr);
+      if (!due) return null;
+      const color = due.tone === 'overdue' ? 'var(--color-error)'
+        : due.tone === 'urgent' ? 'var(--color-warning)'
+        : due.tone === 'soon' ? 'var(--color-warning)'
+        : 'var(--color-text-muted)';
+      const bg = due.tone === 'overdue' ? 'var(--color-error-bg)'
+        : (due.tone === 'urgent' || due.tone === 'soon') ? 'var(--color-warning-bg)'
+        : 'var(--color-bg-secondary)';
+      return (
+        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: size, fontWeight: 600, color, background: bg }}>
+          {due.label}
+        </span>
+      );
+    }
+
     // Helper to get essay config by ID
     const getEssayConfig = (essayId) => {
       const essay = getEssays()[essayId];
@@ -2110,20 +2157,36 @@ import * as ReactDOM from 'react-dom/client';
                   Ready to start
                 </span>
               )}
+
+              {isAssigned && status !== 'submitted' && student.assignmentDueDates?.[essay.id] && (
+                <div style={parseStyle("margin-top: var(--space-sm);")}>
+                  <DueDateChip dateStr={student.assignmentDueDates[essay.id]} />
+                </div>
+              )}
             </div>
           </div>
         );
       };
 
-      // The single clearest next action: the in-progress essay closest to
-      // done, otherwise the first unstarted assignment.
+      // The single clearest next action. Deadlines outrank progress: the
+      // in-progress essay with the nearest due date first, then the one
+      // closest to done; if nothing is underway, the unstarted assignment
+      // with the nearest due date.
       const heroEssay = (() => {
         if (essaysLoading) return null;
+        const dueTime = (e) => {
+          const d = student.assignmentDueDates?.[e.id];
+          return d ? new Date(d + 'T00:00:00').getTime() : Infinity;
+        };
         const inProgressEssays = assignedEssays
           .filter(e => getEssayStatus(e.id) === 'in-progress')
-          .sort((a, b) => (progressData[b.id]?.percentComplete || 0) - (progressData[a.id]?.percentComplete || 0));
+          .sort((a, b) => (dueTime(a) - dueTime(b)) ||
+            ((progressData[b.id]?.percentComplete || 0) - (progressData[a.id]?.percentComplete || 0)));
         if (inProgressEssays.length) return inProgressEssays[0];
-        return assignedEssays.find(e => getEssayStatus(e.id) === 'not-started') || null;
+        const notStarted = assignedEssays
+          .filter(e => getEssayStatus(e.id) === 'not-started')
+          .sort((a, b) => dueTime(a) - dueTime(b));
+        return notStarted[0] || null;
       })();
 
       return (
@@ -2170,8 +2233,13 @@ import * as ReactDOM from 'react-dom/client';
               const heroStarted = getEssayStatus(heroEssay.id) === 'in-progress';
               return (
                 <div className="card victorian-border" style={parseStyle("margin-bottom: var(--space-xl); padding: var(--space-xl);")}>
-                  <div style={parseStyle("font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-primary-light); margin-bottom: var(--space-sm);")}>
-                    {heroStarted ? 'Pick up where you left off' : 'Your next essay'}
+                  <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); flex-wrap: wrap; margin-bottom: var(--space-sm);")}>
+                    <span style={parseStyle("font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-primary-light);")}>
+                      {heroStarted ? 'Pick up where you left off' : 'Your next essay'}
+                    </span>
+                    {student.assignmentDueDates?.[heroEssay.id] && (
+                      <DueDateChip dateStr={student.assignmentDueDates[heroEssay.id]} size="0.85rem" />
+                    )}
                   </div>
                   <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-xs);")}>{heroEssay.title}</h2>
                   {heroEssay.essayTitle && (
@@ -3283,6 +3351,9 @@ import * as ReactDOM from 'react-dom/client';
       const [classes, setClasses] = useState([]);
       const [credentialDialog, setCredentialDialog] = useState(null);
       const [confirmAction, setConfirmAction] = useState(null);
+      const [selectedEmails, setSelectedEmails] = useState([]); // bulk-operation selection
+      const [bulkClassId, setBulkClassId] = useState('');
+      const [bulkBusy, setBulkBusy] = useState(false);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [showAddStudent, setShowAddStudent] = useState(false);
@@ -3477,6 +3548,82 @@ import * as ReactDOM from 'react-dom/client';
         });
       };
 
+      // ---------- Bulk operations ----------
+      const toggleSelected = (email) => {
+        setSelectedEmails(prev => prev.includes(email) ? prev.filter(e => e !== email) : [...prev, email]);
+      };
+
+      const performBulkDelete = async (emails) => {
+        setBulkBusy(true);
+        const failed = [];
+        const firebaseReady = await FirebaseDB.isReady();
+        for (const email of emails) {
+          try {
+            let result;
+            if (firebaseReady) {
+              result = await FirebaseDB.deleteStudent(email);
+            } else {
+              const response = await fetch('/.netlify/functions/manage-students?email=' + encodeURIComponent(email), { method: 'DELETE' });
+              result = await response.json();
+            }
+            if (!result.success) failed.push(email);
+          } catch (e) {
+            failed.push(email);
+          }
+        }
+        setStudents(prev => prev.filter(s => !emails.includes(s.email) || failed.includes(s.email)));
+        setSelectedEmails(failed);
+        setBulkBusy(false);
+        if (failed.length) showToast(`Deleted ${emails.length - failed.length}; ${failed.length} failed (still selected)`, 'error');
+        else showToast(`Deleted ${emails.length} student${emails.length !== 1 ? 's' : ''}`);
+      };
+
+      const handleBulkDelete = () => {
+        const emails = [...selectedEmails];
+        setConfirmAction({
+          title: `Delete ${emails.length} Students`,
+          message: `Delete ${emails.length} selected student${emails.length !== 1 ? 's' : ''}? This cannot be undone.`,
+          confirmLabel: `Delete ${emails.length}`,
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performBulkDelete(emails); }
+        });
+      };
+
+      const handleBulkAddToClass = async () => {
+        if (!bulkClassId) return;
+        const emails = [...selectedEmails];
+        setBulkBusy(true);
+        const failed = [];
+        const firebaseReady = await FirebaseDB.isReady();
+        for (const email of emails) {
+          try {
+            let result;
+            if (firebaseReady) {
+              const student = students.find(s => s.email === email);
+              const currentIds = student?.classIds || (student?.classId ? [student.classId] : []);
+              if (currentIds.includes(bulkClassId)) continue;
+              result = await FirebaseDB.updateStudent(email, { classIds: [...currentIds, bulkClassId] }, classes);
+            } else {
+              const response = await fetch('/.netlify/functions/manage-students', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() },
+                body: JSON.stringify({ email, updates: { addClassIds: [bulkClassId] } })
+              });
+              result = await response.json();
+            }
+            if (!result.success) failed.push(email);
+          } catch (e) {
+            failed.push(email);
+          }
+        }
+        await loadData(); // memberships changed on both student and class docs
+        setSelectedEmails(failed);
+        setBulkBusy(false);
+        const className = classes.find(c => c.id === bulkClassId)?.name || 'class';
+        if (failed.length) showToast(`Added ${emails.length - failed.length} to ${className}; ${failed.length} failed (still selected)`, 'error');
+        else showToast(`Added ${emails.length} student${emails.length !== 1 ? 's' : ''} to ${className}`);
+      };
+
       if (loading) {
         return <div className="card"><p style={parseStyle("text-align: center; padding: var(--space-xl);")}>Loading students...</p></div>;
       }
@@ -3526,10 +3673,42 @@ import * as ReactDOM from 'react-dom/client';
             </select>
           </div>
 
+          {/* Bulk action bar */}
+          {selectedEmails.length > 0 && (
+            <div style={parseStyle("display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); background: rgba(184, 134, 11, 0.1); border: 1px solid var(--color-border); border-radius: var(--radius-md);")}>
+              <strong>{selectedEmails.length} selected</strong>
+              <label style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem;")}>
+                <span>Add to class:</span>
+                <select value={bulkClassId} onChange={e => setBulkClassId(e.target.value)} className="form-input" style={parseStyle("width: auto; padding: var(--space-xs) var(--space-sm);")} disabled={bulkBusy}>
+                  <option value="">Choose class…</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={handleBulkAddToClass} disabled={!bulkClassId || bulkBusy}>
+                {bulkBusy ? 'Working…' : 'Add'}
+              </button>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem; color: var(--color-error);")} onClick={handleBulkDelete} disabled={bulkBusy}>
+                Delete selected
+              </button>
+              <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem; margin-left: auto;")} onClick={() => setSelectedEmails([])} disabled={bulkBusy}>
+                Clear
+              </button>
+            </div>
+          )}
+
           <div style={parseStyle("overflow-x: auto;")}>
             <table style={parseStyle("width: 100%; border-collapse: collapse;")}>
               <thead>
                 <tr style={parseStyle("border-bottom: 2px solid var(--color-border);")}>
+                  <th scope="col" style={parseStyle("padding: var(--space-md); width: 36px;")}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all students shown"
+                      checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedEmails.includes(s.email))}
+                      onChange={(e) => setSelectedEmails(e.target.checked ? filteredStudents.map(s => s.email) : [])}
+                      style={parseStyle("width: 16px; height: 16px; cursor: pointer;")}
+                    />
+                  </th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Name</th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Email</th>
                   <th scope="col" style={parseStyle("text-align: left; padding: var(--space-md); color: var(--color-text-muted);")}>Classes</th>
@@ -3539,7 +3718,16 @@ import * as ReactDOM from 'react-dom/client';
               </thead>
               <tbody>
                 {filteredStudents.map(student => (
-                  <tr key={student.email} style={parseStyle("border-bottom: 1px solid var(--color-border);")}>
+                  <tr key={student.email} style={parseStyle(`border-bottom: 1px solid var(--color-border); ${selectedEmails.includes(student.email) ? 'background: rgba(184, 134, 11, 0.08);' : ''}`)}>
+                    <td style={parseStyle("padding: var(--space-md);")}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${student.name}`}
+                        checked={selectedEmails.includes(student.email)}
+                        onChange={() => toggleSelected(student.email)}
+                        style={parseStyle("width: 16px; height: 16px; cursor: pointer;")}
+                      />
+                    </td>
                     <td style={parseStyle("padding: var(--space-md);")}>{student.name}</td>
                     <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>{student.email}</td>
                     <td style={parseStyle("padding: var(--space-md); font-size: 0.9rem;")}>
@@ -4271,6 +4459,8 @@ import * as ReactDOM from 'react-dom/client';
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState(null);
       const [selectedStudent, setSelectedStudent] = useState(null);
+      const [classDueDate, setClassDueDate] = useState('');   // optional 'YYYY-MM-DD' applied on assign
+      const [studentDueDate, setStudentDueDate] = useState('');
 
       const essays = window.ESSAY_LIST || [];
 
@@ -4305,12 +4495,12 @@ import * as ReactDOM from 'react-dom/client';
         loadData();
       }, []);
 
-      const handleAssignToClass = async (classId, essayId, assign) => {
+      const handleAssignToClass = async (classId, essayId, assign, dueDate) => {
         try {
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             if (assign) {
-              await FirebaseDB.assignToClass(classId, essayId);
+              await FirebaseDB.assignToClass(classId, essayId, dueDate || null);
             } else {
               await FirebaseDB.unassignFromClass(classId, essayId);
             }
@@ -4320,7 +4510,7 @@ import * as ReactDOM from 'react-dom/client';
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 action: assign ? 'assignToClass' : 'unassignFromClass',
-                classId, essayId
+                classId, essayId, dueDate: dueDate || null
               })
             });
           }
@@ -4339,12 +4529,12 @@ import * as ReactDOM from 'react-dom/client';
         }
       };
 
-      const handleAssignToStudent = async (studentEmail, essayId, assign) => {
+      const handleAssignToStudent = async (studentEmail, essayId, assign, dueDate) => {
         try {
           const firebaseReady = await FirebaseDB.isReady();
           if (firebaseReady) {
             if (assign) {
-              await FirebaseDB.assignToStudent(studentEmail, essayId);
+              await FirebaseDB.assignToStudent(studentEmail, essayId, dueDate || null);
             } else {
               await FirebaseDB.unassignFromStudent(studentEmail, essayId);
             }
@@ -4354,7 +4544,7 @@ import * as ReactDOM from 'react-dom/client';
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 action: assign ? 'assignToStudent' : 'unassignFromStudent',
-                studentEmail, essayId
+                studentEmail, essayId, dueDate: dueDate || null
               })
             });
           }
@@ -4403,23 +4593,43 @@ import * as ReactDOM from 'react-dom/client';
 
               {selectedClass && (
                 <div>
+                  <label style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-md); flex-wrap: wrap;")}>
+                    Due date for new assignments (optional):
+                    <input type="date" value={classDueDate} onChange={e => setClassDueDate(e.target.value)} className="form-input" style={parseStyle("width: auto; padding: var(--space-xs) var(--space-sm);")} />
+                  </label>
                   {essays.map(essay => {
                     const classData = classes.find(c => c.id === selectedClass);
                     const isAssigned = (classData?.assignedEssays || []).includes(essay.id);
-                    
+                    const existingDue = classData?.assignmentDueDates?.[essay.id];
+
                     return (
-                      <div 
+                      <div
                         key={essay.id}
-                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
+                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
                       >
-                        <span style={parseStyle("font-size: 0.9rem;")}>{essay.title}</span>
-                        <button
-                          onClick={() => handleAssignToClass(selectedClass, essay.id, !isAssigned)}
-                          className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
-                          style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
-                        >
-                          {isAssigned ? 'Remove' : 'Assign'}
-                        </button>
+                        <span style={parseStyle("font-size: 0.9rem; display: inline-flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap;")}>
+                          {essay.title}
+                          {isAssigned && existingDue && <DueDateChip dateStr={existingDue} />}
+                        </span>
+                        <span style={parseStyle("display: inline-flex; gap: var(--space-xs); flex-shrink: 0;")}>
+                          {isAssigned && (
+                            <button
+                              onClick={() => handleAssignToClass(selectedClass, essay.id, true, classDueDate)}
+                              className="btn btn-secondary"
+                              style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                              title={classDueDate ? `Set due date to ${classDueDate}` : 'Clear the due date'}
+                            >
+                              {classDueDate ? 'Set date' : 'Clear date'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleAssignToClass(selectedClass, essay.id, !isAssigned, classDueDate)}
+                            className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
+                            style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                          >
+                            {isAssigned ? 'Remove' : 'Assign'}
+                          </button>
+                        </span>
                       </div>
                     );
                   })}
@@ -4446,23 +4656,43 @@ import * as ReactDOM from 'react-dom/client';
 
               {selectedStudent && (
                 <div>
+                  <label style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-md); flex-wrap: wrap;")}>
+                    Due date for new assignments (optional):
+                    <input type="date" value={studentDueDate} onChange={e => setStudentDueDate(e.target.value)} className="form-input" style={parseStyle("width: auto; padding: var(--space-xs) var(--space-sm);")} />
+                  </label>
                   {essays.map(essay => {
                     const studentData = students.find(s => s.email === selectedStudent);
                     const isAssigned = (studentData?.individualAssignments || []).includes(essay.id);
-                    
+                    const existingDue = studentData?.assignmentDueDates?.[essay.id];
+
                     return (
-                      <div 
+                      <div
                         key={essay.id}
-                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
+                        style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm); background: var(--glass-bg); border-radius: var(--radius-sm); margin-bottom: var(--space-sm);")}
                       >
-                        <span style={parseStyle("font-size: 0.9rem;")}>{essay.title}</span>
-                        <button
-                          onClick={() => handleAssignToStudent(selectedStudent, essay.id, !isAssigned)}
-                          className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
-                          style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
-                        >
-                          {isAssigned ? 'Remove' : 'Assign'}
-                        </button>
+                        <span style={parseStyle("font-size: 0.9rem; display: inline-flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap;")}>
+                          {essay.title}
+                          {isAssigned && existingDue && <DueDateChip dateStr={existingDue} />}
+                        </span>
+                        <span style={parseStyle("display: inline-flex; gap: var(--space-xs); flex-shrink: 0;")}>
+                          {isAssigned && (
+                            <button
+                              onClick={() => handleAssignToStudent(selectedStudent, essay.id, true, studentDueDate)}
+                              className="btn btn-secondary"
+                              style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                              title={studentDueDate ? `Set due date to ${studentDueDate}` : 'Clear the due date'}
+                            >
+                              {studentDueDate ? 'Set date' : 'Clear date'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleAssignToStudent(selectedStudent, essay.id, !isAssigned, studentDueDate)}
+                            className={isAssigned ? "btn btn-secondary" : "btn btn-primary"}
+                            style={parseStyle("font-size: 0.8rem; padding: var(--space-xs) var(--space-sm);")}
+                          >
+                            {isAssigned ? 'Remove' : 'Assign'}
+                          </button>
+                        </span>
                       </div>
                     );
                   })}
@@ -5199,7 +5429,18 @@ import * as ReactDOM from 'react-dom/client';
       // If student is logged in, use their info automatically
       const [studentName, setStudentName] = useState(loggedInStudent?.name || '');
       const [studentEmail, setStudentEmail] = useState(loggedInStudent?.email || '');
-      const [targetGrade, setTargetGrade] = useState('');
+      // Pre-select the student's remembered target grade (profile first,
+      // then this device) — the picker stays fully editable, so this is a
+      // default, never a lock-in.
+      const rememberedGrade = (() => {
+        if (loggedInStudent?.targetGrade) return loggedInStudent.targetGrade;
+        const email = (loggedInStudent?.email || '').toLowerCase();
+        if (!email) return '';
+        try {
+          return JSON.parse(localStorage.getItem('targetGrade:' + email) || 'null')?.targetGrade || '';
+        } catch (e) { return ''; }
+      })();
+      const [targetGrade, setTargetGrade] = useState(rememberedGrade);
       const [error, setError] = useState('');
       const [checkingProgress, setCheckingProgress] = useState(false);
       const [existingProgress, setExistingProgress] = useState(null);
@@ -5308,6 +5549,21 @@ import * as ReactDOM from 'react-dom/client';
         if (!targetGrade) {
           setError('Please select your target grade');
           return;
+        }
+
+        // Remember the chosen target so returning students find it pre-selected
+        // (they can always change it here). localStorage for this device,
+        // profile update for cross-device.
+        try {
+          localStorage.setItem('targetGrade:' + finalEmail, JSON.stringify({ targetGrade, gradeSystem }));
+        } catch (err) { /* storage full/blocked — non-fatal */ }
+        const studentToken = localStorage.getItem('studentSession');
+        if (studentToken) {
+          fetch('/.netlify/functions/student-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'updateProfile', sessionToken: studentToken, targetGrade, gradeSystem })
+          }).catch(() => {});
         }
 
         onStudentStart(finalName, finalEmail, targetGrade, gradeSystem);
@@ -5437,8 +5693,13 @@ import * as ReactDOM from 'react-dom/client';
                      <Icon name={ICONS.target} size={20} /> What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
-                    This helps us personalise the feedback to support your learning journey
+                    This helps us match the feedback to what you're working towards
                   </p>
+                  {rememberedGrade && targetGrade === rememberedGrade && (
+                    <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);")}>
+                      We've kept your usual target selected — tap a different grade any time you want to change it.
+                    </p>
+                  )}
 
                   <div className="grade-buttons">
                     {gradeSystemInfo.grades.map((grade) => (
@@ -7926,6 +8187,30 @@ ${examinerComment}
               if (s.score != null && s.score < 40) recentLow.push(s);
             });
             const weekSubs = submissions.filter(s => s.submittedAt && (now - new Date(s.submittedAt).getTime()) < 7 * DAY);
+            // Assignments due within 7 days (or overdue up to a week) that a
+            // class member hasn't started — no submission and no progress
+            const dueSoonGaps = [];
+            const gapSeen = new Set();
+            classes.forEach(cls => {
+              Object.entries(cls.assignmentDueDates || {}).forEach(([essayId, date]) => {
+                const dueMs = new Date(date + 'T23:59:59').getTime();
+                if (isNaN(dueMs)) return;
+                const daysAway = (dueMs - now) / DAY;
+                if (daysAway > 7 || daysAway < -7) return;
+                (cls.students || []).forEach(email => {
+                  const el = (email || '').toLowerCase();
+                  const gapKey = `${el}_${essayId}`;
+                  if (gapSeen.has(gapKey)) return;
+                  const hasSub = submissions.some(s => (s.studentEmail || '').toLowerCase() === el && s.essayId === essayId);
+                  const hasProg = inProgress.some(p => (p.studentEmail || '').toLowerCase() === el && p.essayId === essayId);
+                  if (!hasSub && !hasProg) {
+                    gapSeen.add(gapKey);
+                    const st = students.find(s => (s.email || '').toLowerCase() === el);
+                    dueSoonGaps.push({ studentName: st?.name || email, studentEmail: email });
+                  }
+                });
+              });
+            });
             const nameButtons = (items) => items.slice(0, 3).map((item, i) => (
               <React.Fragment key={i}>
                 {i > 0 && ', '}
@@ -7950,6 +8235,11 @@ ${examinerComment}
                   <div className="triage-count" style={parseStyle(`color: ${stalled.length ? 'var(--color-warning)' : 'var(--color-text-muted)'};`)}>{stalled.length}</div>
                   <div className="triage-label">essays untouched for 7+ days</div>
                   {stalled.length > 0 && <div className="triage-names">{nameButtons(stalled)}{stalled.length > 3 && ` +${stalled.length - 3} more`}</div>}
+                </div>
+                <div className="triage-card" style={parseStyle("border-left-color: var(--color-info);")}>
+                  <div className="triage-count" style={parseStyle(`color: ${dueSoonGaps.length ? 'var(--color-info)' : 'var(--color-text-muted)'};`)}>{dueSoonGaps.length}</div>
+                  <div className="triage-label">due within a week, not started</div>
+                  {dueSoonGaps.length > 0 && <div className="triage-names">{nameButtons(dueSoonGaps)}{dueSoonGaps.length > 3 && ` +${dueSoonGaps.length - 3} more`}</div>}
                 </div>
                 <div className="triage-card">
                   <div className="triage-count" style={parseStyle("color: var(--color-primary-light);")}>{weekSubs.length}</div>
