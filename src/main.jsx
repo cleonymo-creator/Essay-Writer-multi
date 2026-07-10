@@ -300,7 +300,10 @@ import * as ReactDOM from 'react-dom/client';
           const docRef = await db.collection('submissions').add({
             ...submissionData,
             studentEmail: normalizedEmail,
-            submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+            submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            // ISO string the server listing can sort by — the Netlify
+            // endpoint sorts on serverTimestamp || submittedAt
+            serverTimestamp: new Date().toISOString()
           });
           // Remove from progress collection
           const progressDocId = `${normalizedEmail}_${submissionData.essayId}`;
@@ -312,20 +315,29 @@ import * as ReactDOM from 'react-dom/client';
         }
       },
       
+      // NOTE (missing-essays fix): none of the reads below use Firestore
+      // orderBy or limit. orderBy silently EXCLUDES documents that lack
+      // the ordered field or carry mixed types in it (this codebase has
+      // both Timestamp and ISO-string values in the wild), and limit(100)
+      // capped the teacher dashboard. Sort in JS instead.
+      _sortBySubmittedAt(list) {
+        return list.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+      },
+      _sortByLastUpdate(list) {
+        return list.sort((a, b) => new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0));
+      },
+
       // Get all submissions (for teacher dashboard)
       async getSubmissions() {
         await firebaseReadyPromise;
         if (!db) return null;
         try {
-          const snapshot = await db.collection('submissions')
-            .orderBy('submittedAt', 'desc')
-            .limit(100)
-            .get();
-          return snapshot.docs.map(doc => ({
+          const snapshot = await db.collection('submissions').get();
+          return this._sortBySubmittedAt(snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
             submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
-          }));
+          })));
         } catch (error) {
           console.error('Firebase getSubmissions error:', error);
           return null;
@@ -337,15 +349,16 @@ import * as ReactDOM from 'react-dom/client';
         await firebaseReadyPromise;
         if (!db || !studentEmail) return [];
         try {
+          // No orderBy: combined where+orderBy also requires a composite
+          // index and throws (returning null) when it's absent
           const snapshot = await db.collection('submissions')
             .where('studentEmail', '==', studentEmail.toLowerCase())
-            .orderBy('submittedAt', 'desc')
             .get();
-          return snapshot.docs.map(doc => ({
+          return this._sortBySubmittedAt(snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
             submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
-          }));
+          })));
         } catch (error) {
           console.error('Firebase getStudentSubmissions error:', error);
           return null;
@@ -358,14 +371,12 @@ import * as ReactDOM from 'react-dom/client';
         if (!db) return null;
         try {
           // Get all in-progress essays (no time limit - keep until completed)
-          const snapshot = await db.collection('progress')
-            .orderBy('updatedAt', 'desc')
-            .get();
-          return snapshot.docs.map(doc => ({
+          const snapshot = await db.collection('progress').get();
+          return this._sortByLastUpdate(snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
             lastUpdate: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().lastUpdate
-          }));
+          })));
         } catch (error) {
           console.error('Firebase getProgress error:', error);
           return null;
@@ -411,38 +422,36 @@ import * as ReactDOM from 'react-dom/client';
         }
       },
       
-      // Subscribe to real-time submissions updates
+      // Subscribe to real-time submissions updates (no orderBy/limit — see
+      // note above: orderBy excludes docs missing the field)
       subscribeToSubmissions(callback, errorCallback) {
         if (!db) return () => {};
         return db.collection('submissions')
-          .orderBy('submittedAt', 'desc')
-          .limit(100)
           .onSnapshot(snapshot => {
-            const submissions = snapshot.docs.map(doc => ({
+            const submissions = FirebaseDB._sortBySubmittedAt(snapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data(),
               submittedAt: doc.data().submittedAt?.toDate?.()?.toISOString() || doc.data().submittedAt
-            }));
+            })));
             callback(submissions);
           }, error => {
             console.error('Submissions subscription error:', error);
             if (errorCallback) errorCallback(error);
           });
       },
-      
+
       // Subscribe to real-time progress updates
       subscribeToProgress(callback) {
         if (!db) return () => {};
 
         // Get all in-progress essays (no time limit - keep until completed)
         return db.collection('progress')
-          .orderBy('updatedAt', 'desc')
           .onSnapshot(snapshot => {
-            const progress = snapshot.docs.map(doc => ({
+            const progress = FirebaseDB._sortByLastUpdate(snapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data(),
               lastUpdate: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().lastUpdate
-            }));
+            })));
             callback(progress);
           }, error => {
             console.error('Progress subscription error:', error);
@@ -1190,6 +1199,66 @@ import * as ReactDOM from 'react-dom/client';
       } catch (e) { /* TeacherAuth not ready */ }
       return {};
     };
+
+    // =====================================================
+    // SUBMISSION SAVE WITH RETRY + OFFLINE QUEUE
+    // =====================================================
+    // The server function (Admin SDK) is the PRIMARY save path because it
+    // returns a real confirmation that the write reached Firestore. The
+    // client Firebase SDK is only a last resort: its offline cache can
+    // report "success" for a write that never leaves the device. If every
+    // path fails, the payload is queued in localStorage and re-submitted
+    // automatically on the next page load — a student's graded essay must
+    // never silently vanish.
+    const PENDING_SUBMISSION_KEY = 'pendingSubmission';
+
+    async function saveSubmissionWithRetry(submissionData) {
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const resp = await fetch('/.netlify/functions/submit-homework', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
+            body: JSON.stringify(submissionData)
+          });
+          if (resp.ok) {
+            const result = await resp.json().catch(() => ({}));
+            if (result.success !== false) {
+              localStorage.removeItem(PENDING_SUBMISSION_KEY);
+              return { saved: true, via: 'server' };
+            }
+          }
+          console.warn(`submit-homework attempt ${attempt} failed with status:`, resp.status);
+        } catch (err) {
+          console.warn(`submit-homework attempt ${attempt} error:`, err.message);
+        }
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
+      }
+
+      // Last resort: client SDK (write may only reach the offline cache)
+      try {
+        const firebaseReady = await FirebaseDB.isReady();
+        if (firebaseReady) {
+          const result = await FirebaseDB.submitEssay(submissionData);
+          if (result) {
+            localStorage.removeItem(PENDING_SUBMISSION_KEY);
+            return { saved: true, via: 'client' };
+          }
+        }
+      } catch (err) {
+        console.error('Client-side submission fallback failed:', err.message);
+      }
+
+      // Queue for automatic retry on next page load
+      try {
+        localStorage.setItem(PENDING_SUBMISSION_KEY, JSON.stringify(submissionData));
+      } catch (e) {
+        console.error('Could not queue pending submission:', e.message);
+      }
+      return { saved: false };
+    }
 
     // =====================================================
     // TEXT-TO-SPEECH COMPONENT
@@ -2878,7 +2947,13 @@ import * as ReactDOM from 'react-dom/client';
                   const email = sub.studentEmail?.toLowerCase();
                   if (!email) return;
                   if (!studentSubmissionMap[email]) studentSubmissionMap[email] = {};
-                  studentSubmissionMap[email][sub.essayId] = sub;
+                  // Keep the LATEST submission per student+essay — plain
+                  // assignment kept whichever iterated last, which with
+                  // newest-first input was the oldest attempt
+                  const existing = studentSubmissionMap[email][sub.essayId];
+                  if (!existing || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+                    studentSubmissionMap[email][sub.essayId] = sub;
+                  }
                 });
 
                 progress.forEach(prog => {
@@ -6915,6 +6990,29 @@ ${examinerComment}
       const [filterYearGroup, setFilterYearGroup] = useState('all');
       const [filterClass, setFilterClass] = useState('all');
       const [studentSearch, setStudentSearch] = useState('');
+      const [diagnosticResult, setDiagnosticResult] = useState(null);
+      const [diagnosticLoading, setDiagnosticLoading] = useState(false);
+      const [expandedGroups, setExpandedGroups] = useState({});
+
+      // Ask the server why submissions might be missing from this teacher's view
+      const runSubmissionDiagnostics = async () => {
+        setDiagnosticLoading(true);
+        try {
+          const response = await fetch('/.netlify/functions/get-submissions?diagnostics=true', {
+            headers: { 'Authorization': 'Bearer ' + TeacherAuth.getSessionToken() }
+          });
+          const data = await response.json();
+          if (data.diagnostics) {
+            setDiagnosticResult(data.diagnostics);
+          } else {
+            showToast(data.error || 'Diagnostics unavailable', 'error');
+          }
+        } catch (err) {
+          showToast('Could not run diagnostics: ' + err.message, 'error');
+        } finally {
+          setDiagnosticLoading(false);
+        }
+      };
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
 
@@ -7151,6 +7249,25 @@ ${examinerComment}
         .filter(matchesYearGroupFilter)
         .filter(matchesClassFilter)
         .filter(matchesStudentSearch);
+
+      // Group submissions by student+essay, keeping only the latest per
+      // group as the display row; earlier attempts expand underneath.
+      const submissionGroups = {};
+      filteredSubmissions.forEach(sub => {
+        const key = `${(sub.studentEmail || '').toLowerCase()}_${sub.essayId || ''}`;
+        if (!submissionGroups[key]) submissionGroups[key] = [];
+        submissionGroups[key].push(sub);
+      });
+      const groupedSubmissions = [];
+      Object.entries(submissionGroups).forEach(([key, subs]) => {
+        subs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+        groupedSubmissions.push({ ...subs[0], _groupKey: key, _attemptCount: subs.length });
+      });
+      groupedSubmissions.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+
+      const toggleGroup = (groupKey) => {
+        setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+      };
 
       const filteredInProgress = inProgress
         .filter(p => filterEssayId === 'all' || p.essayId === filterEssayId)
@@ -7454,15 +7571,46 @@ ${examinerComment}
             {/* Active filter summary */}
             {hasActiveFilters && (
               <div style={parseStyle("margin-top: var(--space-sm); font-size: 0.8rem; color: var(--color-text-muted);")}>
-                Showing {filteredInProgress.length} in progress, {filteredSubmissions.length} completed
+                Showing {filteredInProgress.length} in progress, {groupedSubmissions.length} completed ({filteredSubmissions.length} total submissions)
                 {filterSubject !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterSubject}</span>}
                 {filterYearGroup !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{filterYearGroup}</span>}
                 {filterClass !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{classMap[filterClass]?.name || filterClass}</span>}
                 {filterEssayId !== 'all' && <span style={parseStyle("margin-left: var(--space-sm); padding: 2px 8px; background: var(--color-bg-secondary); border-radius: var(--radius-sm);")}>{getEssayList().find(e => e.id === filterEssayId)?.title || filterEssayId}</span>}
               </div>
             )}
+
+            {/* Diagnostics: helps a teacher work out why an essay isn't showing */}
+            <div style={parseStyle("margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border-light);")}>
+              <button
+                className="btn btn-secondary"
+                style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")}
+                onClick={runSubmissionDiagnostics}
+                disabled={diagnosticLoading}
+              >
+                {diagnosticLoading ? 'Checking...' : 'Check for missing essays'}
+              </button>
+              {diagnosticResult && (
+                <div style={parseStyle("margin-top: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); font-size: 0.85rem;")}>
+                  <div style={parseStyle("display: flex; gap: var(--space-lg); flex-wrap: wrap; margin-bottom: var(--space-sm);")}>
+                    <span><strong>{diagnosticResult.totalInFirestore}</strong> submissions in the database</span>
+                    <span><strong>{diagnosticResult.afterTeacherFilter}</strong> visible to you</span>
+                    <span><strong>{diagnosticResult.filteredOut}</strong> belong to other teachers' students</span>
+                  </div>
+                  {diagnosticResult.studentsFilteredOut && diagnosticResult.studentsFilteredOut.length > 0 && !diagnosticResult.isAdmin && (
+                    <div style={parseStyle("color: var(--color-text-muted);")}>
+                      <div style={parseStyle("margin-bottom: var(--space-xs);")}>Students with submissions not linked to you:</div>
+                      <div style={parseStyle("font-family: var(--font-mono); font-size: 0.8rem;")}>{diagnosticResult.studentsFilteredOut.join(', ')}</div>
+                      <div style={parseStyle("margin-top: var(--space-xs);")}>If one of these should be your student, add them to one of your classes (Students tab) and their essays will appear.</div>
+                    </div>
+                  )}
+                  {diagnosticResult.filteredOut === 0 && (
+                    <div style={parseStyle("color: var(--color-success);")}>Every submission in the database is visible to you — nothing is being filtered out.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          
+
           {/* Preview Essays - Collapsible, grouped by Subject then Year Group */}
           <div className="card" style={parseStyle("margin-bottom: var(--space-lg);")}>
             <h4
@@ -7694,11 +7842,11 @@ ${examinerComment}
               onClick={() => setShowCompleted(!showCompleted)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowCompleted(!showCompleted); } }}
             >
-              <span>Completed Essays ({filteredSubmissions.length})</span>
+              <span>Completed Essays ({groupedSubmissions.length}{groupedSubmissions.length !== filteredSubmissions.length ? ` — ${filteredSubmissions.length} total submissions` : ''})</span>
               <span style={parseStyle(`transform: rotate(${showCompleted ? '180deg' : '0deg'}); transition: transform 0.2s; font-size: 0.9rem; color: var(--color-text-muted);`)}>&#9660;</span>
             </h3>
 
-            {!showCompleted ? null : filteredSubmissions.length === 0 ? (
+            {!showCompleted ? null : groupedSubmissions.length === 0 ? (
               <p style={parseStyle("color: var(--color-text-muted); text-align: center; padding: var(--space-xl); margin-top: var(--space-md);")}>
                 No essays submitted yet.
               </p>
@@ -7712,36 +7860,93 @@ ${examinerComment}
                       {filterEssayId === 'all' && <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Essay</th>}
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Score</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Grade</th>
+                      <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Improvement</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Feedback</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: left;")}>Submitted</th>
                       <th scope="col" style={parseStyle("padding: var(--space-md); text-align: center;")}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSubmissions.map((sub, index) => {
+                    {groupedSubmissions.map((sub) => {
                       const essayInfo = getEssayList().find(e => e.id === sub.essayId);
                       const hasFeedback = !!sub.feedback;
                       const hasOfficial = !!sub.officialGrading;
+                      const hasMultiple = sub._attemptCount > 1;
+                      const isExpanded = !!expandedGroups[sub._groupKey];
+                      const olderAttempts = hasMultiple ? submissionGroups[sub._groupKey].slice(1) : [];
+                      const showImprovement = sub.firstDraftScore != null && sub.firstDraftScore !== sub.score;
+                      const improvementDiff = showImprovement ? sub.score - sub.firstDraftScore : 0;
                       return (
-                        <tr key={index} style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
-                          <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
-                          {filterEssayId === 'all' && (
-                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
-                              {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                        <React.Fragment key={sub._groupKey}>
+                          <tr style={parseStyle("border-bottom: 1px solid var(--color-border-light);")}>
+                            <td style={parseStyle("padding: var(--space-md);")}>{sub.studentName}</td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{sub.studentEmail || '-'}</td>
+                            {filterEssayId === 'all' && (
+                              <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted); font-size: 0.9rem;")}>
+                                {essayInfo?.icon} {essayInfo?.title || sub.essayTitle || '-'}
+                              </td>
+                            )}
+                            <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${scoreColor(sub.score)};`)}>{sub.score}%</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center; font-size: 0.85rem;")}>
+                              {showImprovement ? (
+                                <span title={`First draft: ${sub.firstDraftScore}% → Final: ${sub.score}%`}>
+                                  <span style={parseStyle("color: var(--color-text-muted);")}>{sub.firstDraftScore}%</span>
+                                  <span style={parseStyle("margin: 0 4px;")}>&rarr;</span>
+                                  <span style={parseStyle(`font-weight: 600; color: ${scoreColor(sub.score)};`)}>{sub.score}%</span>
+                                  <span style={parseStyle(`margin-left: 4px; font-size: 0.8rem; color: ${improvementDiff > 0 ? 'var(--color-success)' : 'var(--color-error)'};`)}>
+                                    ({improvementDiff > 0 ? '+' : ''}{improvementDiff})
+                                  </span>
+                                </span>
+                              ) : (
+                                <span style={parseStyle("color: var(--color-text-muted);")}>{sub.essaysAreDifferent ? 'Edited' : '-'}</span>
+                              )}
                             </td>
-                          )}
-                          <td style={parseStyle(`padding: var(--space-md); text-align: center; font-weight: 600; color: ${sub.score >= 80 ? 'var(--color-success)' : sub.score >= 60 ? 'var(--color-info)' : sub.score >= 40 ? 'var(--color-warning)' : 'var(--color-error)'};`)}>{sub.score}%</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>{sub.grade || '-'}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
-                            <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
-                          </td>
-                          <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
-                          <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
-                            <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
-                          </td>
-                        </tr>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <span title={hasFeedback ? 'Has feedback' : 'No feedback'} style={{ opacity: hasFeedback ? 1 : 0.3 }}>Feedback</span>
+                              <span title={hasOfficial ? 'Has official grading' : 'No official grading'} style={{ opacity: hasOfficial ? 1 : 0.3, marginLeft: '4px' }}>Official Grading</span>
+                            </td>
+                            <td style={parseStyle("padding: var(--space-md); color: var(--color-text-muted);")}>{formatDateTime(sub.submittedAt)}</td>
+                            <td style={parseStyle("padding: var(--space-md); text-align: center;")}>
+                              <div style={parseStyle("display: flex; gap: 4px; justify-content: center; align-items: center;")}>
+                                <button className="btn btn-secondary" style={parseStyle("padding: var(--space-xs) var(--space-md); font-size: 0.85rem;")} onClick={() => setSelectedSubmission(sub)}>View</button>
+                                {hasMultiple && (
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={parseStyle("padding: var(--space-xs) var(--space-sm); font-size: 0.75rem;")}
+                                    aria-expanded={isExpanded}
+                                    onClick={() => toggleGroup(sub._groupKey)}
+                                    title={`${sub._attemptCount} submissions for this essay`}
+                                  >
+                                    <Icon name={isExpanded ? ICONS.chevronUp : ICONS.chevronDown} size={12} /> {sub._attemptCount}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {hasMultiple && isExpanded && olderAttempts.map((older, oi) => {
+                            const olderHasFeedback = !!older.feedback;
+                            const olderHasOfficial = !!older.officialGrading;
+                            return (
+                              <tr key={`${sub._groupKey}_older_${oi}`} style={parseStyle("border-bottom: 1px solid var(--color-border-light); background: var(--color-bg-secondary);")}>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); padding-left: var(--space-xl); font-size: 0.85rem; color: var(--color-text-muted);")}>&rdsh; Previous attempt</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); font-size: 0.8rem; color: var(--color-text-muted);")}>{older.studentEmail || '-'}</td>
+                                {filterEssayId === 'all' && <td></td>}
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.score}%</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.grade || '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center; font-size: 0.85rem; color: var(--color-text-muted);")}>{older.firstDraftScore != null ? `${older.firstDraftScore}%` : '-'}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <span style={{ opacity: olderHasFeedback ? 0.6 : 0.2, fontSize: '0.85rem' }}>Feedback</span>
+                                  <span style={{ opacity: olderHasOfficial ? 0.6 : 0.2, fontSize: '0.85rem', marginLeft: '4px' }}>Official</span>
+                                </td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); color: var(--color-text-muted); font-size: 0.85rem;")}>{formatDateTime(older.submittedAt)}</td>
+                                <td style={parseStyle("padding: var(--space-sm) var(--space-md); text-align: center;")}>
+                                  <button className="btn btn-secondary" style={parseStyle("padding: 2px var(--space-sm); font-size: 0.8rem;")} onClick={() => setSelectedSubmission(older)}>View</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -13055,6 +13260,26 @@ ${examinerComment}
         }
       }, [isAuthenticated]);
 
+      // Re-submit any essay submission that failed to save on a previous
+      // visit (queued by saveSubmissionWithRetry)
+      useEffect(() => {
+        const resubmitPending = async () => {
+          let pending = null;
+          try {
+            pending = JSON.parse(localStorage.getItem(PENDING_SUBMISSION_KEY) || 'null');
+          } catch (e) {
+            localStorage.removeItem(PENDING_SUBMISSION_KEY);
+          }
+          if (!pending) return;
+          debug('Retrying pending submission for', pending.studentEmail, pending.essayId);
+          const result = await saveSubmissionWithRetry(pending);
+          if (result.saved) {
+            showToast('An essay that could not be sent earlier has now been submitted to your teacher');
+          }
+        };
+        resubmitPending();
+      }, []);
+
       // -----------------------------------------------------
       // Hash router: mirror the screen state into the URL hash
       // so the browser Back button navigates within the app
@@ -13499,28 +13724,16 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
         submittedAt: new Date().toISOString()
       };
 
-      try {
-        // Save to Firebase if available, otherwise Netlify function
-        let saved = false;
-        const firebaseReady = await FirebaseDB.isReady();
-        if (firebaseReady) {
-          const result = await FirebaseDB.submitEssay(submissionData);
-          saved = !!result;
-          if (!saved) console.warn('Firebase submitEssay returned null, falling back to Netlify function');
+      const saveResult = await saveSubmissionWithRetry(submissionData);
+      if (saveResult.saved) {
+        // Only clear the local backup once the save is confirmed
+        localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+        if (saveResult.via === 'client') {
+          showToast('Submitted — the connection was unstable, so it may take a moment to reach your teacher', 'info');
         }
-        if (!saved) {
-          const resp = await fetch('/.netlify/functions/submit-homework', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
-            body: JSON.stringify(submissionData)
-          });
-          if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
-        }
-      } catch (submitError) {
-        console.error('Failed to save submission:', submitError);
+      } else {
+        alert('Your essay was graded but could not be sent to your teacher because of a connection problem.\n\nDon\'t worry — it is saved on this device and will be sent automatically the next time you open this page.');
       }
-
-      localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
     } else {
       throw new Error(data.error || 'Failed to grade essay');
     }
@@ -13636,28 +13849,16 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
               submittedAt: new Date().toISOString()
             };
             
-            try {
-              // Save to Firebase if available, fall back to Netlify function
-              let saved = false;
-              const firebaseReady = await FirebaseDB.isReady();
-              if (firebaseReady) {
-                const result = await FirebaseDB.submitEssay(submissionData);
-                saved = !!result;
-                if (!saved) console.warn('Firebase submitEssay returned null, falling back to Netlify function');
+            const saveResult = await saveSubmissionWithRetry(submissionData);
+            if (saveResult.saved) {
+              // Only clear the local backup once the save is confirmed
+              localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
+              if (saveResult.via === 'client') {
+                showToast('Submitted — the connection was unstable, so it may take a moment to reach your teacher', 'info');
               }
-              if (!saved) {
-                const resp = await fetch('/.netlify/functions/submit-homework', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...apiAuthHeaders() },
-                  body: JSON.stringify(submissionData)
-                });
-                if (!resp.ok) console.error('Netlify submit-homework failed:', resp.status);
-              }
-            } catch (submitError) {
-              console.error('Failed to save submission:', submitError);
+            } else {
+              alert('Your essay was graded but could not be sent to your teacher because of a connection problem.\n\nDon\'t worry — it is saved on this device and will be sent automatically the next time you open this page.');
             }
-            
-            localStorage.removeItem(CONFIG.LOCAL_STORAGE_KEY);
           } else {
             throw new Error(data.error || 'Failed to grade essay');
           }

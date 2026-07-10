@@ -136,8 +136,11 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Add server metadata
-    submission.serverTimestamp = new Date().toISOString();
+    // Add server metadata. Guarantee BOTH timestamp fields exist — the
+    // submissions listing sorts by serverTimestamp || submittedAt.
+    const now = new Date().toISOString();
+    submission.serverTimestamp = now;
+    if (!submission.submittedAt) submission.submittedAt = now;
     submission.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Normalize email for consistent querying
@@ -154,14 +157,21 @@ exports.handler = async (event, context) => {
       score: submission.score
     });
 
-    // Clean up progress entry
+    // Clean up progress entry. The client-side SDK writes progress docs
+    // with the UNSANITIZED email in the doc ID, so try both formats or
+    // the essay keeps showing as "in progress" after submission.
     if (submission.studentEmail) {
-      const sanitizedEmail = submission.studentEmail.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
+      const emailLower = submission.studentEmail.toLowerCase();
+      const sanitizedEmail = emailLower.replace(/[^a-zA-Z0-9@._-]/g, '_');
       const essayId = submission.essayId ? `_${submission.essayId}` : '';
       const progressDocId = `${sanitizedEmail}${essayId}`;
-      
+      const altProgressDocId = `${emailLower}${essayId}`;
+
       try {
         await db.collection('progress').doc(progressDocId).delete();
+        if (altProgressDocId !== progressDocId) {
+          await db.collection('progress').doc(altProgressDocId).delete();
+        }
         console.log('[submit-homework] Progress entry cleaned up');
       } catch (e) {
         // Ignore cleanup errors

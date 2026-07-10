@@ -56,15 +56,24 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ success: false, error: 'Forbidden' })
           };
         }
-        const sanitizedEmail = params.email.toLowerCase().replace(/[^a-zA-Z0-9@._-]/g, '_');
+        const emailLower = params.email.toLowerCase();
+        const sanitizedEmail = emailLower.replace(/[^a-zA-Z0-9@._-]/g, '_');
         const essayId = params.essayId || '';
         const docId = `${sanitizedEmail}${essayId ? `_${essayId}` : ''}`;
-        
+        // The client-side Firebase SDK writes progress docs with the
+        // UNSANITIZED email in the doc ID, so cross-device resume must
+        // try both formats.
+        const altDocId = `${emailLower}${essayId ? `_${essayId}` : ''}`;
+
         console.log('[save-progress] Looking up progress for:', docId);
-        
-        const docRef = db.collection('progress').doc(docId);
-        const doc = await firestoreTimeout(docRef.get());
-        
+
+        let doc = await firestoreTimeout(db.collection('progress').doc(docId).get());
+
+        if ((!doc.exists || doc.data().completed) && altDocId !== docId) {
+          console.log('[save-progress] Trying alternate doc ID:', altDocId);
+          doc = await firestoreTimeout(db.collection('progress').doc(altDocId).get());
+        }
+
         if (doc.exists && !doc.data().completed) {
           console.log('[save-progress] Found progress for:', params.email);
           return {
@@ -80,6 +89,28 @@ exports.handler = async (event, context) => {
             })
           };
         } else {
+          // Final fallback: query by field (catches any doc ID format)
+          if (essayId) {
+            try {
+              const snapshot = await firestoreTimeout(
+                db.collection('progress')
+                  .where('studentEmail', '==', emailLower)
+                  .where('essayId', '==', essayId)
+                  .limit(1)
+                  .get()
+              );
+              if (!snapshot.empty && !snapshot.docs[0].data().completed) {
+                console.log('[save-progress] Found progress via field query for:', params.email);
+                return {
+                  statusCode: 200,
+                  headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+                  body: JSON.stringify({ success: true, found: true, progress: snapshot.docs[0].data() })
+                };
+              }
+            } catch (queryErr) {
+              console.log('[save-progress] Field query fallback error:', queryErr.message);
+            }
+          }
           console.log('[save-progress] No active progress found for:', params.email);
           return {
             statusCode: 200,
@@ -130,15 +161,19 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Get all progress documents
+      // Get all progress documents (no orderBy: Firestore orderBy silently
+      // excludes docs that lack the ordered field or have mixed types in it)
       const snapshot = await firestoreTimeout(db.collection('progress')
-        .orderBy('lastUpdate', 'desc')
         .get(), 6000);
-      
+
       const inProgress = [];
       snapshot.forEach(doc => {
         const data = doc.data();
         if (!data.completed) {
+          // Normalize timestamps for consistent serialization and sorting
+          const lastUpdate = data.updatedAt?.toDate
+            ? data.updatedAt.toDate().toISOString()
+            : (data.lastUpdate || data.updatedAt);
           inProgress.push({
             studentName: data.studentName,
             studentEmail: data.studentEmail,
@@ -152,10 +187,13 @@ exports.handler = async (event, context) => {
             completedParagraphs: data.completedParagraphs,
             percentComplete: data.percentComplete,
             paragraphScores: data.paragraphScores,
-            lastUpdate: data.lastUpdate
+            lastUpdate: lastUpdate
           });
         }
       });
+
+      // Sort by most recent first (was previously done by Firestore orderBy)
+      inProgress.sort((a, b) => new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0));
 
       console.log(`[save-progress] Retrieved ${inProgress.length} in-progress students`);
 

@@ -98,24 +98,52 @@ async function teachersExist() {
   }
 }
 
-// Get list of student emails that belong to a teacher (Firestore first, Blobs fallback)
+// Get list of student emails that belong to a teacher (Firestore first, Blobs fallback).
+// Checks both the legacy per-student teacherEmail field AND membership of the
+// teacher's classes — a student in classes owned by two teachers only carries
+// one teacherEmail, so without the class check the second teacher never sees
+// that student's submissions.
 async function getTeacherStudentEmails(teacherEmail) {
-  const emails = [];
+  const emailSet = new Set();
+  const addStudent = (student) => {
+    if (student.email) emailSet.add(student.email.toLowerCase());
+    if (student.name) emailSet.add(student.name.toLowerCase());
+  };
 
   try {
     const db = initializeFirebase();
     if (db) {
-      const snapshot = await firestoreTimeout(db.collection('students')
+      const studentSnapshot = await firestoreTimeout(db.collection('students')
         .where('teacherEmail', '==', teacherEmail)
         .get());
-      if (!snapshot.empty) {
-        snapshot.forEach(doc => {
-          const student = doc.data();
-          if (student.email) emails.push(student.email);
-          if (student.name) emails.push(student.name.toLowerCase());
-        });
-        return emails;
+      if (!studentSnapshot.empty) {
+        studentSnapshot.forEach(doc => addStudent(doc.data()));
       }
+
+      const classSnapshot = await firestoreTimeout(db.collection('classes')
+        .where('teacherEmail', '==', teacherEmail)
+        .get());
+      if (!classSnapshot.empty) {
+        const classStudentEmails = [];
+        classSnapshot.forEach(doc => {
+          const classData = doc.data();
+          if (classData.students && Array.isArray(classData.students)) {
+            classStudentEmails.push(...classData.students);
+          }
+        });
+        for (const studentEmail of [...new Set(classStudentEmails)]) {
+          if (emailSet.has(studentEmail.toLowerCase())) continue;
+          try {
+            const studentDoc = await firestoreTimeout(
+              db.collection('students').doc(studentEmail.toLowerCase()).get());
+            if (studentDoc.exists) addStudent(studentDoc.data());
+            else emailSet.add(studentEmail.toLowerCase());
+          } catch (e) {
+            emailSet.add(studentEmail.toLowerCase());
+          }
+        }
+      }
+      if (emailSet.size > 0) return [...emailSet];
     }
   } catch (e) {
     // Firestore failed, try Blobs
@@ -127,17 +155,14 @@ async function getTeacherStudentEmails(teacherEmail) {
     for (const blob of blobs) {
       const student = await studentsStore.get(blob.key, { type: 'json' });
       if (student && student.teacherEmail === teacherEmail) {
-        emails.push(student.email);
-        if (student.name) {
-          emails.push(student.name.toLowerCase());
-        }
+        addStudent(student);
       }
     }
   } catch (e) {
     console.error('Error getting teacher students:', e);
   }
 
-  return emails;
+  return [...emailSet];
 }
 
 exports.handler = async (event, context) => {
@@ -246,15 +271,26 @@ exports.handler = async (event, context) => {
 
     const db = initializeFirebase();
 
-    // Get all submissions, ordered by newest first
+    // Get all submissions WITHOUT orderBy: Firestore orderBy silently
+    // excludes documents that lack the ordered field (client-SDK saves
+    // don't write serverTimestamp) or that carry mixed types in it.
+    // Normalize timestamps and sort in JS instead.
     let submissions = [];
     try {
       const snapshot = await firestoreTimeout(
-        db.collection('submissions').orderBy('serverTimestamp', 'desc').get(),
-        6000  // slightly longer timeout for potentially large result set
+        db.collection('submissions').get(),
+        8000  // longer timeout for potentially large result set
       );
       snapshot.forEach(doc => {
-        submissions.push(doc.data());
+        const data = doc.data();
+        if (data.submittedAt?.toDate) data.submittedAt = data.submittedAt.toDate().toISOString();
+        if (data.serverTimestamp?.toDate) data.serverTimestamp = data.serverTimestamp.toDate().toISOString();
+        submissions.push(data);
+      });
+      submissions.sort((a, b) => {
+        const dateA = new Date(a.serverTimestamp || a.submittedAt || 0);
+        const dateB = new Date(b.serverTimestamp || b.submittedAt || 0);
+        return dateB - dateA;
       });
     } catch (firestoreErr) {
       console.warn('Firestore submissions query failed:', firestoreErr.message);
@@ -274,33 +310,61 @@ exports.handler = async (event, context) => {
       }
     }
 
+    const totalBeforeFilter = submissions.length;
+
+    // Exact-match check shared by the filter and the diagnostics below.
+    // A substring match (studentEmail.includes(email)) could leak another
+    // student's submission when one identifier is a substring of another.
+    const matchesTeacher = (sub) => {
+      const studentEmail = (sub.studentEmail || '').toLowerCase();
+      const studentName = (sub.studentName || '').toLowerCase();
+      return teacherStudentEmails.some(email =>
+        email === studentEmail ||
+        email === studentName
+      );
+    };
+
     // Filter by teacher's students if not admin
+    let filteredOutStudents = null;
     if (teacherStudentEmails !== null) {
-      submissions = submissions.filter(sub => {
-        // Match by email or student name
-        const studentEmail = (sub.studentEmail || '').toLowerCase();
-        const studentName = (sub.studentName || '').toLowerCase();
-        
-        // Exact match only. A substring match (studentEmail.includes(email))
-        // could leak another student's submission when one identifier is a
-        // substring of another.
-        return teacherStudentEmails.some(email =>
-          email === studentEmail ||
-          email === studentName
-        );
-      });
+      if (params.diagnostics === 'true') {
+        const excluded = new Set();
+        submissions.forEach(sub => {
+          if (!matchesTeacher(sub)) {
+            excluded.add((sub.studentEmail || sub.studentName || 'unknown').toLowerCase());
+          }
+        });
+        filteredOutStudents = [...excluded];
+      }
+      submissions = submissions.filter(matchesTeacher);
     }
 
-    console.log('[get-submissions] Retrieved ' + submissions.length + ' submissions' + 
+    console.log('[get-submissions] Retrieved ' + submissions.length + ' submissions' +
+      ' (filtered from ' + totalBeforeFilter + ' total)' +
       (sessionCheck.valid ? ' for teacher ' + sessionCheck.email : ''));
+
+    // Optional diagnostics for teachers investigating "missing" essays
+    let diagnostics;
+    if (params.diagnostics === 'true' && sessionCheck.valid) {
+      diagnostics = {
+        totalInFirestore: totalBeforeFilter,
+        afterTeacherFilter: submissions.length,
+        filteredOut: totalBeforeFilter - submissions.length,
+        teacherEmail: sessionCheck.email,
+        isAdmin: !!sessionCheck.isAdmin,
+        teacherStudentList: teacherStudentEmails,
+        studentsFilteredOut: filteredOutStudents || []
+      };
+    }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         success: true,
         count: submissions.length,
         submissions: submissions,
+        diagnostics,
         teacherEmail: sessionCheck.valid ? sessionCheck.email : undefined,
         isAdmin: sessionCheck.isAdmin || undefined
       })
