@@ -6917,6 +6917,26 @@ ${examinerComment}
       const [studentSearch, setStudentSearch] = useState('');
       const [isRealtime, setIsRealtime] = useState(FIREBASE_ENABLED);
       const [activeTab, setActiveTab] = useState('submissions');
+
+      // Deep-linkable dashboard tabs: #/teacher/<tab> survives refresh and
+      // Back/Forward steps between tabs.
+      const DASHBOARD_TABS = ['submissions', 'performance', 'students', 'assignments', 'essays', 'teachers', 'admin-students', 'admin-classes'];
+      useEffect(() => {
+        const applyHashTab = () => {
+          const m = window.location.hash.match(/^#\/teacher\/([a-z-]+)/);
+          if (m && DASHBOARD_TABS.includes(m[1])) setActiveTab(m[1]);
+        };
+        applyHashTab();
+        window.addEventListener('hashchange', applyHashTab);
+        return () => window.removeEventListener('hashchange', applyHashTab);
+      }, []);
+      useEffect(() => {
+        const target = `#/teacher/${activeTab}`;
+        const current = window.location.hash;
+        if (current === target || !current.startsWith('#/teacher')) return;
+        if (current === '#/teacher') window.history.replaceState(null, '', target);
+        else window.history.pushState(null, '', target);
+      }, [activeTab]);
       const [sidebarOpen, setSidebarOpen] = useState(false);
       const [expandedProgress, setExpandedProgress] = useState(null); // Track which in-progress item is expanded
       const [classes, setClasses] = useState([]);
@@ -12959,6 +12979,69 @@ ${examinerComment}
           setScreen('entry');
         }
       }, [isAuthenticated]);
+
+      // -----------------------------------------------------
+      // Hash router: mirror the screen state into the URL hash
+      // so the browser Back button navigates within the app
+      // instead of exiting the site, and screens are shareable.
+      // -----------------------------------------------------
+      const hashInitializedRef = useRef(false);
+
+      const screenToHash = (scr, essayId) => {
+        switch (scr) {
+          case 'login': return '#/login';
+          case 'student-dashboard': return '#/home';
+          case 'select-essay': return '#/essays';
+          case 'preview-entry': return '#/preview';
+          case 'dashboard': return '#/teacher';
+          case 'entry': return essayId ? `#/essay/${encodeURIComponent(essayId)}/start` : '#/essays';
+          case 'writing': return essayId ? `#/essay/${encodeURIComponent(essayId)}/write` : '#/essays';
+          case 'compilation': return essayId ? `#/essay/${encodeURIComponent(essayId)}/review` : '#/essays';
+          default: return '#/';
+        }
+      };
+
+      // Screen -> URL (push so Back steps through app screens)
+      useEffect(() => {
+        const target = screenToHash(screen, selectedEssayId);
+        // The teacher dashboard manages sub-tab hashes (#/teacher/<tab>) itself.
+        const current = window.location.hash;
+        if (screen === 'dashboard' && current.startsWith('#/teacher')) return;
+        if (current === target) return;
+        if (!hashInitializedRef.current) {
+          window.history.replaceState(null, '', target);
+          hashInitializedRef.current = true;
+        } else {
+          window.history.pushState(null, '', target);
+        }
+      }, [screen, selectedEssayId]);
+
+      // URL -> screen (Back/Forward). Only allows transitions that are
+      // safe for the current auth/essay state; anything else falls back
+      // to the appropriate home screen.
+      useEffect(() => {
+        const onPopState = () => {
+          const hash = window.location.hash || '#/';
+          let next = null;
+          const essayMatch = hash.match(/^#\/essay\/([^/]+)\/(start|write|review)$/);
+          if (essayMatch && decodeURIComponent(essayMatch[1]) === selectedEssayId) {
+            next = essayMatch[2] === 'start' ? 'entry' : essayMatch[2] === 'write' ? 'writing' : 'compilation';
+          } else if (hash.startsWith('#/teacher')) {
+            next = teacherData ? 'dashboard' : 'login';
+          } else if (hash.startsWith('#/essays')) {
+            next = 'select-essay';
+          } else if (hash.startsWith('#/home')) {
+            next = isAuthenticated ? 'student-dashboard' : 'login';
+          } else if (hash.startsWith('#/login')) {
+            next = isAuthenticated ? 'student-dashboard' : 'login';
+          } else {
+            next = teacherData ? 'dashboard' : isAuthenticated ? 'student-dashboard' : 'login';
+          }
+          if (next) setScreen(next);
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+      }, [isAuthenticated, teacherData, selectedEssayId]);
       
       // Load saved state for selected essay - check Firebase first, then localStorage.
       // Only runs when arriving at the 'entry' screen (e.g. from essay picker or URL param).
