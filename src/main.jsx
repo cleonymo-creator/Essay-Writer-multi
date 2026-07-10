@@ -5199,7 +5199,18 @@ import * as ReactDOM from 'react-dom/client';
       // If student is logged in, use their info automatically
       const [studentName, setStudentName] = useState(loggedInStudent?.name || '');
       const [studentEmail, setStudentEmail] = useState(loggedInStudent?.email || '');
-      const [targetGrade, setTargetGrade] = useState('');
+      // Pre-select the student's remembered target grade (profile first,
+      // then this device) — the picker stays fully editable, so this is a
+      // default, never a lock-in.
+      const rememberedGrade = (() => {
+        if (loggedInStudent?.targetGrade) return loggedInStudent.targetGrade;
+        const email = (loggedInStudent?.email || '').toLowerCase();
+        if (!email) return '';
+        try {
+          return JSON.parse(localStorage.getItem('targetGrade:' + email) || 'null')?.targetGrade || '';
+        } catch (e) { return ''; }
+      })();
+      const [targetGrade, setTargetGrade] = useState(rememberedGrade);
       const [error, setError] = useState('');
       const [checkingProgress, setCheckingProgress] = useState(false);
       const [existingProgress, setExistingProgress] = useState(null);
@@ -5308,6 +5319,21 @@ import * as ReactDOM from 'react-dom/client';
         if (!targetGrade) {
           setError('Please select your target grade');
           return;
+        }
+
+        // Remember the chosen target so returning students find it pre-selected
+        // (they can always change it here). localStorage for this device,
+        // profile update for cross-device.
+        try {
+          localStorage.setItem('targetGrade:' + finalEmail, JSON.stringify({ targetGrade, gradeSystem }));
+        } catch (err) { /* storage full/blocked — non-fatal */ }
+        const studentToken = localStorage.getItem('studentSession');
+        if (studentToken) {
+          fetch('/.netlify/functions/student-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'updateProfile', sessionToken: studentToken, targetGrade, gradeSystem })
+          }).catch(() => {});
         }
 
         onStudentStart(finalName, finalEmail, targetGrade, gradeSystem);
@@ -5437,8 +5463,13 @@ import * as ReactDOM from 'react-dom/client';
                      <Icon name={ICONS.target} size={20} /> What grade are you aiming for?
                   </label>
                   <p className="grade-selector-hint">
-                    This helps us personalise the feedback to support your learning journey
+                    This helps us match the feedback to what you're working towards
                   </p>
+                  {rememberedGrade && targetGrade === rememberedGrade && (
+                    <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);")}>
+                      We've kept your usual target selected — tap a different grade any time you want to change it.
+                    </p>
+                  )}
 
                   <div className="grade-buttons">
                     {gradeSystemInfo.grades.map((grade) => (

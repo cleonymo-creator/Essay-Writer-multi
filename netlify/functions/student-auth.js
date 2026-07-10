@@ -314,6 +314,72 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // UPDATE PROFILE - a student saves their own preferences (target grade).
+    // Whitelisted fields only; identity comes from the session, never the body.
+    if (action === 'updateProfile') {
+      if (!sessionToken) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'No session token' })
+        };
+      }
+
+      // Resolve the session to a student email (Firebase ID token or app session)
+      let sessionEmail = null;
+      if (sessionToken.includes('.')) {
+        try {
+          const auth = getAuth();
+          const decodedToken = await auth.verifyIdToken(sessionToken);
+          sessionEmail = decodedToken.email.trim().toLowerCase();
+        } catch (e) {
+          sessionEmail = null;
+        }
+      } else {
+        try {
+          const sessionDoc = await firestoreTimeout(db.collection('sessions').doc(sessionToken).get());
+          if (sessionDoc.exists) {
+            const session = sessionDoc.data();
+            const expiresAt = session.expiresAt?.toDate ? session.expiresAt.toDate() : new Date(session.expiresAt);
+            if (expiresAt >= new Date()) sessionEmail = session.email;
+          }
+        } catch (e) {
+          sessionEmail = null;
+        }
+      }
+
+      if (!sessionEmail) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, error: 'Invalid or expired session' })
+        };
+      }
+
+      const VALID_GRADES = ['9', '8', '7', '6', '5', '4', '3', '2', '1', 'A*', 'A', 'B', 'C', 'D', 'E'];
+      const updates = {};
+      if (body.targetGrade && VALID_GRADES.includes(String(body.targetGrade))) {
+        updates.targetGrade = String(body.targetGrade);
+      }
+      if (body.gradeSystem && ['gcse', 'alevel'].includes(body.gradeSystem)) {
+        updates.gradeSystem = body.gradeSystem;
+      }
+      if (Object.keys(updates).length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ success: false, error: 'No valid fields to update' })
+        };
+      }
+
+      await firestoreTimeout(db.collection('students').doc(sessionEmail).update(updates));
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, updated: Object.keys(updates) })
+      };
+    }
+
     // LOGIN - Verify email and password
     if (action === 'login') {
       if (!email || !password) {
