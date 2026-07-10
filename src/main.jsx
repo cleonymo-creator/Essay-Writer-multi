@@ -98,6 +98,7 @@ import * as ReactDOM from 'react-dom/client';
 
       return React.createElement('span', {
         className: `lucide-icon ${className}`,
+        'aria-hidden': 'true',
         style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }
       },
         React.createElement('svg', {
@@ -1362,6 +1363,150 @@ import * as ReactDOM from 'react-dom/client';
       );
     }
 
+    // =====================================================
+    // SHARED UI PRIMITIVES (Modal, Field, ConfirmDialog, Toast)
+    // =====================================================
+
+    // Accessible modal: role=dialog, focus trap, Escape-to-close, initial
+    // focus, and focus restoration to the opener on close. All app dialogs
+    // should be built on this instead of hand-rolled overlay divs.
+    function Modal({ title, onClose, children, width = 560, closeOnOverlay = true }) {
+      const panelRef = useRef(null);
+
+      useEffect(() => {
+        const opener = document.activeElement;
+        const node = panelRef.current;
+        const getFocusables = () => node
+          ? Array.from(node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.disabled && el.offsetParent !== null)
+          : [];
+        const autoTarget = node?.querySelector('[data-autofocus]') || getFocusables()[0];
+        if (autoTarget) autoTarget.focus();
+
+        const onKey = (e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            if (onClose) onClose();
+          } else if (e.key === 'Tab') {
+            const els = getFocusables();
+            if (!els.length) return;
+            const first = els[0];
+            const last = els[els.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => {
+          document.removeEventListener('keydown', onKey, true);
+          if (opener && typeof opener.focus === 'function') opener.focus();
+        };
+      }, []);
+
+      return (
+        <div
+          style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}
+          onClick={closeOnOverlay && onClose ? (e) => { if (e.target === e.currentTarget) onClose(); } : undefined}
+        >
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            className="card"
+            style={{ maxWidth: width, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 'var(--space-xl)' }}
+          >
+            {title && <h3 style={parseStyle("margin-bottom: var(--space-lg);")}>{title}</h3>}
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    // Form field with a programmatically associated label, plus hint and
+    // error slots. Wrap exactly one input/select/textarea.
+    let __fieldIdCounter = 0;
+    function Field({ label, hint, error, children }) {
+      const idRef = useRef(null);
+      if (!idRef.current) idRef.current = `field-${++__fieldIdCounter}`;
+      const id = idRef.current;
+      const child = React.Children.only(children);
+      return (
+        <div style={parseStyle("margin-bottom: var(--space-md);")}>
+          <label htmlFor={id} style={parseStyle("display: block; font-weight: 600; margin-bottom: var(--space-xs);")}>{label}</label>
+          {React.cloneElement(child, { id, 'aria-invalid': error ? true : undefined })}
+          {hint && !error && <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>{hint}</p>}
+          {error && <p role="alert" style={parseStyle("font-size: 0.85rem; color: var(--color-error); margin-top: var(--space-xs);")}>{error}</p>}
+        </div>
+      );
+    }
+
+    // Confirmation dialog to replace native confirm() for destructive
+    // actions. Destructive button is visually distinct and NOT autofocused.
+    function ConfirmDialog({ title, message, confirmLabel = 'Confirm', destructive = false, onConfirm, onCancel }) {
+      return (
+        <Modal title={title} onClose={onCancel} width={440}>
+          <p style={parseStyle("margin-bottom: var(--space-lg); color: var(--color-text-secondary);")}>{message}</p>
+          <div style={parseStyle("display: flex; gap: var(--space-md); justify-content: flex-end;")}>
+            <button className="btn btn-secondary" data-autofocus onClick={onCancel}>Cancel</button>
+            <button
+              className="btn"
+              style={destructive
+                ? { background: 'var(--color-error)', color: '#fff' }
+                : { background: 'var(--color-primary)', color: 'var(--color-text-inverse)' }}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // Lightweight global toasts: call showToast('Saved', 'success'|'error'|'info')
+    // from anywhere; ToastHost (mounted once at the root) renders them.
+    let __toastCounter = 0;
+    function showToast(message, type = 'success') {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: { message, type, id: ++__toastCounter } }));
+    }
+
+    function ToastHost() {
+      const [toasts, setToasts] = useState([]);
+      useEffect(() => {
+        const onToast = (e) => {
+          const toast = e.detail;
+          setToasts(prev => [...prev, toast]);
+          setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toast.id)), 4500);
+        };
+        window.addEventListener('app-toast', onToast);
+        return () => window.removeEventListener('app-toast', onToast);
+      }, []);
+
+      if (!toasts.length) return null;
+      const typeStyles = {
+        success: 'border-color: var(--color-success); color: var(--color-success);',
+        error: 'border-color: var(--color-error); color: var(--color-error);',
+        info: 'border-color: var(--color-info); color: var(--color-info);'
+      };
+      return (
+        <div aria-live="polite" style={parseStyle("position: fixed; bottom: var(--space-lg); left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: var(--space-sm); align-items: center; pointer-events: none;")}>
+          {toasts.map(t => (
+            <div key={t.id} className="card" style={parseStyle(`padding: var(--space-sm) var(--space-lg); border: 1px solid; background: var(--color-bg-alt); box-shadow: var(--shadow-lg); font-weight: 500; ${typeStyles[t.type] || typeStyles.info}`)}>
+              {t.message}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Single source of truth for score -> colour so every panel agrees.
+    function scoreColor(score) {
+      if (score === null || score === undefined) return 'var(--color-text-muted)';
+      if (score >= 80) return 'var(--color-success)';
+      if (score >= 60) return 'var(--color-info)';
+      if (score >= 40) return 'var(--color-warning)';
+      return 'var(--color-error)';
+    }
+
     // Shows one-time credentials (e.g. a reset password) in a copyable
     // dialog instead of a native alert(), which loses the value forever
     // the moment it's dismissed.
@@ -1591,8 +1736,7 @@ import * as ReactDOM from 'react-dom/client';
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                  className="form-input"
                   autoFocus
                   disabled={isLoading}
                 />
@@ -1608,8 +1752,8 @@ import * as ReactDOM from 'react-dom/client';
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(''); }}
                     placeholder="Enter your password"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-md); padding-right: 50px;")}
+                    className="form-input"
+                    style={parseStyle("padding-right: 50px;")}
                     disabled={isLoading}
                   />
                   <button
@@ -1661,8 +1805,7 @@ import * as ReactDOM from 'react-dom/client';
                       value={resetEmail}
                       onChange={(e) => { setResetEmail(e.target.value); setError(''); }}
                       placeholder={'e.g. jsmith' + REQUIRED_EMAIL_DOMAIN}
-                      className="paragraph-editor"
-                      style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                      className="form-input"
                       disabled={isLoading}
                     />
                   </div>
@@ -1970,7 +2113,7 @@ import * as ReactDOM from 'react-dom/client';
               onClose={() => setShowPasswordModal(false)}
               onSuccess={() => {
                 setShowPasswordModal(false);
-                alert('Password changed successfully!');
+                showToast('Password changed successfully');
               }}
             />
           )}
@@ -2036,70 +2179,58 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h2>
-            
-            <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+        <Modal title="Change Password" onClose={isLoading ? undefined : onClose} width={400}>
+          <form onSubmit={handleSubmit}>
+            <Field label="Current Password" hint="Ask your teacher if you've forgotten it.">
+              <input
+                type="password"
+                autoComplete="current-password"
+                data-autofocus
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+            <Field label="New Password" hint="At least 6 characters.">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
-                  disabled={isLoading}
-                />
-              </div>
+            <Field label="Confirm New Password">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </Field>
 
-              {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
-                  {error}
-                </div>
-              )}
-
-              <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
-                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                  {isLoading ? 'Saving...' : 'Change Password'}
-                </button>
+            {error && (
+              <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                {error}
               </div>
-            </form>
-          </div>
-        </div>
+            )}
+
+            <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Change Password'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       );
     }
     
@@ -2937,6 +3068,7 @@ import * as ReactDOM from 'react-dom/client';
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
       const [credentialDialog, setCredentialDialog] = useState(null);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [showAddStudent, setShowAddStudent] = useState(false);
@@ -3097,9 +3229,7 @@ import * as ReactDOM from 'react-dom/client';
         alert(msg);
       };
 
-      const handleDeleteStudent = async (email, name) => {
-        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
-        
+      const performDeleteStudent = async (email) => {
         try {
           let result;
           const firebaseReady = await FirebaseDB.isReady();
@@ -3111,15 +3241,26 @@ import * as ReactDOM from 'react-dom/client';
             });
             result = await response.json();
           }
-          
+
           if (result.success) {
             setStudents(students.filter(s => s.email !== email));
+            showToast('Student deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting student');
+          showToast('Error deleting student', 'error');
         }
+      };
+
+      const handleDeleteStudent = (email, name) => {
+        setConfirmAction({
+          title: 'Delete Student',
+          message: `Delete ${name} (${email})? This cannot be undone.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteStudent(email); }
+        });
       };
 
       if (loading) {
@@ -3156,8 +3297,8 @@ import * as ReactDOM from 'react-dom/client';
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+              className="form-input"
+              style={parseStyle("flex: 1; min-width: 200px;")}
             />
             <select
               value={selectedClass}
@@ -3276,6 +3417,10 @@ import * as ReactDOM from 'react-dom/client';
           {credentialDialog && (
             <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
           )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
@@ -3342,34 +3487,28 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Student</h2>
-            
+        <Modal title="Add Student" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+              <Field label="Full Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. John Smith"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email *</label>
+              <Field label="Email *">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. jsmith@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes (select multiple)</label>
@@ -3397,23 +3536,18 @@ import * as ReactDOM from 'react-dom/client';
                 )}
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Password (optional)</label>
+              <Field label="Password (optional)" hint="If left blank, a random password will be generated.">
                 <input
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Leave blank to auto-generate"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
-                  If left blank, a random password will be generated.
-                </p>
-              </div>
+              </Field>
 
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
                   {error}
                 </div>
               )}
@@ -3425,8 +3559,7 @@ import * as ReactDOM from 'react-dom/client';
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -3549,10 +3682,7 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow-y: auto;")}>
-          <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Import Students from CSV</h2>
-            
+        <Modal title="Import Students from CSV" onClose={onClose} width={600}>
             {!results ? (
               <>
                 <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--glass-bg); border-radius: var(--radius-md);")}>
@@ -3567,18 +3697,17 @@ import * as ReactDOM from 'react-dom/client';
                   </p>
                 </div>
 
-                <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Upload CSV File</label>
+                <Field label="Upload CSV File">
                   <input
                     type="file"
                     accept=".csv"
+                    data-autofocus
                     onChange={handleFileUpload}
                     style={parseStyle("width: 100%;")}
                   />
-                </div>
+                </Field>
 
-                <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Or Paste CSV Content</label>
+                <Field label="Or Paste CSV Content">
                   <textarea
                     value={csvContent}
                     onChange={(e) => setCsvContent(e.target.value)}
@@ -3586,7 +3715,7 @@ import * as ReactDOM from 'react-dom/client';
                     className="paragraph-editor"
                     style={parseStyle("min-height: 150px;")}
                   />
-                </div>
+                </Field>
 
                 <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                   <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Also add ALL students to these classes:</label>
@@ -3686,8 +3815,7 @@ import * as ReactDOM from 'react-dom/client';
                 </div>
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -3742,74 +3870,62 @@ import * as ReactDOM from 'react-dom/client';
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Create Class</h2>
-            
+        <Modal title="Create Class" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+              <Field label="Class Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. 10B English"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);")}>
+                <Field label="Subject">
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. English"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                </Field>
+                <Field label="Year Group">
                   <input
                     type="text"
                     value={yearGroup}
                     onChange={(e) => setYearGroup(e.target.value)}
                     placeholder="e.g. Year 10"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+              <Field label="Teacher Name">
                 <input
                   type="text"
                   value={teacher}
                   onChange={(e) => setTeacher(e.target.value)}
                   placeholder="e.g. Mr Davies"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+              <Field label="Teacher Email">
                 <input
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
                   placeholder="e.g. pdavies@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
                   {error}
                 </div>
               )}
@@ -3821,8 +3937,7 @@ import * as ReactDOM from 'react-dom/client';
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -4883,8 +4998,7 @@ import * as ReactDOM from 'react-dom/client';
                         value={studentName}
                         onChange={(e) => { setStudentName(e.target.value); setError(''); }}
                         placeholder="e.g. John Smith"
-                        className="paragraph-editor"
-                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                        className="form-input"
                         autoFocus
                       />
                     </div>
@@ -4899,8 +5013,7 @@ import * as ReactDOM from 'react-dom/client';
                         onChange={(e) => { setStudentEmail(e.target.value); setError(''); setExistingProgress(null); }}
                         onBlur={(e) => checkExistingProgress(e.target.value)}
                         placeholder={`e.g. jsmith${REQUIRED_EMAIL_DOMAIN}`}
-                        className="paragraph-editor"
-                        style={parseStyle("min-height: auto; padding: var(--space-md);")}
+                        className="form-input"
                       />
                       <p style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
                         Must end with {REQUIRED_EMAIL_DOMAIN}
@@ -7256,8 +7369,7 @@ ${examinerComment}
                   value={studentSearch}
                   onChange={e => setStudentSearch(e.target.value)}
                   placeholder="Search by name or email..."
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
               </div>
               {/* Clear Filters */}
@@ -7555,15 +7667,11 @@ ${examinerComment}
           </div>
           
           {selectedSubmission && (
-            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg); overflow: auto;")} onClick={() => setSelectedSubmission(null)}>
-              <div className="card" style={parseStyle("max-width: 900px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={(e) => e.stopPropagation()}>
-                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
-                  <div>
-                    <h3 style={parseStyle("margin-bottom: var(--space-xs);")}>{selectedSubmission.studentName}'s Essay</h3>
-                    {selectedSubmission.studentEmail && (
-                      <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin: 0;")}>{selectedSubmission.studentEmail}</p>
-                    )}
-                  </div>
+            <Modal title={`${selectedSubmission.studentName}'s Essay`} onClose={() => setSelectedSubmission(null)} width={900}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); margin-top: calc(-1 * var(--space-md));")}>
+                  {selectedSubmission.studentEmail ? (
+                    <p style={parseStyle("color: var(--color-text-muted); font-size: 0.9rem; margin: 0;")}>{selectedSubmission.studentEmail}</p>
+                  ) : <span />}
                   <button className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Close</button>
                 </div>
                 
@@ -7700,8 +7808,7 @@ ${examinerComment}
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
+            </Modal>
               )}
               </>
               )}
@@ -7713,7 +7820,7 @@ ${examinerComment}
               onClose={() => setShowChangePassword(false)}
               onSuccess={() => {
                 setShowChangePassword(false);
-                alert('Password changed successfully');
+                showToast('Password changed successfully');
               }}
             />
           )}
@@ -8077,8 +8184,7 @@ ${examinerComment}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
               </div>
@@ -8093,8 +8199,7 @@ ${examinerComment}
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="teacher@school.com"
-                className="paragraph-editor"
-                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                className="form-input"
                 disabled={isLoading}
                 autoFocus
               />
@@ -8109,8 +8214,7 @@ ${examinerComment}
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 placeholder={mode === 'setup' ? 'At least 8 characters' : 'Enter password'}
-                className="paragraph-editor"
-                style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                className="form-input"
                 disabled={isLoading}
               />
             </div>
@@ -8125,8 +8229,7 @@ ${examinerComment}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                   placeholder="Confirm your password"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
               </div>
@@ -8724,8 +8827,7 @@ ${examinerComment}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Search by title, ID, or subject..."
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
               </div>
               <div style={parseStyle("min-width: 150px;")}>
@@ -8764,10 +8866,8 @@ ${examinerComment}
 
           {/* Import Modal */}
           {showImport && (
-            <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")} onClick={() => setShowImport(false)}>
-              <div className="card" style={parseStyle("max-width: 600px; width: 100%; max-height: 90vh; overflow: auto;")} onClick={e => e.stopPropagation()}>
-                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);")}>
-                  <h3 style={parseStyle("margin: 0;")}>Import Essay</h3>
+            <Modal title="Import Essay" onClose={() => setShowImport(false)} width={600}>
+                <div style={parseStyle("display: flex; justify-content: flex-end; margin-bottom: var(--space-md); margin-top: calc(-1 * var(--space-md));")}>
                   <button className="btn btn-secondary" onClick={() => setShowImport(false)}>Close</button>
                 </div>
 
@@ -8824,8 +8924,7 @@ ${examinerComment}
                     {importLoading ? 'Importing...' : 'Import Essay'}
                   </button>
                 </div>
-              </div>
-            </div>
+            </Modal>
           )}
 
           {/* All Essays - Grouped by Subject */}
@@ -10411,8 +10510,8 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Subject *</label>
                   <select value={subject} onChange={e => { setSubject(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    className="form-input"
+                    style={parseStyle("cursor: pointer;")}>
                     <option value="">Select a subject...</option>
                     <option value="KS3 English">KS3 English</option>
                     <option value="GCSE English Language">GCSE English Language</option>
@@ -10424,8 +10523,7 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Year Group *</label>
                   <input type="text" value={yearGroup} onChange={e => setYearGroup(e.target.value)}
-                    placeholder="e.g., Year 11" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., Year 11" className="form-input" />
                 </div>
               </div>
 
@@ -10433,8 +10531,8 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Board</label>
                   <select value={examBoard} onChange={e => { setExamBoard(e.target.value); setSelectedPaper(''); setSelectedQuestions([]); }}
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                    className="form-input"
+                    style={parseStyle("cursor: pointer;")}>
                     <option value="">Select exam board...</option>
                     <option value="AQA">AQA</option>
                     <option value="Edexcel">Edexcel</option>
@@ -10444,20 +10542,17 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Exam Series</label>
                   <input type="text" value={examSeries} onChange={e => setExamSeries(e.target.value)}
-                    placeholder="e.g., June 2024" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., June 2024" className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Total Marks *</label>
                   <input type="number" value={totalMarks} onChange={e => setTotalMarks(e.target.value)}
-                    placeholder="e.g., 40" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., 40" className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Time (minutes)</label>
                   <input type="number" value={timeAllowed} onChange={e => setTimeAllowed(e.target.value)}
-                    placeholder="e.g., 45" className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    placeholder="e.g., 45" className="form-input" />
                 </div>
               </div>
 
@@ -10558,8 +10653,7 @@ ${examinerComment}
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                 <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Paper/Component Name</label>
                 <input type="text" value={paperName} onChange={e => setPaperName(e.target.value)}
-                  placeholder="e.g., Paper 2 Section B" className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                  placeholder="e.g., Paper 2 Section B" className="form-input" />
               </div>
 
               <div style={parseStyle("display: flex; justify-content: flex-end;")}>
@@ -10747,17 +10841,17 @@ ${examinerComment}
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Min Words/Para</label>
                   <input type="number" value={minWords} onChange={e => setMinWords(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Target Words/Para</label>
                   <input type="number" value={targetWords} onChange={e => setTargetWords(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
                 <div>
                   <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs);")}>Max Attempts</label>
                   <input type="number" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)}
-                    className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                    className="form-input" />
                 </div>
               </div>
 
@@ -10818,12 +10912,12 @@ ${examinerComment}
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
                     <input type="text" value={editableEssay.title || ''} onChange={e => updateEssayField('title', e.target.value)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Essay ID</label>
                     <input type="text" value={editableEssay.id || ''} onChange={e => updateEssayField('id', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: monospace; font-size: 0.8rem;")} />
+                      className="form-input" style={parseStyle("font-family: monospace; font-size: 0.8rem;")} />
                   </div>
                 </div>
 
@@ -10855,17 +10949,17 @@ ${examinerComment}
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Total Marks</label>
                     <input type="number" value={editableEssay.totalMarks || ''} onChange={e => updateEssayField('totalMarks', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Min Words/Para</label>
                     <input type="number" value={editableEssay.minWordsPerParagraph || ''} onChange={e => updateEssayField('minWordsPerParagraph', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                   <div>
                     <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Target Words/Para</label>
                     <input type="number" value={editableEssay.targetWordsPerParagraph || ''} onChange={e => updateEssayField('targetWordsPerParagraph', parseInt(e.target.value) || 0)}
-                      className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                      className="form-input" />
                   </div>
                 </div>
               </div>
@@ -10909,12 +11003,12 @@ ${examinerComment}
                             <div>
                               <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Title *</label>
                               <input type="text" value={para.title || ''} onChange={e => updateParagraph(idx, 'title', e.target.value)}
-                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm);")} />
+                                className="form-input" />
                             </div>
                             <div>
                               <label style={parseStyle("display: block; font-size: 0.8rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Type</label>
                               <select value={para.type || 'body'} onChange={e => updateParagraph(idx, 'type', e.target.value)}
-                                className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-sm); cursor: pointer;")}>
+                                className="form-input" style={parseStyle("cursor: pointer;")}>
                                 <option value="introduction">Introduction</option>
                                 <option value="body">Body</option>
                                 <option value="conclusion">Conclusion</option>
@@ -10939,7 +11033,7 @@ ${examinerComment}
                             {(para.keyPoints || []).map((kp, kpIdx) => (
                               <div key={kpIdx} style={parseStyle("display: flex; gap: var(--space-xs); margin-bottom: var(--space-xs);")}>
                                 <input type="text" value={kp} onChange={e => updateKeyPoints(idx, kpIdx, e.target.value)}
-                                  className="paragraph-editor" style={parseStyle("min-height: auto; padding: var(--space-xs) var(--space-sm); flex: 1; font-size: 0.8rem;")} />
+                                  className="form-input" style={parseStyle("flex: 1; font-size: 0.8rem;")} />
                                 <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 6px; color: var(--color-error, #dc3545);")}
                                   onClick={() => removeKeyPoint(idx, kpIdx)}>x</button>
                               </div>
@@ -11046,6 +11140,7 @@ ${examinerComment}
     function TeacherManagementPanel() {
       const [teachers, setTeachers] = React.useState([]);
       const [credentialDialog, setCredentialDialog] = React.useState(null);
+      const [confirmAction, setConfirmAction] = React.useState(null);
       const [loading, setLoading] = React.useState(true);
       const [error, setError] = React.useState('');
       const [showAddTeacher, setShowAddTeacher] = React.useState(false);
@@ -11115,11 +11210,9 @@ ${examinerComment}
         setActionLoading(null);
       };
 
-      const handleDeleteTeacher = async (email) => {
-        if (!confirm('Delete teacher account for ' + email + '?\n\nThis will unassign all their classes.')) return;
-        
+      const performDeleteTeacher = async (email) => {
         setActionLoading(email);
-        
+
         try {
           const response = await fetch('/.netlify/functions/teacher-auth', {
             method: 'POST',
@@ -11130,19 +11223,30 @@ ${examinerComment}
               teacherEmail: email
             })
           });
-          
+
           const result = await response.json();
-          
+
           if (result.success) {
             loadTeachers();
+            showToast('Teacher account deleted');
           } else {
-            alert('Error: ' + result.error);
+            showToast('Error: ' + result.error, 'error');
           }
         } catch (e) {
-          alert('Connection failed');
+          showToast('Connection failed', 'error');
         }
-        
+
         setActionLoading(null);
+      };
+
+      const handleDeleteTeacher = (email) => {
+        setConfirmAction({
+          title: 'Delete Teacher',
+          message: `Delete the teacher account for ${email}? This will unassign all their classes.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteTeacher(email); }
+        });
       };
 
       // Send password reset email to teacher via server-side endpoint
@@ -11393,10 +11497,14 @@ ${examinerComment}
           {credentialDialog && (
             <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
           )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
-    
+
     // =====================================================
     // ADD TEACHER MODAL
     // =====================================================
@@ -11466,13 +11574,11 @@ ${examinerComment}
 
       if (createdPassword) {
         return (
-          <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-            <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
+          <Modal title="Teacher Account Created" onClose={onSuccess} width={450} closeOnOverlay={false}>
               <div style={parseStyle("text-align: center; margin-bottom: var(--space-lg);")}>
-                <div style={parseStyle("font-size: 3rem; margin-bottom: var(--space-md);")}>&#10003;</div>
-                <h3 style={parseStyle("color: var(--color-success);")}>Teacher Account Created</h3>
+                <div style={parseStyle("font-size: 3rem; color: var(--color-success);")}>&#10003;</div>
               </div>
-              
+
               <div style={parseStyle("background: var(--glass-bg); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-lg);")}>
                 <p style={parseStyle("margin-bottom: var(--space-md);")}>
                   <strong>Email:</strong> {email}
@@ -11495,86 +11601,65 @@ ${examinerComment}
               <button className="btn btn-primary" style={parseStyle("width: 100%;")} onClick={onSuccess}>
                 Done
               </button>
-            </div>
-          </div>
+          </Modal>
         );
       }
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 450px; width: 100%;")}>
-            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Add Teacher</h3>
-            
+        <Modal title="Add Teacher" onClose={onClose} width={450}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Name
-                </label>
+              <Field label="Name">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Teacher's full name"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Email
-                </label>
+              </Field>
+
+              <Field label="Email">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="teacher@school.com"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Password
-                </label>
+              </Field>
+
+              <Field label="Password" hint="Auto-generated. You can modify it if needed.">
                 <input
                   type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm); font-family: var(--font-mono);")}
+                  className="form-input"
+                  style={parseStyle("font-family: var(--font-mono);")}
                   disabled={isLoading}
                 />
-                <p style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted); margin-top: var(--space-xs);")}>
-                  Auto-generated. You can modify it if needed.
-                </p>
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Role
-                </label>
+              </Field>
+
+              <Field label="Role">
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 >
                   <option value="teacher">Teacher</option>
                   <option value="admin">Admin</option>
                 </select>
-              </div>
-              
+              </Field>
+
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
                   {error}
                 </div>
               )}
-              
+
               <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
                 <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
                   Cancel
@@ -11584,8 +11669,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -11597,6 +11681,7 @@ ${examinerComment}
       const [students, setStudents] = useState([]);
       const [classes, setClasses] = useState([]);
       const [credentialDialog, setCredentialDialog] = useState(null);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [selectedClass, setSelectedClass] = useState('');
       const [searchTerm, setSearchTerm] = useState('');
@@ -11646,8 +11731,7 @@ ${examinerComment}
         return matchesSearch && matchesClass;
       });
 
-      const handleDeleteStudent = async (email, name) => {
-        if (!confirm('Delete ' + name + ' (' + email + ')? This cannot be undone.')) return;
+      const performDeleteStudent = async (email) => {
         try {
           let result;
           const firebaseReady = await FirebaseDB.isReady();
@@ -11661,12 +11745,23 @@ ${examinerComment}
           }
           if (result.success) {
             setStudents(students.filter(s => s.email !== email));
+            showToast('Student deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting student');
+          showToast('Error deleting student', 'error');
         }
+      };
+
+      const handleDeleteStudent = (email, name) => {
+        setConfirmAction({
+          title: 'Delete Student',
+          message: `Delete ${name} (${email})? This cannot be undone.`,
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteStudent(email); }
+        });
       };
 
       const handleResetPassword = async (email) => {
@@ -11764,8 +11859,8 @@ ${examinerComment}
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); flex: 1; min-width: 200px;")}
+              className="form-input"
+              style={parseStyle("flex: 1; min-width: 200px;")}
             />
             <select
               value={selectedClass}
@@ -11885,6 +11980,10 @@ ${examinerComment}
           {credentialDialog && (
             <CredentialDialog {...credentialDialog} onClose={() => setCredentialDialog(null)} />
           )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
@@ -11961,10 +12060,7 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Student</h2>
-
+        <Modal title="Edit Student" onClose={onClose} width={500}>
             <form onSubmit={handleSubmit}>
               <div style={parseStyle("margin-bottom: var(--space-md);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Email</label>
@@ -11973,28 +12069,25 @@ ${examinerComment}
                 </div>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Full Name *</label>
+              <Field label="Full Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+              <Field label="Year Group">
                 <input
                   type="text"
                   value={yearGroup}
                   onChange={(e) => setYearGroup(e.target.value)}
                   placeholder="e.g. Year 10"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                 <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Classes</label>
@@ -12035,8 +12128,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
 
@@ -12047,6 +12139,7 @@ ${examinerComment}
     function AdminClassesPanel() {
       const [classes, setClasses] = useState([]);
       const [students, setStudents] = useState([]);
+      const [confirmAction, setConfirmAction] = useState(null);
       const [loading, setLoading] = useState(true);
       const [searchTerm, setSearchTerm] = useState('');
       const [editingClass, setEditingClass] = useState(null);
@@ -12104,13 +12197,7 @@ ${examinerComment}
         return students.filter(s => classStudentEmails.includes(s.email));
       };
 
-      const handleDeleteClass = async (cls) => {
-        const studentCount = getStudentCount(cls);
-        const msg = 'Delete class "' + cls.name + '"?' +
-          (studentCount > 0 ? '\n\nThis class has ' + studentCount + ' student(s). They will be removed from this class.' : '') +
-          '\n\nThis cannot be undone.';
-        if (!confirm(msg)) return;
-
+      const performDeleteClass = async (cls) => {
         try {
           const firebaseReady = await FirebaseDB.isReady();
           let result;
@@ -12127,12 +12214,26 @@ ${examinerComment}
 
           if (result.success) {
             setClasses(classes.filter(c => c.id !== cls.id));
+            showToast('Class deleted');
           } else {
-            alert('Failed to delete: ' + (result.error || 'Unknown error'));
+            showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
           }
         } catch (err) {
-          alert('Error deleting class: ' + (err.message || 'Unknown error'));
+          showToast('Error deleting class: ' + (err.message || 'Unknown error'), 'error');
         }
+      };
+
+      const handleDeleteClass = (cls) => {
+        const studentCount = getStudentCount(cls);
+        setConfirmAction({
+          title: 'Delete Class',
+          message: `Delete class "${cls.name}"?` +
+            (studentCount > 0 ? ` This class has ${studentCount} student(s); they will be removed from it.` : '') +
+            ' This cannot be undone.',
+          confirmLabel: 'Delete',
+          destructive: true,
+          onConfirm: () => { setConfirmAction(null); performDeleteClass(cls); }
+        });
       };
 
       const handleClassUpdated = (updatedClass) => {
@@ -12161,8 +12262,8 @@ ${examinerComment}
               placeholder="Search by name, subject, teacher, or year group..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="paragraph-editor"
-              style={parseStyle("min-height: auto; padding: var(--space-sm); width: 100%;")}
+              className="form-input"
+              style={parseStyle("width: 100%;")}
             />
           </div>
 
@@ -12267,6 +12368,10 @@ ${examinerComment}
               }}
             />
           )}
+
+          {confirmAction && (
+            <ConfirmDialog {...confirmAction} onCancel={() => setConfirmAction(null)} />
+          )}
         </div>
       );
     }
@@ -12339,71 +12444,59 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 500px; width: 100%;")}>
-            <h2 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Edit Class</h2>
-
+        <Modal title="Edit Class" onClose={onClose} width={500}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Class Name *</label>
+              <Field label="Class Name *">
                 <input
                   type="text"
+                  data-autofocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. 10B English"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);")}>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Subject</label>
+              <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);")}>
+                <Field label="Subject">
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. English"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
-                <div>
-                  <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Year Group</label>
+                </Field>
+                <Field label="Year Group">
                   <input
                     type="text"
                     value={yearGroup}
                     onChange={(e) => setYearGroup(e.target.value)}
                     placeholder="e.g. Year 10"
-                    className="paragraph-editor"
-                    style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                    className="form-input"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Name</label>
+              <Field label="Teacher Name">
                 <input
                   type="text"
                   value={teacher}
                   onChange={(e) => setTeacher(e.target.value)}
                   placeholder="e.g. Mr Davies"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600;")}>Teacher Email</label>
+              <Field label="Teacher Email">
                 <input
                   type="email"
                   value={teacherEmail}
                   onChange={(e) => setTeacherEmail(e.target.value)}
                   placeholder="e.g. pdavies@bb-hs.co.uk"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                 />
-              </div>
+              </Field>
 
               {error && (
                 <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error);")}>
@@ -12418,8 +12511,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
 
@@ -12484,60 +12576,49 @@ ${examinerComment}
       };
 
       return (
-        <div style={parseStyle("position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: var(--space-lg);")}>
-          <div className="card" style={parseStyle("max-width: 400px; width: 100%;")}>
-            <h3 style={parseStyle("font-family: var(--font-display); margin-bottom: var(--space-lg);")}>Change Password</h3>
-            
+        <Modal title="Change Password" onClose={isLoading ? undefined : onClose} width={400}>
             <form onSubmit={handleSubmit}>
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Current Password
-                </label>
+              <Field label="Current Password">
                 <input
                   type="password"
+                  autoComplete="current-password"
+                  data-autofocus
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-md);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  New Password
-                </label>
+              </Field>
+
+              <Field label="New Password">
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
-              <div style={parseStyle("margin-bottom: var(--space-lg);")}>
-                <label style={parseStyle("display: block; margin-bottom: var(--space-xs); font-weight: 600; font-size: 0.9rem;")}>
-                  Confirm New Password
-                </label>
+              </Field>
+
+              <Field label="Confirm New Password">
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="paragraph-editor"
-                  style={parseStyle("min-height: auto; padding: var(--space-sm);")}
+                  className="form-input"
                   disabled={isLoading}
                 />
-              </div>
-              
+              </Field>
+
               {error && (
-                <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
+                <div role="alert" style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-error-bg); border: 1px solid var(--color-error); border-radius: var(--radius-sm); color: var(--color-error); font-size: 0.9rem;")}>
                   {error}
                 </div>
               )}
-              
+
               <div style={parseStyle("display: flex; gap: var(--space-sm); justify-content: flex-end;")}>
                 <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isLoading}>
                   Cancel
@@ -12547,8 +12628,7 @@ ${examinerComment}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       );
     }
     
@@ -13658,6 +13738,6 @@ const requestEssayFeedbackWithStates = async (currentParagraphStates) => {
     // Wait for essays to load before rendering the app
     loadEssays().then(() => {
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<App />);
+      root.render(<><App /><ToastHost /></>);
     });
   
