@@ -10828,6 +10828,20 @@ ${examinerComment}
       const [markSchemeNotice, setMarkSchemeNotice] = useState('');
       const [isStructuringMs, setIsStructuringMs] = useState(false);
 
+      // Fetch-by-URL: paste a link to a board's PDF instead of downloading it
+      const [paperUrl, setPaperUrl] = useState('');
+      const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+      const [msUrl, setMsUrl] = useState('');
+      const [isFetchingMsUrl, setIsFetchingMsUrl] = useState(false);
+
+      // Shared paper library (Firestore-backed, all teachers)
+      const [libraryOpen, setLibraryOpen] = useState(false);
+      const [libraryList, setLibraryList] = useState(null); // null = not loaded yet
+      const [libraryLoading, setLibraryLoading] = useState(false);
+      const [libraryNotice, setLibraryNotice] = useState('');
+      const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
+      const [savedToLibrary, setSavedToLibrary] = useState(false);
+
       // Grade boundaries (optional). When provided, generation produces
       // authentic grade descriptors, which the student grading flow prefers
       // over generic criteria.
@@ -11134,6 +11148,151 @@ ${examinerComment}
         }
       };
 
+      // Fetch a PDF from a pasted link (server-side, avoids the download/
+      // re-upload dance) and feed it into the normal upload pipeline.
+      const fetchPdfFromUrl = async (url) => {
+        const response = await fetch('/.netlify/functions/fetch-paper-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+          body: JSON.stringify({ url })
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Could not fetch the file');
+        const binary = atob(result.base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new File([bytes], result.fileName || 'paper.pdf', { type: 'application/pdf' });
+      };
+
+      const handlePaperUrlFetch = async () => {
+        if (!paperUrl.trim()) return;
+        setIsFetchingUrl(true);
+        setExtractionSummary('');
+        try {
+          const file = await fetchPdfFromUrl(paperUrl.trim());
+          setPaperUrl('');
+          await handleSourceFileUpload([file]);
+        } catch (err) {
+          setExtractionSummary('Could not fetch that link: ' + err.message);
+        } finally {
+          setIsFetchingUrl(false);
+        }
+      };
+
+      const handleMsUrlFetch = async () => {
+        if (!msUrl.trim()) return;
+        setIsFetchingMsUrl(true);
+        setMarkSchemeWarning('');
+        try {
+          const file = await fetchPdfFromUrl(msUrl.trim());
+          setMsUrl('');
+          await handleMarkSchemeUpload(file);
+        } catch (err) {
+          setMarkSchemeWarning('Could not fetch that link: ' + err.message);
+        } finally {
+          setIsFetchingMsUrl(false);
+        }
+      };
+
+      // ----- Shared paper library -----
+      const loadLibrary = async () => {
+        setLibraryLoading(true);
+        setLibraryNotice('');
+        try {
+          const response = await fetch('/.netlify/functions/paper-library', {
+            headers: { 'Authorization': 'Bearer ' + sessionToken }
+          });
+          const result = await response.json();
+          if (result.success) {
+            setLibraryList(result.papers);
+          } else {
+            setLibraryList([]);
+            setLibraryNotice('Could not load the library: ' + (result.error || 'unknown error'));
+          }
+        } catch (err) {
+          setLibraryList([]);
+          setLibraryNotice('Could not load the library: ' + err.message);
+        } finally {
+          setLibraryLoading(false);
+        }
+      };
+
+      const usePaperFromLibrary = async (id) => {
+        setLibraryLoading(true);
+        try {
+          const response = await fetch('/.netlify/functions/paper-library?id=' + encodeURIComponent(id), {
+            headers: { 'Authorization': 'Bearer ' + sessionToken }
+          });
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error || 'Could not load the paper');
+          const p = result.paper;
+          if (p.subject && !subject) setSubject(p.subject);
+          if (p.yearGroup && !yearGroup.trim()) setYearGroup(p.yearGroup);
+          if (p.examBoard && !examBoard) setExamBoard(p.examBoard);
+          if (p.examSeries) setExamSeries(p.examSeries);
+          if (p.paperName) setPaperName(p.paperName);
+          if (p.totalMarks) setTotalMarks(String(p.totalMarks));
+          setExamQuestion(p.examQuestion || '');
+          setSourceMaterial(p.sourceMaterial || '');
+          if (p.markScheme) setMarkScheme(p.markScheme);
+          if (p.gradeBoundaries?.length) {
+            setGradeBoundaries(p.gradeBoundaries.map(b => ({
+              grade: b.grade, minMarks: String(b.minMarks), maxMarks: String(b.maxMarks)
+            })));
+          }
+          setSavedToLibrary(true); // it's already in the library
+          setLibraryOpen(false);
+          setExtractionSummary('Loaded "' + (p.title || 'paper') + '" from the library. Review the fields below.');
+        } catch (err) {
+          setLibraryNotice('Could not load the paper: ' + err.message);
+        } finally {
+          setLibraryLoading(false);
+        }
+      };
+
+      const deleteLibraryPaper = async (id) => {
+        if (!confirm('Remove this paper from the shared library for all teachers?')) return;
+        try {
+          await fetch('/.netlify/functions/paper-library?id=' + encodeURIComponent(id), {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + sessionToken }
+          });
+          setLibraryList(prev => (prev || []).filter(p => p.id !== id));
+        } catch (err) {
+          setLibraryNotice('Delete failed: ' + err.message);
+        }
+      };
+
+      const saveToLibrary = async () => {
+        setIsSavingToLibrary(true);
+        try {
+          const response = await fetch('/.netlify/functions/paper-library', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionToken },
+            body: JSON.stringify({
+              paper: {
+                subject, level, yearGroup, examBoard, examSeries, paperName, totalMarks,
+                examQuestion, sourceMaterial,
+                markScheme: markScheme || markSchemeFile?.extractedText || '',
+                selectedQuestions: getSelectedQuestionDescriptions(),
+                gradeBoundaries: gradeBoundaries
+                  .filter(b => b.grade.trim() && b.minMarks !== '' && b.maxMarks !== '')
+                  .map(b => ({ grade: b.grade.trim(), minMarks: parseInt(b.minMarks), maxMarks: parseInt(b.maxMarks) }))
+              }
+            })
+          });
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error || 'Save failed');
+          setSavedToLibrary(true);
+          setLibraryList(null); // refetch next time the library opens
+          showToast('Paper saved to the shared library');
+        } catch (err) {
+          alert('Could not save to the library: ' + err.message);
+        } finally {
+          setIsSavingToLibrary(false);
+        }
+      };
+
       const readFileAsBase64 = (file) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -11392,6 +11551,7 @@ ${examinerComment}
         setSelectedPaper(''); setSelectedQuestions([]); setGradeBoundaries([]);
         setDraftNotice(''); setMarkSchemeWarning(''); setMarkSchemeNotice('');
         setRegenInstruction(''); setShowStudentPreview(false); setError('');
+        setSavedToLibrary(false); setPaperUrl(''); setMsUrl('');
       };
 
       const handleCancelGeneration = () => {
@@ -11576,6 +11736,7 @@ ${examinerComment}
             setOriginalPdfFiles([]); setExtractionSummary(''); setExtractionStatus('');
             setDraftNotice(''); setMarkSchemeWarning(''); setMarkSchemeNotice('');
             setRegenInstruction(''); setShowStudentPreview(false);
+            setSavedToLibrary(false); setPaperUrl(''); setMsUrl('');
           } else {
             throw new Error(result.error || 'Failed to save');
           }
@@ -11962,6 +12123,54 @@ ${examinerComment}
             <div className="card">
               <h4 style={parseStyle("margin-bottom: var(--space-lg);")}>Exam Question</h4>
 
+              {/* Shared paper library: reuse a previously extracted paper */}
+              <div style={parseStyle("margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
+                <div style={parseStyle("display: flex; justify-content: space-between; align-items: center; gap: var(--space-md);")}>
+                  <div>
+                    <div style={parseStyle("font-size: 0.9rem; font-weight: 600;")}>Shared paper library</div>
+                    <div style={parseStyle("font-size: 0.8rem; color: var(--color-text-muted);")}>
+                      Papers already extracted by you or other teachers - load one instead of uploading again.
+                    </div>
+                  </div>
+                  <button className="btn btn-secondary" style={parseStyle("flex-shrink: 0;")}
+                    onClick={() => {
+                      const opening = !libraryOpen;
+                      setLibraryOpen(opening);
+                      if (opening && libraryList === null) loadLibrary();
+                    }}>
+                    {libraryOpen ? 'Close' : 'Browse library'}
+                  </button>
+                </div>
+                {libraryOpen && (
+                  <div style={parseStyle("margin-top: var(--space-md);")}>
+                    {libraryLoading && <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>Loading...</div>}
+                    {libraryNotice && <div style={parseStyle("font-size: 0.85rem; color: var(--color-error, #dc3545); margin-bottom: var(--space-sm);")}>{libraryNotice}</div>}
+                    {!libraryLoading && libraryList && libraryList.length === 0 && !libraryNotice && (
+                      <div style={parseStyle("font-size: 0.85rem; color: var(--color-text-muted);")}>
+                        No papers saved yet. After filling in a paper, use "Save paper to library" on the Generate step.
+                      </div>
+                    )}
+                    {!libraryLoading && (libraryList || []).map(p => (
+                      <div key={p.id} style={parseStyle("display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--color-border);")}>
+                        <div style={parseStyle("flex: 1; min-width: 0;")}>
+                          <div style={parseStyle("font-size: 0.85rem; font-weight: 500;")}>{p.title}</div>
+                          <div style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>
+                            {[p.subject, p.examSeries, p.totalMarks ? p.totalMarks + ' marks' : ''].filter(Boolean).join(' · ')}
+                            {p.hasMarkScheme ? ' · mark scheme' : ''}
+                            {p.gradeBoundaryCount > 0 ? ' · grade boundaries' : ''}
+                            {p.savedByName ? ' · saved by ' + p.savedByName : ''}
+                          </div>
+                        </div>
+                        <button className="btn btn-primary" style={parseStyle("font-size: 0.75rem; padding: var(--space-xs) var(--space-sm);")}
+                          onClick={() => usePaperFromLibrary(p.id)} disabled={libraryLoading}>Use</button>
+                        <button className="btn btn-secondary" style={parseStyle("font-size: 0.7rem; padding: 2px 6px; color: var(--color-error, #dc3545);")}
+                          onClick={() => deleteLibraryPaper(p.id)}>x</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* PDF Upload area - moved to top so extraction populates fields below */}
               <div style={parseStyle("margin-bottom: var(--space-lg);")}>
                 <label style={parseStyle("display: block; font-size: 0.85rem; margin-bottom: var(--space-xs); font-weight: 600;")}>Upload Question Paper (PDF/Image)</label>
@@ -11974,6 +12183,17 @@ ${examinerComment}
                   <label htmlFor="sourceFileInput" style={parseStyle("cursor: pointer;")}>
                     <div style={parseStyle("color: var(--color-text-muted);")}>{sourceFiles.length > 0 ? sourceFiles.map(f => f.name).join(', ') : 'Click to upload PDFs or images'}</div>
                   </label>
+                </div>
+
+                {/* Or fetch the PDF straight from a link */}
+                <div style={parseStyle("display: flex; gap: var(--space-xs); margin-top: var(--space-sm);")}>
+                  <input type="url" value={paperUrl} onChange={e => setPaperUrl(e.target.value)}
+                    placeholder="...or paste a link to the paper PDF (e.g. from the exam board's website)"
+                    className="form-input" style={parseStyle("flex: 1; font-size: 0.8rem;")}
+                    onKeyDown={e => { if (e.key === 'Enter') handlePaperUrlFetch(); }} />
+                  <button className="btn btn-secondary" disabled={isFetchingUrl || !paperUrl.trim()} onClick={handlePaperUrlFetch}>
+                    {isFetchingUrl ? 'Fetching...' : 'Fetch'}
+                  </button>
                 </div>
 
                 {/* PDF view/download buttons */}
@@ -12089,6 +12309,15 @@ ${examinerComment}
                     <div style={parseStyle("color: var(--color-text-muted);")}>{markSchemeFile ? markSchemeFile.name : 'Click to upload PDF or image'}</div>
                   </label>
                 </div>
+                <div style={parseStyle("display: flex; gap: var(--space-xs); margin-top: var(--space-sm);")}>
+                  <input type="url" value={msUrl} onChange={e => setMsUrl(e.target.value)}
+                    placeholder="...or paste a link to the mark scheme PDF"
+                    className="form-input" style={parseStyle("flex: 1; font-size: 0.8rem;")}
+                    onKeyDown={e => { if (e.key === 'Enter') handleMsUrlFetch(); }} />
+                  <button className="btn btn-secondary" disabled={isFetchingMsUrl || !msUrl.trim()} onClick={handleMsUrlFetch}>
+                    {isFetchingMsUrl ? 'Fetching...' : 'Fetch'}
+                  </button>
+                </div>
                 {markSchemeWarning && (
                   <div style={parseStyle("margin-top: var(--space-sm); padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-warning, #e6a817); background: var(--color-warning-bg, #fef9e7); border-radius: var(--radius-md); font-size: 0.85rem;")}>
                     {markSchemeWarning}
@@ -12174,6 +12403,16 @@ ${examinerComment}
                   </div>
                 )}
                 <p><strong>Mark Scheme:</strong> {markSchemeFile ? markSchemeFile.name : (markScheme ? 'Provided (text)' : 'Not provided')}</p>
+                <div style={parseStyle("margin-top: var(--space-sm); display: flex; align-items: center; gap: var(--space-sm);")}>
+                  <button className="btn btn-secondary" style={parseStyle("font-size: 0.8rem;")}
+                    disabled={isSavingToLibrary || savedToLibrary || !examQuestion.trim()}
+                    onClick={saveToLibrary}>
+                    {savedToLibrary ? 'Saved to library' : isSavingToLibrary ? 'Saving...' : 'Save paper to library'}
+                  </button>
+                  <span style={parseStyle("font-size: 0.75rem; color: var(--color-text-muted);")}>
+                    Shares this paper's question, source and mark scheme with all teachers for reuse.
+                  </span>
+                </div>
               </div>
 
               <div style={parseStyle("display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);")}>
