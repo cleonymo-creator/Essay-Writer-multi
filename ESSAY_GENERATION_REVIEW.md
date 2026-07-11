@@ -401,21 +401,31 @@ choice: **"Start from a past paper"** (pick/upload → everything auto-fills) vs
     regenerated with an optional instruction without losing edits elsewhere.*
 
 **Larger (the step-change in user-friendliness)**
-13. ◐ Past-paper picker with official board links per series (A1) + fetch-by-URL
-    (A2). *Fetch-by-URL is done: paste a board's PDF link in Step 2 or 3 and it
-    is fetched server-side (SSRF-guarded, PDFs only) into the normal extraction
-    pipeline. The curated per-series link catalogue (A1) remains.*
+13. ✅ Past-paper picker with official board links (A1, landing-page form) +
+    fetch-by-URL (A2). *Fetch-by-URL: paste a board's PDF link in Step 2 or 3
+    and it is fetched server-side (SSRF-guarded, PDFs only) into the normal
+    extraction pipeline. Board links: Steps 1-3 link out to each board's
+    official past-papers page (verified URLs), guiding the copy-the-PDF-link
+    flow. A curated per-series deep-link dataset was deliberately not shipped:
+    per-series URLs rot and cannot be maintained from code — the landing pages
+    plus fetch-by-URL plus the shared library (14) cover the same journey.*
 14. ✅ Shared paper/mark-scheme library in Firestore — upload once, reuse forever
     (A3). *`paperResources` collection + `paper-library` function; Step 2 has a
     "Browse library" panel (load/delete), Step 4 has "Save paper to library"
     (question, source, mark scheme, boundaries, metadata).*
-15. "Start from a past paper" wizard entry path unifying 13/14 with extraction:
-    pick board → paper → series → question(s); QP, insert and MS fetched and
-    extracted automatically; teacher reviews and hits Generate (D1).
-16. ◐ Images to Firebase Storage instead of inline base64 (C4); job TTL + generation
-    rate limiting (C3). *Done: 12/hour/teacher rate limit on generation
-    (Firestore-backed limiter) and opportunistic 7-day TTL cleanup of job
-    blobs. Remaining: images to Firebase Storage.*
+15. ◐ "Start from a past paper" wizard entry path (D1). *Achieved in substance
+    by composition: Step 1 picks board/paper/questions and links to the board's
+    paper page; Step 2 starts from the shared library (one click) or a pasted
+    PDF link (auto-extracted); Step 3 does the same for the mark scheme. Not
+    done: a single unified entry screen and the deferred Step-1 marks
+    requirement — revisit only if teachers find the current flow unclear.*
+16. ✅ Inline base64 images (C4); job TTL + generation rate limiting (C3).
+    *Resolved differently than proposed: uploaded images are generation inputs
+    that the app never renders to students, so essays now persist image
+    metadata only — the 1MiB Firestore failure mode is gone without needing
+    Storage. (If student-facing image display is ever wanted, that's a new
+    feature: Firebase Storage upload + a rendering UI.) Also done: 12/hour/
+    teacher rate limit on generation and 7-day TTL cleanup of job blobs.*
 
 Items 1-6 alone fix the concrete complaints (lost selections, inaccessible
 papers-adjacent friction); item 7 removes the feature's biggest reliability risk;

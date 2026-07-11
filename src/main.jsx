@@ -10121,6 +10121,15 @@ ${examinerComment}
       return { level: '', subjectName: '' };
     };
 
+    // Official past-paper landing pages per exam board. Link-outs only:
+    // boards publish past papers openly on their own sites, and linking is
+    // fine where re-hosting their PDFs would not be.
+    const BOARD_PAST_PAPER_PAGES = {
+      'AQA': 'https://www.aqa.org.uk/find-past-papers-and-mark-schemes',
+      'Edexcel': 'https://qualifications.pearson.com/en/support/support-topics/exams/past-papers.html',
+      'Eduqas': 'https://www.eduqas.co.uk/home/past-papers-and-mark-schemes/'
+    };
+
     // Exam paper structure data for each subject/exam board combination.
     // Module scope: fully static, so it is allocated once instead of on
     // every render of the (always-mounted) generator panel.
@@ -12017,6 +12026,17 @@ ${examinerComment}
                 </div>
               </div>
 
+              {/* Link to the board's own past-paper library */}
+              {examBoard && BOARD_PAST_PAPER_PAGES[examBoard] && (
+                <div style={parseStyle("margin-bottom: var(--space-md); font-size: 0.8rem;")}>
+                  <a href={BOARD_PAST_PAPER_PAGES[examBoard]} target="_blank" rel="noopener noreferrer"
+                    style={parseStyle("color: var(--color-primary); font-weight: 500;")}>
+                    Open {examBoard}'s official past papers page &#8599;
+                  </a>
+                  <span style={parseStyle("color: var(--color-text-muted);")}> — find your paper there, then paste its PDF link in the Question step and everything is extracted automatically.</span>
+                </div>
+              )}
+
               {/* Paper and Question Selection Card - appears when subject and exam board are selected */}
               {subject && examBoard && getAvailablePapers() && getAvailablePapers().papers.length > 0 && (
                 <div style={parseStyle("margin-bottom: var(--space-md); padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--color-border);")}>
@@ -12195,6 +12215,11 @@ ${examinerComment}
                     {isFetchingUrl ? 'Fetching...' : 'Fetch'}
                   </button>
                 </div>
+                {examBoard && BOARD_PAST_PAPER_PAGES[examBoard] && (
+                  <div style={parseStyle("margin-top: var(--space-xs); font-size: 0.75rem; color: var(--color-text-muted);")}>
+                    Need the link? <a href={BOARD_PAST_PAPER_PAGES[examBoard]} target="_blank" rel="noopener noreferrer" style={parseStyle("color: var(--color-primary);")}>Open {examBoard}'s past papers page &#8599;</a>, find the paper, then right-click the PDF and copy its address.
+                  </div>
+                )}
 
                 {/* PDF view/download buttons */}
                 {originalPdfFiles.length > 0 && (
@@ -12318,6 +12343,11 @@ ${examinerComment}
                     {isFetchingMsUrl ? 'Fetching...' : 'Fetch'}
                   </button>
                 </div>
+                {examBoard && BOARD_PAST_PAPER_PAGES[examBoard] && (
+                  <div style={parseStyle("margin-top: var(--space-xs); font-size: 0.75rem; color: var(--color-text-muted);")}>
+                    Mark schemes live on the same page as the papers: <a href={BOARD_PAST_PAPER_PAGES[examBoard]} target="_blank" rel="noopener noreferrer" style={parseStyle("color: var(--color-primary);")}>{examBoard} past papers &#8599;</a>
+                  </div>
+                )}
                 {markSchemeWarning && (
                   <div style={parseStyle("margin-top: var(--space-sm); padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-warning, #e6a817); background: var(--color-warning-bg, #fef9e7); border-radius: var(--radius-md); font-size: 0.85rem;")}>
                     {markSchemeWarning}
