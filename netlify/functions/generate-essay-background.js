@@ -337,13 +337,16 @@ function assembleEssay(toolInput, body) {
     throw new Error('The AI returned no paragraphs. Please try again.');
   }
 
+  // Uploaded images are generation inputs (Claude reads them in the request
+  // above); the app never renders essay images to students, so persist only
+  // their metadata. Inlining the base64 data into the Firestore document
+  // risked the 1MiB document limit for no benefit.
   const sourceImages = (body.sourceFiles || [])
     .filter(f => f.type && f.type.startsWith('image/') && f.content)
     .map(f => ({
       name: f.name,
       type: f.type,
-      caption: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
-      data: f.content
+      caption: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
     }));
 
   // Grading math downstream (grade-paragraph.js weighted fallback, the
@@ -388,14 +391,8 @@ function assembleEssay(toolInput, body) {
 }
 
 // Raw-config string for the "view raw" panel and legacy client fallback.
-// Base64 image data is redacted for readability; the parsed essay object is
-// always the source of truth for saving (the client drops redacted
-// placeholders if it ever has to save from this string).
+// The essay no longer embeds base64 image data, so it serializes as-is.
 function serializeConfig(essay) {
-  const display = {
-    ...essay,
-    sourceImages: (essay.sourceImages || []).map(img => ({ ...img, data: '[base64 image data omitted]' }))
-  };
   return 'window.ESSAYS = window.ESSAYS || {};\n' +
-    'window.ESSAYS[' + JSON.stringify(essay.id) + '] = ' + JSON.stringify(display, null, 2) + ';';
+    'window.ESSAYS[' + JSON.stringify(essay.id) + '] = ' + JSON.stringify(essay, null, 2) + ';';
 }
