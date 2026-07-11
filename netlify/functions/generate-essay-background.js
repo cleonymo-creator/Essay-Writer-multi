@@ -123,8 +123,23 @@ exports.handler = async (event, context) => {
   }
 };
 
+// The three difficulty tiers phrased for the qualification level, so KS3
+// essays don't talk about GCSE grades and A-Level ones don't mention KS3.
+function tierDescriptors(level) {
+  if (level === 'A Level') {
+    return { foundation: 'A-Level grades D-E', intermediate: 'A-Level grades C-B', advanced: 'A-Level grades A*-A' };
+  }
+  if (level === 'KS3') {
+    return { foundation: 'working towards the expected standard', intermediate: 'working at the expected standard', advanced: 'working beyond the expected standard' };
+  }
+  if (level === 'GCSE') {
+    return { foundation: 'GCSE grades 1-4', intermediate: 'GCSE grades 5-6', advanced: 'GCSE grades 7-9' };
+  }
+  return { foundation: 'GCSE 1-4 / A-Level D-E', intermediate: 'GCSE 5-6 / A-Level C-B', advanced: 'GCSE 7-9 / A-Level A*-A' };
+}
+
 // JSON schema for the essay config, enforced by the API via forced tool use
-function buildEssayTool(hasGradeBoundaries, examSeries) {
+function buildEssayTool(hasGradeBoundaries, examSeries, tiers) {
   const criterion = {
     type: 'object',
     required: ['weight', 'description'],
@@ -155,9 +170,9 @@ function buildEssayTool(hasGradeBoundaries, examSeries) {
             type: 'object',
             required: ['foundation', 'intermediate', 'advanced'],
             properties: {
-              foundation: { type: 'string', description: 'Markdown guidance: simplified language, step-by-step scaffolding (GCSE 1-4 / A-Level D-E)' },
-              intermediate: { type: 'string', description: 'Markdown guidance: balanced, some analytical depth (GCSE 5-6 / A-Level C-B)' },
-              advanced: { type: 'string', description: 'Markdown guidance: sophisticated techniques, nuanced analysis (GCSE 7-9 / A-Level A*-A)' }
+              foundation: { type: 'string', description: `Markdown guidance: simplified language, step-by-step scaffolding (${tiers.foundation})` },
+              intermediate: { type: 'string', description: `Markdown guidance: balanced, some analytical depth (${tiers.intermediate})` },
+              advanced: { type: 'string', description: `Markdown guidance: sophisticated techniques, nuanced analysis (${tiers.advanced})` }
             }
           },
           writingPrompt: { type: 'string', description: 'The clear instruction the student sees for this paragraph' },
@@ -210,11 +225,13 @@ function buildEssayTool(hasGradeBoundaries, examSeries) {
 
 function buildRequest(data) {
   const {
-    subject, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
+    subject, level, yearGroup, examBoard, examSeries, totalMarks, timeAllowed, paperName,
     examQuestion, sourceMaterial, sourceFiles, markScheme, markSchemeFile,
     additionalNotes, minWords, targetWords, maxAttempts,
     selectedQuestionDescriptions, gradeBoundaries
   } = data;
+
+  const tiers = tierDescriptors(level);
 
   const content = [];
 
@@ -282,9 +299,9 @@ ${additionalNotes ? `## TEACHER NOTES\n${additionalNotes}\n` : ''}
 
 ## DIFFERENTIATED LEARNING MATERIALS
 Create learning materials at THREE difficulty tiers for EACH paragraph:
-1. **Foundation** (GCSE 1-4 / A-Level D-E): Simplified language, step-by-step scaffolding
-2. **Intermediate** (GCSE 5-6 / A-Level C-B): Balanced guidance, some analytical depth
-3. **Advanced** (GCSE 7-9 / A-Level A*-A): Sophisticated techniques, nuanced analysis
+1. **Foundation** (${tiers.foundation}): Simplified language, step-by-step scaffolding
+2. **Intermediate** (${tiers.intermediate}): Balanced guidance, some analytical depth
+3. **Advanced** (${tiers.advanced}): Sophisticated techniques, nuanced analysis
 
 ## IMPORTANT RULES
 - Use ONLY plain ASCII characters - no special symbols, emojis, or accented characters
@@ -301,7 +318,7 @@ Create a complete essay configuration with 4-6 paragraphs (introduction, body pa
     model: 'claude-sonnet-5',
     thinking: { type: 'disabled' },
     max_tokens: 16000,
-    tools: [buildEssayTool(hasGradeBoundaries, examSeries)],
+    tools: [buildEssayTool(hasGradeBoundaries, examSeries, tiers)],
     tool_choice: { type: 'tool', name: 'create_essay_config' },
     messages: [{ role: 'user', content }]
   };
@@ -360,6 +377,7 @@ function assembleEssay(toolInput, body) {
     sourceImages,
     // Exam metadata, persisted on the essay so it can be filtered, reused
     // and consulted by grading later
+    level: body.level || '',
     examBoard: body.examBoard || '',
     examSeries: body.examSeries || '',
     paperName: body.paperName || '',

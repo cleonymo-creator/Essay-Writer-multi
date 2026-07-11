@@ -388,20 +388,34 @@ choice: **"Start from a past paper"** (pick/upload → everything auto-fills) vs
 10. ✅ Native PDF `document` blocks for extraction (A4 full version). *Scanned
     question papers and mark schemes under ~3MB are now sent as base64 PDFs
     and read with Claude's document support; larger scans get a clear warning.*
-11. Teacher profile defaults in Firestore (B2); Level/Subject/Board restructure
-    with data-driven catalogue (B3).
+11. ✅ Teacher profile defaults in Firestore (B2); Level/Subject/Board restructure
+    with data-driven catalogue (B3). *Defaults roam via a `teacher-preferences`
+    function (localStorage still wins locally); Step 1 now has separate Level /
+    Subject / Board selectors driven by a `QUALIFICATION_LEVELS` table, the
+    composed subject string keeps existing essays compatible, KS3 no longer
+    shows a meaningless board picker, and generation phrases the three tiers
+    for the chosen level. Remaining from B3: hosting the catalogue in
+    Firestore so admins can extend it without a deploy.*
 12. ✅ Student-view preview + per-paragraph regenerate (D5). *Step 5 renders
     each tier's learning material as students see it, and any paragraph can be
     regenerated with an optional instruction without losing edits elsewhere.*
 
 **Larger (the step-change in user-friendliness)**
-13. Past-paper picker with official board links per series (A1) + fetch-by-URL (A2).
-14. Shared paper/mark-scheme library in Firestore — upload once, reuse forever (A3).
+13. ◐ Past-paper picker with official board links per series (A1) + fetch-by-URL
+    (A2). *Fetch-by-URL is done: paste a board's PDF link in Step 2 or 3 and it
+    is fetched server-side (SSRF-guarded, PDFs only) into the normal extraction
+    pipeline. The curated per-series link catalogue (A1) remains.*
+14. ✅ Shared paper/mark-scheme library in Firestore — upload once, reuse forever
+    (A3). *`paperResources` collection + `paper-library` function; Step 2 has a
+    "Browse library" panel (load/delete), Step 4 has "Save paper to library"
+    (question, source, mark scheme, boundaries, metadata).*
 15. "Start from a past paper" wizard entry path unifying 13/14 with extraction:
     pick board → paper → series → question(s); QP, insert and MS fetched and
     extracted automatically; teacher reviews and hits Generate (D1).
-16. Images to Firebase Storage instead of inline base64 (C4); job TTL + generation
-    rate limiting (C3).
+16. ◐ Images to Firebase Storage instead of inline base64 (C4); job TTL + generation
+    rate limiting (C3). *Done: 12/hour/teacher rate limit on generation
+    (Firestore-backed limiter) and opportunistic 7-day TTL cleanup of job
+    blobs. Remaining: images to Firebase Storage.*
 
 Items 1-6 alone fix the concrete complaints (lost selections, inaccessible
 papers-adjacent friction); item 7 removes the feature's biggest reliability risk;
