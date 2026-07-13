@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova-T6 → Bromcom Class Allocator</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --panel: #ffffff;
+    --ink: #1a2332;
+    --muted: #5b6b7d;
+    --accent: #1e5fa8;
+    --accent-soft: #e3edf8;
+    --ok: #1a7f4e;
+    --ok-soft: #e2f4ea;
+    --warn: #a05a00;
+    --warn-soft: #fdf1dd;
+    --err: #b3261e;
+    --err-soft: #fbe9e7;
+    --border: #d7dee8;
+    --radius: 10px;
+    font-size: 15px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.15rem; margin: 0; }
+  header .sub { color: var(--muted); font-size: 0.85rem; }
+  .offline-badge {
+    margin-left: auto;
+    font-size: 0.78rem;
+    background: var(--ok-soft);
+    color: var(--ok);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  nav.steps {
+    display: flex;
+    gap: 6px;
+    padding: 12px 24px 0;
+    flex-wrap: wrap;
+  }
+  nav.steps button {
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: #eef2f7;
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+  }
+  nav.steps button.active { background: var(--panel); color: var(--ink); font-weight: 600; }
+  nav.steps button .count {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 0.78rem;
+    margin-left: 6px;
+  }
+  main { padding: 0 24px 60px; }
+  section.step {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0 var(--radius) var(--radius) var(--radius);
+    padding: 20px 22px;
+  }
+  section.step.active { display: block; }
+  h2 { font-size: 1.05rem; margin: 0 0 4px; }
+  .hint { color: var(--muted); font-size: 0.88rem; margin: 0 0 14px; max-width: 72ch; }
+  .drop {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 12px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .drop.over { background: var(--accent-soft); border-color: var(--accent); }
+  .drop input[type=file] { display: none; }
+  .drop label.browse {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  textarea.paste {
+    width: 100%;
+    min-height: 90px;
+    font-family: Consolas, monospace;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    resize: vertical;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+  button.btn {
+    font: inherit;
+    font-size: 0.88rem;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  button.btn.secondary { background: var(--panel); color: var(--accent); }
+  button.btn.quiet { background: var(--panel); color: var(--muted); border-color: var(--border); }
+  button.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px 16px;
+    margin: 12px 0;
+  }
+  .mapping-grid label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 2px; }
+  .mapping-grid select, .mapping-grid input[type=text] {
+    width: 100%; font: inherit; font-size: 0.85rem;
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 6px; background: #fff;
+  }
+  .req::after { content: " *"; color: var(--err); }
+  table.data {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.83rem;
+    margin: 8px 0;
+  }
+  table.data th, table.data td {
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.data th { background: #eef2f7; position: sticky; top: 0; }
+  .scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 0.76rem; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.err { background: var(--err-soft); color: var(--err); }
+  .notice { border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 0.88rem; }
+  .notice.ok { background: var(--ok-soft); color: var(--ok); }
+  .notice.warn { background: var(--warn-soft); color: var(--warn); }
+  .notice.err { background: var(--err-soft); color: var(--err); }
+  .notice.info { background: var(--accent-soft); color: var(--accent); }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 0; }
+  .stat {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    min-width: 120px;
+  }
+  .stat .n { font-size: 1.4rem; font-weight: 700; }
+  .stat .l { font-size: 0.78rem; color: var(--muted); }
+  details.adv { margin: 12px 0; }
+  details.adv summary { cursor: pointer; color: var(--accent); font-size: 0.88rem; }
+  .subjmap { width: 100%; min-height: 140px; font-family: Consolas, monospace; font-size: 0.82rem;
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+  input.filter { font: inherit; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; min-width: 220px; }
+  select.inline { font: inherit; font-size: 0.82rem; border: 1px solid var(--border); border-radius: 6px; padding: 3px 4px; max-width: 200px; }
+  .export-card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; margin: 10px 0; background: var(--bg);
+  }
+  .export-card h3 { margin: 0 0 4px; font-size: 0.95rem; }
+  .export-card p { margin: 0 0 10px; color: var(--muted); font-size: 0.84rem; }
+  footer { color: var(--muted); font-size: 0.78rem; padding: 18px 24px; }
+  .checkline { display: flex; gap: 6px; align-items: center; font-size: 0.86rem; }
+  @media print { nav, header .offline-badge, .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Nova-T6 → Bromcom Class Allocator</h1>
+  <span class="sub">Export your timetable structure and allocate class lists for the new academic year</span>
+  <span class="offline-badge">100% offline — your data never leaves this computer</span>
+</header>
+
+<nav class="steps" id="stepNav">
+  <button data-step="1" class="active">1. Timetable</button>
+  <button data-step="2">2. Structure <span class="count" id="cntClasses" hidden></span></button>
+  <button data-step="3">3. Students <span class="count" id="cntStudents" hidden></span></button>
+  <button data-step="4">4. Match <span class="count" id="cntMatch" hidden></span></button>
+  <button data-step="5">5. Export</button>
+</nav>
+
+<main>
+  <!-- ============ STEP 1 : TIMETABLE ============ -->
+  <section class="step active" data-step="1">
+    <h2>Load the Nova-T6 timetable export</h2>
+    <p class="hint">
+      Export your completed timetable from Nova-T6 to a text/CSV file (or copy the class grid from
+      Nova-T6/Excel and paste it below). The file should contain the teaching classes — one row per
+      class, or one row per timetabled lesson. Columns are flexible: you will map them in the next step.
+      Nova-style class codes such as <code>10A/Ma1</code> are understood and split automatically into
+      year, band, subject and set.
+    </p>
+    <div class="drop" id="dropTT">
+      Drag &amp; drop the Nova-T6 export file here, or
+      <label class="browse">browse<input type="file" id="fileTT" accept=".csv,.txt,.tsv,.tab,.dat"></label>
+      <div style="font-size:0.78rem;margin-top:4px">CSV, TSV or plain text — parsed entirely in your browser</div>
+    </div>
+    <textarea class="paste" id="pasteTT" placeholder="…or paste the timetable data here (including a header row if you have one)"></textarea>
+    <div class="row">
+      <button class="btn" id="btnParseTT">Read pasted data</button>
+      <button class="btn secondary" id="btnSampleTT">Load sample data (to try the app)</button>
+      <span id="ttFileInfo" class="sub"></span>
+    </div>
+
+    <div id="ttMappingWrap" hidden>
+      <h2>Map the columns</h2>
+      <p class="hint">Best guesses have been pre-selected — check them, then apply. Only <b>Class code</b> is required;
+        everything else is derived from the class code where possible.</p>
+      <div class="mapping-grid" id="ttMapping"></div>
+      <div class="row">
+        <label class="checkline"><input type="checkbox" id="ttHasHeader" checked> First row is a header</label>
+        <button class="btn" id="btnApplyTT">Apply mapping &amp; build structure</button>
+      </div>
+      <div id="ttPreview"></div>
+    </div>
+    <div id="ttResult"></div>
+  </section>
+
+  <!-- ============ STEP 2 : STRUCTURE ============ -->
+  <section class="step" data-step="2">
+    <h2>Timetable structure</h2>
+    <p class="hint">This is the class structure that will be created in Bromcom. Check subjects, years and
+      teachers look right. Warnings below flag anything that would cause problems on import.</p>
+    <div class="stats" id="structStats"></div>
+    <div id="validation"></div>
+    <details class="adv">
+      <summary>Subject code mapping (edit if a subject name is wrong)</summary>
+      <p class="hint">One mapping per line, in the form <code>code=Subject Name</code>. These translate the
+        subject part of Nova class codes (e.g. <code>Ma</code> in <code>10A/Ma1</code>).</p>
+      <textarea class="subjmap" id="subjMap"></textarea>
+      <div class="row"><button class="btn secondary" id="btnApplySubjMap">Re-apply subject names</button></div>
+    </details>
+    <div class="row">
+      <input class="filter" id="classFilter" placeholder="Filter classes…">
+      <span class="sub" id="classFilterInfo"></span>
+    </div>
+    <div class="scroll"><table class="data" id="classTable"></table></div>
+  </section>
+
+  <!-- ============ STEP 3 : STUDENTS ============ -->
+  <section class="step" data-step="3">
+    <h2>Load the student list (optional)</h2>
+    <p class="hint">
+      To build class lists, load a CSV of students with the class codes they should be in — for example an
+      export from SIMS (e.g. a Group Analysis / student report with teaching groups) or from your current MIS.
+      Each student needs an identifier (UPN and/or admission number) and one or more class codes. A student’s
+      classes can be in several columns, or in one column separated by commas/semicolons — both work.
+      If you only want the timetable structure itself, you can skip this step.
+    </p>
+    <div class="drop" id="dropST">
+      Drag &amp; drop the student list here, or
+      <label class="browse">browse<input type="file" id="fileST" accept=".csv,.txt,.tsv,.tab"></label>
+    </div>
+    <textarea class="paste" id="pasteST" placeholder="…or paste the student data here"></textarea>
+    <div class="row">
+      <button class="btn" id="btnParseST">Read pasted data</button>
+      <button class="btn secondary" id="btnSampleST">Load sample students</button>
+      <span id="stFileInfo" class="sub"></span>
+    </div>
+
+    <div id="stMappingWrap" hidden>
+      <h2>Map the columns</h2>
+      <div class="mapping-grid" id="stMapping"></div>
+      <div class="row">
+        <label class="checkline"><input type="checkbox" id="stHasHeader" checked> First row is a header</label>
+        <label class="checkline"><input type="checkbox" id="stSplitMulti" checked> Split class cells on , ; |</label>
+        <button class="btn" id="btnApplyST">Apply mapping &amp; build class lists</button>
+      </div>
+      <div id="stPreview"></div>
+    </div>
+    <div id="stResult"></div>
+  </section>
+
+  <!-- ============ STEP 4 : MATCH ============ -->
+  <section class="step" data-step="4">
+    <h2>Match students to the new classes</h2>
+    <p class="hint">
+      Student class codes are matched to the Nova-T6 classes automatically (exact first, then ignoring
+      case, spaces and punctuation). Anything that could not be matched is listed below — pick the right
+      class from the suggestions, or use find &amp; replace for systematic renames
+      (e.g. next year’s codes: every <code>9A/</code> becomes <code>10A/</code>).
+    </p>
+    <div class="stats" id="matchStats"></div>
+    <details class="adv" open>
+      <summary>Find &amp; replace in student class codes</summary>
+      <div class="row">
+        <input class="filter" id="frFind" placeholder="Find (e.g. 9A/)">
+        <input class="filter" id="frReplace" placeholder="Replace with (e.g. 10A/)">
+        <label class="checkline"><input type="checkbox" id="frRegex"> Regular expression</label>
+        <button class="btn secondary" id="btnFindReplace">Apply to all student codes</button>
+      </div>
+      <div id="frResult"></div>
+    </details>
+    <div id="unmatchedWrap"></div>
+  </section>
+
+  <!-- ============ STEP 5 : EXPORT ============ -->
+  <section class="step" data-step="5">
+    <h2>Export files for Bromcom</h2>
+    <p class="hint">
+      Files download straight from your browser to this computer — nothing is uploaded anywhere.
+      Import them into Bromcom via <b>Data Import</b> (or hand them to your Bromcom onboarding team).
+      Column headers are standard, but do check them against your Bromcom import template and adjust
+      the options below if your template differs.
+    </p>
+    <div class="row">
+      <label class="checkline"><input type="checkbox" id="expBOM" checked> Excel-friendly encoding (UTF-8 BOM)</label>
+      <label class="checkline">File name prefix
+        <input class="filter" id="expPrefix" value="bromcom" style="min-width:110px"></label>
+    </div>
+
+    <div class="export-card">
+      <h3>1. Classes (teaching groups)</h3>
+      <p>One row per class: name, subject, year group, block/band, main teacher, room and periods per cycle.
+         Use this to create the classes in Bromcom.</p>
+      <button class="btn" id="expClasses">Download classes CSV</button>
+      <span class="sub" id="expClassesInfo"></span>
+    </div>
+    <div class="export-card">
+      <h3>2. Timetable (scheduled lessons)</h3>
+      <p>One row per lesson: class, day, period, teacher, room. Only available if your Nova-T6 export
+         included day/period columns.</p>
+      <button class="btn" id="expLessons">Download timetable CSV</button>
+      <span class="sub" id="expLessonsInfo"></span>
+    </div>
+    <div class="export-card">
+      <h3>3. Class lists (student memberships)</h3>
+      <p>One row per student-per-class: UPN, admission number, name, year and the class they belong to.
+         This is the file that allocates students to the new classes.</p>
+      <button class="btn" id="expMembers">Download class lists CSV</button>
+      <span class="sub" id="expMembersInfo"></span>
+    </div>
+    <div class="export-card">
+      <h3>4. Exceptions report</h3>
+      <p>Everything to chase before import day: unmatched student codes, students with no classes,
+         classes with no students, and timetable clashes.</p>
+      <button class="btn secondary" id="expExceptions">Download exceptions CSV</button>
+      <span class="sub" id="expExceptionsInfo"></span>
+    </div>
+
+    <div class="notice info no-print">
+      Tip: keep this HTML file and your exports together in a local folder — the whole workflow stays
+      on this machine.
+    </div>
+    <div class="row no-print">
+      <button class="btn quiet" id="btnSaveSession">Save session in this browser</button>
+      <button class="btn quiet" id="btnLoadSession">Restore saved session</button>
+      <button class="btn quiet" id="btnClearSession">Clear saved session</button>
+      <span class="sub" id="sessionInfo"></span>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Runs entirely in your browser from a local file — no server, no uploads, no internet needed.
+  Sessions are only stored if you press “Save session”, and only in this browser on this computer.
+</footer>
+
+<script>
+/* ===================== LOGIC-START ===================== */
+"use strict";
+
+/* ---------- delimiter-separated text parsing ---------- */
+function detectDelimiter(text) {
+  const sample = text.split(/\r?\n/).slice(0, 10).join("\n");
+  const counts = { "\t": 0, ",": 0, ";": 0 };
+  for (const ch of sample) if (ch in counts) counts[ch]++;
+  let best = ",", bestN = -1;
+  for (const [d, n] of Object.entries(counts)) if (n > bestN) { best = d; bestN = n; }
+  return bestN > 0 ? best : ",";
+}
+
+function parseDSV(text, delim) {
+  const rows = [];
+  let row = [], field = "", inQ = false;
+  const push = () => { row.push(field); field = ""; };
+  const pushRow = () => {
+    if (row.length > 1 || (row.length === 1 && row[0].trim() !== "")) rows.push(row);
+    row = [];
+  };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQ = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === delim) {
+      push();
+    } else if (c === "\n") {
+      push(); pushRow();
+    } else if (c === "\r") {
+      /* ignore, handled by \n */
+    } else {
+      field += c;
+    }
+  }
+  if (field !== "" || row.length) { push(); pushRow(); }
+  return rows;
+}
+
+/* ---------- column guessing ---------- */
+const TT_ROLES = [
+  { key: "class",   label: "Class code", required: true,
+    kw: ["class", "group", "teaching group", "tg", "code", "set name", "group code", "class code"] },
+  { key: "subject", label: "Subject", kw: ["subject", "subj", "course", "dept", "department"] },
+  { key: "year",    label: "Year group", kw: ["year", "yr", "ncy", "year group", "nc year"] },
+  { key: "band",    label: "Band / block", kw: ["band", "block", "population", "scheme"] },
+  { key: "teacher", label: "Teacher", kw: ["teacher", "staff", "initials", "tutor", "staff code"] },
+  { key: "room",    label: "Room", kw: ["room", "location", "base"] },
+  { key: "day",     label: "Day", kw: ["day"] },
+  { key: "period",  label: "Period", kw: ["period", "lesson", "session", "pd"] },
+  { key: "ppw",     label: "Periods per week/cycle", kw: ["periods", "ppw", "per week", "freq", "frequency", "count"] },
+];
+
+const ST_ROLES = [
+  { key: "upn",     label: "UPN", kw: ["upn", "unique pupil"] },
+  { key: "adno",    label: "Admission number", kw: ["adno", "adm", "admission", "admission number", "student id", "pupil id", "id"] },
+  { key: "name",    label: "Full name", kw: ["name", "student name", "pupil name", "full name"] },
+  { key: "surname", label: "Surname", kw: ["surname", "last name", "legal surname", "family name"] },
+  { key: "forename",label: "Forename", kw: ["forename", "first name", "legal forename", "given name", "preferred forename"] },
+  { key: "year",    label: "Year group", kw: ["year", "yr", "ncy", "year group", "nc year"] },
+];
+
+function guessColumn(headers, keywords) {
+  const h = headers.map(x => String(x).trim().toLowerCase());
+  for (const kw of keywords) {
+    const i = h.findIndex(x => x === kw);
+    if (i >= 0) return i;
+  }
+  for (const kw of keywords) {
+    const i = h.findIndex(x => x.includes(kw));
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+/* Guess all roles at once: exact header matches win first, then substring
+   matches, and no column is ever assigned to two roles (stops "Full name"
+   grabbing the "Surname" column, etc.) */
+function guessColumns(headers, roles) {
+  const h = headers.map(x => String(x).trim().toLowerCase());
+  const result = {}, used = new Set();
+  for (const role of roles) {
+    result[role.key] = -1;
+    for (const kw of role.kw) {
+      const i = h.findIndex((x, idx) => x === kw && !used.has(idx));
+      if (i >= 0) { result[role.key] = i; used.add(i); break; }
+    }
+  }
+  for (const role of roles) {
+    if (result[role.key] >= 0) continue;
+    for (const kw of role.kw) {
+      const i = h.findIndex((x, idx) => x.includes(kw) && !used.has(idx));
+      if (i >= 0) { result[role.key] = i; used.add(i); break; }
+    }
+  }
+  return result;
+}
+
+function looksLikeHeader(row) {
+  if (!row) return false;
+  let wordy = 0;
+  for (const cell of row) {
+    const s = String(cell).trim();
+    if (s && !/^\d+([.,]\d+)?$/.test(s) && /[a-zA-Z]/.test(s)) wordy++;
+  }
+  return wordy >= Math.max(1, Math.floor(row.length / 2));
+}
+
+/* ---------- Nova-T6 class code parsing ---------- */
+/* Typical Nova codes: 10A/Ma1  7x/En2  13/Fm1  11B/Sc3b  8AB/Dr1 */
+function parseNovaCode(code) {
+  const m = String(code).trim().match(/^(\d{1,2})\s*([A-Za-z]{0,4})\s*[\/\\_\-]\s*([A-Za-z][A-Za-z]?)\s*(\d{0,2}[A-Za-z]?)$/);
+  if (!m) return null;
+  return { year: m[1], band: m[2] || "", subjectCode: m[3], set: m[4] || "" };
+}
+
+const DEFAULT_SUBJECT_MAP = {
+  Ma: "Mathematics", En: "English", El: "English Literature", Sc: "Science",
+  Bi: "Biology", Ch: "Chemistry", Ph: "Physics", Fr: "French", Sp: "Spanish",
+  Gn: "German", Gg: "Geography", Hi: "History", Re: "Religious Education",
+  Ar: "Art", Mu: "Music", Dr: "Drama", Pe: "Physical Education",
+  Te: "Design & Technology", Dt: "Design & Technology", Fd: "Food Technology",
+  It: "ICT", Cs: "Computer Science", Co: "Computing", Bs: "Business Studies",
+  Ec: "Economics", Ps: "Psychology", So: "Sociology", Fm: "Further Mathematics",
+  Md: "Media Studies", Pd: "PSHE", Ct: "Citizenship", La: "Latin", Mfl: "MFL",
+  Hs: "Health & Social Care", Tt: "Travel & Tourism", Pa: "Performing Arts",
+};
+
+function parseSubjectMapText(text) {
+  const map = {};
+  for (const line of String(text).split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z]{1,4})\s*=\s*(.+?)\s*$/);
+    if (m) map[m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()] = m[2];
+  }
+  return map;
+}
+
+function subjectMapToText(map) {
+  return Object.entries(map).map(([k, v]) => `${k}=${v}`).join("\n");
+}
+
+function titleCaseCode(code) {
+  if (!code) return "";
+  return code[0].toUpperCase() + code.slice(1).toLowerCase();
+}
+
+/* ---------- normalisation ---------- */
+function normalizeCode(code) {
+  return String(code).toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+const DAY_MAP = {
+  mon: "Monday", monday: "Monday", "1": "Monday",
+  tue: "Tuesday", tues: "Tuesday", tuesday: "Tuesday", "2": "Tuesday",
+  wed: "Wednesday", weds: "Wednesday", wednesday: "Wednesday", "3": "Wednesday",
+  thu: "Thursday", thur: "Thursday", thurs: "Thursday", thursday: "Thursday", "4": "Thursday",
+  fri: "Friday", friday: "Friday", "5": "Friday",
+  sat: "Saturday", saturday: "Saturday", "6": "Saturday",
+  sun: "Sunday", sunday: "Sunday", "7": "Sunday",
+};
+function normalizeDay(v) {
+  const s = String(v).trim().toLowerCase();
+  if (!s) return "";
+  if (DAY_MAP[s]) return DAY_MAP[s];
+  /* two-week timetables: "Mon A", "1Mon", "Week 2 Tue" — keep verbatim but tidy */
+  const m = s.match(/(mon|tue|wed|thu|fri|sat|sun)[a-z]*/);
+  if (m) {
+    const day = DAY_MAP[m[1]];
+    const wk = s.match(/\b(?:wk|week)?\s*([ab12])\b(?!.*(mon|tue|wed|thu|fri))/i);
+    return wk && wk[1] && wk[1].toLowerCase() !== s ? `${day} (Wk ${wk[1].toUpperCase()})` : day;
+  }
+  return String(v).trim();
+}
+
+/* ---------- building the class structure ---------- */
+function buildClasses(lessons, subjectMap) {
+  const classes = new Map();
+  for (const l of lessons) {
+    const code = String(l.class || "").trim();
+    if (!code) continue;
+    let c = classes.get(code);
+    if (!c) {
+      const nova = parseNovaCode(code);
+      c = {
+        code,
+        subject: "", subjectSource: "",
+        year: "", band: "", set: "",
+        teachers: new Map(), rooms: new Map(),
+        lessons: [], ppw: 0,
+        students: 0,
+      };
+      if (nova) {
+        c.year = nova.year;
+        c.band = nova.band.toUpperCase();
+        c.set = nova.set;
+        const sc = titleCaseCode(nova.subjectCode);
+        c.subject = subjectMap[sc] || nova.subjectCode;
+        c.subjectSource = subjectMap[sc] ? "code" : "code-unmapped";
+      }
+      classes.set(code, c);
+    }
+    if (l.subject && String(l.subject).trim()) {
+      c.subject = String(l.subject).trim();
+      c.subjectSource = "column";
+    }
+    if (l.year && String(l.year).trim()) c.year = String(l.year).trim().replace(/^y(ear)?\s*/i, "");
+    if (l.band && String(l.band).trim()) c.band = String(l.band).trim();
+    const t = String(l.teacher || "").trim();
+    if (t) c.teachers.set(t, (c.teachers.get(t) || 0) + 1);
+    const r = String(l.room || "").trim();
+    if (r) c.rooms.set(r, (c.rooms.get(r) || 0) + 1);
+    const day = normalizeDay(l.day || "");
+    const period = String(l.period || "").trim();
+    if (day || period) c.lessons.push({ day, period, teacher: t, room: r });
+    if (l.ppw && !isNaN(parseInt(l.ppw, 10))) c.ppw = parseInt(l.ppw, 10);
+  }
+  for (const c of classes.values()) {
+    if (!c.ppw) c.ppw = c.lessons.length || "";
+    c.mainTeacher = topKey(c.teachers);
+    c.mainRoom = topKey(c.rooms);
+  }
+  return classes;
+}
+
+function topKey(map) {
+  let best = "", n = -1;
+  for (const [k, v] of map) if (v > n) { best = k; n = v; }
+  return best;
+}
+
+/* ---------- validation ---------- */
+function findClashes(classes) {
+  const teacherSlots = new Map(), roomSlots = new Map();
+  const clashes = [];
+  for (const c of classes.values()) {
+    for (const l of c.lessons) {
+      if (!l.day || !l.period) continue;
+      if (l.teacher) {
+        const k = `${l.teacher}|${l.day}|${l.period}`;
+        const prev = teacherSlots.get(k);
+        if (prev && prev !== c.code) {
+          clashes.push({ type: "Teacher clash", detail: `${l.teacher} has ${prev} and ${c.code} on ${l.day} period ${l.period}` });
+        } else teacherSlots.set(k, c.code);
+      }
+      if (l.room) {
+        const k = `${l.room}|${l.day}|${l.period}`;
+        const prev = roomSlots.get(k);
+        if (prev && prev !== c.code) {
+          clashes.push({ type: "Room clash", detail: `Room ${l.room} has ${prev} and ${c.code} on ${l.day} period ${l.period}` });
+        } else roomSlots.set(k, c.code);
+      }
+    }
+  }
+  return clashes;
+}
+
+function validateStructure(classes) {
+  const issues = [];
+  const clashes = findClashes(classes);
+  for (const cl of clashes) issues.push({ level: "err", type: cl.type, detail: cl.detail });
+  for (const c of classes.values()) {
+    if (!c.mainTeacher) issues.push({ level: "warn", type: "No teacher", detail: `Class ${c.code} has no teacher` });
+    if (!c.subject) issues.push({ level: "warn", type: "No subject", detail: `Class ${c.code} has no subject` });
+    if (c.subjectSource === "code-unmapped")
+      issues.push({ level: "warn", type: "Unknown subject code", detail: `Class ${c.code}: subject code “${c.subject}” is not in the subject map — edit the mapping in step 2` });
+    if (!c.year) issues.push({ level: "warn", type: "No year group", detail: `Class ${c.code} has no year group` });
+  }
+  return issues;
+}
+
+/* ---------- student parsing ---------- */
+function buildStudents(rows, mapping, classCols, splitMulti) {
+  const students = [];
+  for (const row of rows) {
+    const get = k => mapping[k] >= 0 ? String(row[mapping[k]] ?? "").trim() : "";
+    let name = get("name");
+    const surname = get("surname"), forename = get("forename");
+    if (!name && (surname || forename)) name = `${surname}${surname && forename ? ", " : ""}${forename}`;
+    const codes = [];
+    for (const ci of classCols) {
+      const raw = String(row[ci] ?? "").trim();
+      if (!raw) continue;
+      if (splitMulti) {
+        for (const part of raw.split(/[,;|]/)) {
+          const p = part.trim();
+          if (p) codes.push(p);
+        }
+      } else codes.push(raw);
+    }
+    const st = {
+      upn: get("upn"),
+      adno: get("adno"),
+      name, surname, forename,
+      year: get("year").replace(/^y(ear)?\s*/i, ""),
+      codes: [...new Set(codes)],
+    };
+    if (st.upn || st.adno || st.name || st.codes.length) students.push(st);
+  }
+  return students;
+}
+
+/* ---------- matching ---------- */
+function bigrams(s) {
+  const set = new Set();
+  for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2));
+  return set;
+}
+function similarity(a, b) {
+  const A = bigrams(a), B = bigrams(b);
+  if (!A.size || !B.size) return a === b ? 1 : 0;
+  let inter = 0;
+  for (const g of A) if (B.has(g)) inter++;
+  return (2 * inter) / (A.size + B.size);
+}
+
+function buildClassIndex(classes) {
+  const idx = new Map();
+  for (const code of classes.keys()) idx.set(normalizeCode(code), code);
+  return idx;
+}
+
+function matchCode(rawCode, classIndex) {
+  const norm = normalizeCode(rawCode);
+  if (classIndex.has(norm)) return classIndex.get(norm);
+  return null;
+}
+
+function suggestMatches(rawCode, classes, n = 5) {
+  const norm = normalizeCode(rawCode);
+  const scored = [];
+  for (const code of classes.keys()) {
+    scored.push({ code, score: similarity(norm, normalizeCode(code)) });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, n).filter(s => s.score > 0.3);
+}
+
+function computeMemberships(students, classes, overrides) {
+  const classIndex = buildClassIndex(classes);
+  const memberships = [];
+  const unmatched = new Map(); /* rawCode -> count */
+  for (const st of students) {
+    for (const raw of st.codes) {
+      let target = overrides[normalizeCode(raw)] || matchCode(raw, classIndex);
+      if (target && classes.has(target)) {
+        memberships.push({ student: st, classCode: target, raw });
+      } else if (target === "__ignore__") {
+        /* explicitly skipped */
+      } else {
+        unmatched.set(raw, (unmatched.get(raw) || 0) + 1);
+      }
+    }
+  }
+  return { memberships, unmatched };
+}
+
+/* ---------- CSV output ---------- */
+function csvEscape(v) {
+  const s = String(v ?? "");
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function toCSV(rows) {
+  return rows.map(r => r.map(csvEscape).join(",")).join("\r\n") + "\r\n";
+}
+
+/* exported for tests */
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    detectDelimiter, parseDSV, guessColumn, guessColumns, looksLikeHeader, parseNovaCode,
+    parseSubjectMapText, subjectMapToText, normalizeCode, normalizeDay,
+    buildClasses, findClashes, validateStructure, buildStudents,
+    similarity, buildClassIndex, matchCode, suggestMatches, computeMemberships,
+    toCSV, csvEscape, DEFAULT_SUBJECT_MAP, TT_ROLES, ST_ROLES,
+  };
+}
+/* ===================== LOGIC-END ===================== */
+
+/* ===================== UI ===================== */
+if (typeof document !== "undefined") (function () {
+
+  const state = {
+    ttRows: null, ttHeaders: [], ttMapping: {},
+    lessons: [],
+    classes: new Map(),
+    subjectMap: { ...DEFAULT_SUBJECT_MAP },
+    stRows: null, stHeaders: [], stMapping: {}, stClassCols: [],
+    students: [],
+    overrides: {},          /* normalized raw code -> class code (or "__ignore__") */
+    memberships: [],
+    unmatched: new Map(),
+    issues: [],
+  };
+
+  const $ = id => document.getElementById(id);
+
+  /* ---------- step navigation ---------- */
+  document.querySelectorAll("#stepNav button").forEach(btn => {
+    btn.addEventListener("click", () => showStep(btn.dataset.step));
+  });
+  function showStep(n) {
+    document.querySelectorAll("#stepNav button").forEach(b => b.classList.toggle("active", b.dataset.step === String(n)));
+    document.querySelectorAll("section.step").forEach(s => s.classList.toggle("active", s.dataset.step === String(n)));
+    if (String(n) === "2") renderStructure();
+    if (String(n) === "4") renderMatch();
+    if (String(n) === "5") renderExportInfo();
+  }
+
+  /* ---------- generic file/drop wiring ---------- */
+  function wireLoader(dropId, fileId, onText) {
+    const drop = $(dropId), file = $(fileId);
+    ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", e => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) readFile(f, onText);
+    });
+    file.addEventListener("change", () => {
+      if (file.files[0]) readFile(file.files[0], onText);
+      file.value = "";
+    });
+  }
+  function readFile(f, onText) {
+    const reader = new FileReader();
+    reader.onload = () => onText(String(reader.result), f.name);
+    reader.readAsText(f);
+  }
+
+  /* ---------- timetable loading ---------- */
+  wireLoader("dropTT", "fileTT", loadTTText);
+  $("btnParseTT").addEventListener("click", () => {
+    const t = $("pasteTT").value;
+    if (t.trim()) loadTTText(t, "pasted data");
+    else alert("Paste some data first, or drop a file above.");
+  });
+  $("btnSampleTT").addEventListener("click", () => loadTTText(SAMPLE_TT, "sample data"));
+
+  function loadTTText(text, sourceName) {
+    const delim = detectDelimiter(text);
+    const rows = parseDSV(text, delim);
+    if (!rows.length) { alert("No rows found in that data."); return; }
+    state.ttRows = rows;
+    const hasHeader = looksLikeHeader(rows[0]);
+    $("ttHasHeader").checked = hasHeader;
+    $("ttFileInfo").textContent = `Loaded ${sourceName}: ${rows.length} rows, delimiter “${delim === "\t" ? "tab" : delim}”`;
+    renderTTMapping();
+    $("ttMappingWrap").hidden = false;
+    $("ttResult").innerHTML = "";
+  }
+
+  function currentTTHeaders() {
+    const hasHeader = $("ttHasHeader").checked;
+    const first = state.ttRows[0] || [];
+    return hasHeader ? first.map(h => String(h).trim() || "(blank)") : first.map((_, i) => `Column ${i + 1}`);
+  }
+
+  function renderTTMapping() {
+    const headers = currentTTHeaders();
+    const hasHeader = $("ttHasHeader").checked;
+    const grid = $("ttMapping");
+    grid.innerHTML = "";
+    const guesses = hasHeader ? guessColumns(headers, TT_ROLES) : {};
+    for (const role of TT_ROLES) {
+      const guess = hasHeader ? guesses[role.key] : -1;
+      const div = document.createElement("div");
+      const lab = document.createElement("label");
+      lab.textContent = role.label;
+      if (role.required) lab.classList.add("req");
+      const sel = document.createElement("select");
+      sel.dataset.role = role.key;
+      sel.appendChild(new Option("— not present —", "-1"));
+      headers.forEach((h, i) => sel.appendChild(new Option(h, String(i))));
+      sel.value = String(guess);
+      div.appendChild(lab); div.appendChild(sel);
+      grid.appendChild(div);
+    }
+    renderPreviewTable($("ttPreview"), state.ttRows, hasHeader);
+  }
+  $("ttHasHeader").addEventListener("change", renderTTMapping);
+
+  function renderPreviewTable(el, rows, hasHeader, max = 8) {
+    const headers = hasHeader ? rows[0] : rows[0].map((_, i) => `Column ${i + 1}`);
+    const body = (hasHeader ? rows.slice(1) : rows).slice(0, max);
+    let html = "<div class='scroll' style='max-height:220px'><table class='data'><tr>";
+    html += headers.map(h => `<th>${esc(h)}</th>`).join("") + "</tr>";
+    for (const r of body) html += "<tr>" + headers.map((_, i) => `<td>${esc(r[i] ?? "")}</td>`).join("") + "</tr>";
+    html += "</table></div>";
+    el.innerHTML = `<p class="hint" style="margin-top:12px">Preview (first ${body.length} rows):</p>` + html;
+  }
+
+  $("btnApplyTT").addEventListener("click", () => {
+    const mapping = {};
+    $("ttMapping").querySelectorAll("select").forEach(s => mapping[s.dataset.role] = parseInt(s.value, 10));
+    if (mapping.class < 0) { alert("Please choose which column holds the class code — it is required."); return; }
+    state.ttMapping = mapping;
+    const hasHeader = $("ttHasHeader").checked;
+    const rows = hasHeader ? state.ttRows.slice(1) : state.ttRows;
+    state.lessons = rows.map(r => {
+      const get = k => mapping[k] >= 0 ? r[mapping[k]] ?? "" : "";
+      return { class: get("class"), subject: get("subject"), year: get("year"), band: get("band"),
+               teacher: get("teacher"), room: get("room"), day: get("day"), period: get("period"), ppw: get("ppw") };
+    }).filter(l => String(l.class).trim());
+    rebuildStructure();
+    const nc = state.classes.size;
+    $("ttResult").innerHTML = `<div class="notice ok">Built ${nc} classes from ${state.lessons.length} rows.
+      Continue to <b>step 2</b> to review the structure.</div>`;
+    rematch();
+    updateCounts();
+    showStep(2);
+  });
+
+  function rebuildStructure() {
+    state.classes = buildClasses(state.lessons, state.subjectMap);
+    state.issues = validateStructure(state.classes);
+  }
+
+  /* ---------- structure rendering ---------- */
+  $("subjMap").value = subjectMapToText(state.subjectMap);
+  $("btnApplySubjMap").addEventListener("click", () => {
+    state.subjectMap = parseSubjectMapText($("subjMap").value);
+    rebuildStructure();
+    rematch();
+    renderStructure();
+  });
+  $("classFilter").addEventListener("input", renderClassTable);
+
+  function renderStructure() {
+    const classes = [...state.classes.values()];
+    const years = new Set(classes.map(c => c.year).filter(Boolean));
+    const teachers = new Set(classes.flatMap(c => [...c.teachers.keys()]));
+    const subjects = new Set(classes.map(c => c.subject).filter(Boolean));
+    $("structStats").innerHTML =
+      stat(classes.length, "classes") + stat(years.size, "year groups") +
+      stat(subjects.size, "subjects") + stat(teachers.size, "teachers") +
+      stat(state.lessons.length, "rows read");
+    const errs = state.issues.filter(i => i.level === "err");
+    const warns = state.issues.filter(i => i.level === "warn");
+    let v = "";
+    if (!classes.length) v = `<div class="notice info">No timetable loaded yet — go back to step 1.</div>`;
+    else if (!state.issues.length) v = `<div class="notice ok">No problems found — structure looks clean.</div>`;
+    else {
+      v = `<div class="notice ${errs.length ? "err" : "warn"}"><b>${errs.length} clashes, ${warns.length} warnings.</b></div>
+        <div class="scroll" style="max-height:180px"><table class="data">` +
+        state.issues.map(i => `<tr><td><span class="pill ${i.level}">${esc(i.type)}</span></td><td>${esc(i.detail)}</td></tr>`).join("") +
+        `</table></div>`;
+    }
+    $("validation").innerHTML = v;
+    renderClassTable();
+  }
+
+  function studentCounts() {
+    const counts = new Map();
+    for (const m of state.memberships) counts.set(m.classCode, (counts.get(m.classCode) || 0) + 1);
+    return counts;
+  }
+
+  function renderClassTable() {
+    const filter = $("classFilter").value.trim().toLowerCase();
+    const counts = studentCounts();
+    const rows = [...state.classes.values()].filter(c =>
+      !filter || [c.code, c.subject, c.mainTeacher, c.year, c.band].join(" ").toLowerCase().includes(filter));
+    rows.sort((a, b) => (a.year || "").localeCompare(b.year || "", undefined, { numeric: true }) || a.code.localeCompare(b.code));
+    $("classFilterInfo").textContent = filter ? `${rows.length} of ${state.classes.size} classes` : "";
+    let html = `<tr><th>Class</th><th>Subject</th><th>Year</th><th>Band/Block</th><th>Set</th>
+      <th>Main teacher</th><th>Room</th><th>Periods</th><th>Students</th></tr>`;
+    for (const c of rows) {
+      const n = counts.get(c.code) || 0;
+      html += `<tr><td><b>${esc(c.code)}</b></td><td>${esc(c.subject)}${c.subjectSource === "code-unmapped" ? ' <span class="pill warn">unmapped</span>' : ""}</td>
+        <td>${esc(c.year)}</td><td>${esc(c.band)}</td><td>${esc(c.set)}</td>
+        <td>${esc(c.mainTeacher)}${c.teachers.size > 1 ? ` <span class="pill warn">+${c.teachers.size - 1}</span>` : ""}</td>
+        <td>${esc(c.mainRoom)}</td><td>${esc(c.ppw)}</td>
+        <td>${state.students.length ? (n || '<span class="pill warn">0</span>') : "—"}</td></tr>`;
+    }
+    $("classTable").innerHTML = html;
+  }
+
+  function stat(n, label) { return `<div class="stat"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+
+  /* ---------- students ---------- */
+  wireLoader("dropST", "fileST", loadSTText);
+  $("btnParseST").addEventListener("click", () => {
+    const t = $("pasteST").value;
+    if (t.trim()) loadSTText(t, "pasted data");
+    else alert("Paste some data first, or drop a file above.");
+  });
+  $("btnSampleST").addEventListener("click", () => loadSTText(SAMPLE_ST, "sample students"));
+
+  function loadSTText(text, sourceName) {
+    const delim = detectDelimiter(text);
+    const rows = parseDSV(text, delim);
+    if (!rows.length) { alert("No rows found in that data."); return; }
+    state.stRows = rows;
+    $("stHasHeader").checked = looksLikeHeader(rows[0]);
+    $("stFileInfo").textContent = `Loaded ${sourceName}: ${rows.length} rows, delimiter “${delim === "\t" ? "tab" : delim}”`;
+    renderSTMapping();
+    $("stMappingWrap").hidden = false;
+    $("stResult").innerHTML = "";
+  }
+
+  function currentSTHeaders() {
+    const hasHeader = $("stHasHeader").checked;
+    const first = state.stRows[0] || [];
+    return hasHeader ? first.map(h => String(h).trim() || "(blank)") : first.map((_, i) => `Column ${i + 1}`);
+  }
+
+  function renderSTMapping() {
+    const headers = currentSTHeaders();
+    const hasHeader = $("stHasHeader").checked;
+    const grid = $("stMapping");
+    grid.innerHTML = "";
+    const guesses = hasHeader ? guessColumns(headers, ST_ROLES) : {};
+    for (const role of ST_ROLES) {
+      const guess = hasHeader ? guesses[role.key] : -1;
+      const div = document.createElement("div");
+      const lab = document.createElement("label");
+      lab.textContent = role.label;
+      const sel = document.createElement("select");
+      sel.dataset.role = role.key;
+      sel.appendChild(new Option("— not present —", "-1"));
+      headers.forEach((h, i) => sel.appendChild(new Option(h, String(i))));
+      sel.value = String(guess);
+      div.appendChild(lab); div.appendChild(sel);
+      grid.appendChild(div);
+    }
+    /* class columns: multi-checkbox list */
+    const div = document.createElement("div");
+    div.style.gridColumn = "1 / -1";
+    const lab = document.createElement("label");
+    lab.textContent = "Class code column(s) — tick every column that contains class codes";
+    lab.classList.add("req");
+    div.appendChild(lab);
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;flex-wrap:wrap;gap:4px 14px";
+    const usedByRole = new Set();
+    if (hasHeader) for (const role of ST_ROLES) { const g = guesses[role.key]; if (g >= 0) usedByRole.add(g); }
+    headers.forEach((h, i) => {
+      const l = document.createElement("label");
+      l.className = "checkline";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = String(i); cb.dataset.classcol = "1";
+      const hl = String(h).toLowerCase();
+      if (hasHeader && !usedByRole.has(i) && /class|group|set|code|tg/.test(hl)) cb.checked = true;
+      l.appendChild(cb); l.appendChild(document.createTextNode(" " + h));
+      wrap.appendChild(l);
+    });
+    div.appendChild(wrap);
+    grid.appendChild(div);
+    renderPreviewTable($("stPreview"), state.stRows, hasHeader);
+  }
+  $("stHasHeader").addEventListener("change", renderSTMapping);
+
+  $("btnApplyST").addEventListener("click", () => {
+    const mapping = {};
+    $("stMapping").querySelectorAll("select").forEach(s => mapping[s.dataset.role] = parseInt(s.value, 10));
+    const classCols = [...$("stMapping").querySelectorAll("input[data-classcol]:checked")].map(cb => parseInt(cb.value, 10));
+    if (!classCols.length) { alert("Tick at least one class code column."); return; }
+    state.stMapping = mapping;
+    state.stClassCols = classCols;
+    const hasHeader = $("stHasHeader").checked;
+    const rows = hasHeader ? state.stRows.slice(1) : state.stRows;
+    state.students = buildStudents(rows, mapping, classCols, $("stSplitMulti").checked);
+    const noId = state.students.filter(s => !s.upn && !s.adno).length;
+    const noClass = state.students.filter(s => !s.codes.length).length;
+    rematch();
+    updateCounts();
+    let msg = `<div class="notice ok">Read ${state.students.length} students with ${state.students.reduce((a, s) => a + s.codes.length, 0)} class memberships.</div>`;
+    if (noId) msg += `<div class="notice warn">${noId} students have neither a UPN nor an admission number — Bromcom will not be able to identify them. Check the column mapping.</div>`;
+    if (noClass) msg += `<div class="notice warn">${noClass} students have no class codes at all.</div>`;
+    $("stResult").innerHTML = msg + `<div class="notice info">Continue to <b>step 4</b> to review the matching.</div>`;
+    showStep(4);
+  });
+
+  /* ---------- matching ---------- */
+  function rematch() {
+    const r = computeMemberships(state.students, state.classes, state.overrides);
+    state.memberships = r.memberships;
+    state.unmatched = r.unmatched;
+  }
+
+  function renderMatch() {
+    const total = state.students.reduce((a, s) => a + s.codes.length, 0);
+    const matched = state.memberships.length;
+    const unmatchedN = [...state.unmatched.values()].reduce((a, b) => a + b, 0);
+    const ignored = total - matched - unmatchedN;
+    $("matchStats").innerHTML =
+      stat(state.students.length, "students") + stat(total, "memberships in data") +
+      stat(matched, "matched") + stat(unmatchedN, "unmatched") + (ignored ? stat(ignored, "ignored") : "");
+    const wrap = $("unmatchedWrap");
+    if (!state.students.length) {
+      wrap.innerHTML = `<div class="notice info">No student list loaded — this step only applies if you loaded students in step 3.</div>`;
+      return;
+    }
+    if (!state.unmatched.size) {
+      wrap.innerHTML = `<div class="notice ok">Every class code matched a Nova-T6 class. You’re ready to export.</div>`;
+      return;
+    }
+    let html = `<div class="notice warn"><b>${state.unmatched.size} distinct codes could not be matched</b> (${unmatchedN} memberships affected). Fix them below.</div>`;
+    html += `<div class="scroll"><table class="data"><tr><th>Student code</th><th>Students</th><th>Assign to class</th></tr>`;
+    const sorted = [...state.unmatched.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [raw, count] of sorted) {
+      const suggestions = suggestMatches(raw, state.classes, 6);
+      let opts = `<option value="">— choose —</option>`;
+      opts += suggestions.map(s => `<option value="${esc(s.code)}">${esc(s.code)} (${Math.round(s.score * 100)}% similar)</option>`).join("");
+      opts += `<option value="__all__">Show all classes…</option><option value="__ignore__">Ignore this code</option>`;
+      html += `<tr><td><b>${esc(raw)}</b></td><td>${count}</td>
+        <td><select class="inline" data-raw="${esc(raw)}">${opts}</select></td></tr>`;
+    }
+    html += `</table></div>`;
+    wrap.innerHTML = html;
+    wrap.querySelectorAll("select[data-raw]").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const raw = sel.dataset.raw;
+        if (sel.value === "__all__") {
+          const all = [...state.classes.keys()].sort();
+          sel.innerHTML = `<option value="">— choose —</option>` +
+            all.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("") +
+            `<option value="__ignore__">Ignore this code</option>`;
+          return;
+        }
+        if (!sel.value) return;
+        state.overrides[normalizeCode(raw)] = sel.value;
+        rematch();
+        updateCounts();
+        renderMatch();
+      });
+    });
+  }
+
+  $("btnFindReplace").addEventListener("click", () => {
+    const find = $("frFind").value, repl = $("frReplace").value;
+    if (!find) { alert("Enter something to find."); return; }
+    let rx;
+    try {
+      rx = $("frRegex").checked ? new RegExp(find, "g") : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    } catch (e) { alert("Invalid regular expression: " + e.message); return; }
+    let changed = 0;
+    for (const st of state.students) {
+      st.codes = st.codes.map(c => {
+        const nc = c.replace(rx, repl);
+        if (nc !== c) changed++;
+        return nc;
+      });
+    }
+    rematch();
+    updateCounts();
+    renderMatch();
+    $("frResult").innerHTML = changed
+      ? `<div class="notice ok">Replaced in ${changed} membership codes and re-matched.</div>`
+      : `<div class="notice warn">Nothing matched “${esc(find)}”.</div>`;
+  });
+
+  /* ---------- exports ---------- */
+  function download(filename, csv) {
+    const bom = $("expBOM").checked ? "\uFEFF" : "";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const prefix = () => ($("expPrefix").value.trim() || "bromcom").replace(/[^\w.-]+/g, "-");
+
+  $("expClasses").addEventListener("click", () => {
+    const counts = studentCounts();
+    const rows = [["Class Name", "Subject", "Year Group", "Block/Band", "Set", "Main Teacher", "Room", "Periods Per Cycle", "Student Count"]];
+    for (const c of sortedClasses()) {
+      rows.push([c.code, c.subject, c.year, c.band, c.set, c.mainTeacher, c.mainRoom, c.ppw, counts.get(c.code) || 0]);
+    }
+    download(`${prefix()}-classes.csv`, toCSV(rows));
+  });
+
+  $("expLessons").addEventListener("click", () => {
+    const rows = [["Class Name", "Day", "Period", "Teacher", "Room"]];
+    for (const c of sortedClasses()) for (const l of c.lessons) rows.push([c.code, l.day, l.period, l.teacher, l.room]);
+    if (rows.length === 1) { alert("No day/period data was mapped in step 1, so there is no lesson-level timetable to export."); return; }
+    download(`${prefix()}-timetable.csv`, toCSV(rows));
+  });
+
+  $("expMembers").addEventListener("click", () => {
+    if (!state.memberships.length) { alert("No student memberships to export — load students in step 3 first."); return; }
+    const rows = [["UPN", "Admission Number", "Student Name", "Year Group", "Class Name", "Subject"]];
+    for (const m of state.memberships) {
+      const c = state.classes.get(m.classCode);
+      rows.push([m.student.upn, m.student.adno, m.student.name, m.student.year, m.classCode, c ? c.subject : ""]);
+    }
+    download(`${prefix()}-class-lists.csv`, toCSV(rows));
+  });
+
+  $("expExceptions").addEventListener("click", () => {
+    const rows = [["Type", "Detail"]];
+    for (const i of state.issues) rows.push([i.type, i.detail]);
+    for (const [raw, count] of state.unmatched) rows.push(["Unmatched class code", `“${raw}” could not be matched (${count} students)`]);
+    for (const s of state.students) {
+      if (!s.codes.length) rows.push(["Student with no classes", `${s.name || s.upn || s.adno}`]);
+      if (!s.upn && !s.adno) rows.push(["Student with no identifier", `${s.name || "(no name)"} has no UPN or admission number`]);
+    }
+    const counts = studentCounts();
+    if (state.students.length) {
+      for (const c of state.classes.values()) {
+        if (!counts.get(c.code)) rows.push(["Empty class", `Class ${c.code} has no students allocated`]);
+      }
+    }
+    if (rows.length === 1) rows.push(["OK", "No exceptions found"]);
+    download(`${prefix()}-exceptions.csv`, toCSV(rows));
+  });
+
+  function sortedClasses() {
+    return [...state.classes.values()].sort((a, b) =>
+      (a.year || "").localeCompare(b.year || "", undefined, { numeric: true }) || a.code.localeCompare(b.code));
+  }
+
+  function renderExportInfo() {
+    const counts = studentCounts();
+    $("expClassesInfo").textContent = state.classes.size ? `${state.classes.size} classes ready` : "no timetable loaded yet";
+    const nl = [...state.classes.values()].reduce((a, c) => a + c.lessons.length, 0);
+    $("expLessonsInfo").textContent = nl ? `${nl} lessons ready` : "no day/period data";
+    $("expMembersInfo").textContent = state.memberships.length ? `${state.memberships.length} memberships ready` : "no students loaded";
+    const unN = [...state.unmatched.values()].reduce((a, b) => a + b, 0);
+    const empty = state.students.length ? [...state.classes.values()].filter(c => !counts.get(c.code)).length : 0;
+    $("expExceptionsInfo").textContent = `${state.issues.length} structure issues, ${unN} unmatched memberships` + (empty ? `, ${empty} empty classes` : "");
+  }
+
+  /* ---------- counts in nav ---------- */
+  function updateCounts() {
+    setCount("cntClasses", state.classes.size);
+    setCount("cntStudents", state.students.length);
+    const unN = state.unmatched.size;
+    const el = $("cntMatch");
+    if (state.students.length) {
+      el.hidden = false;
+      el.textContent = unN ? `${unN} to fix` : "all matched";
+      el.style.background = unN ? "var(--warn-soft)" : "var(--ok-soft)";
+      el.style.color = unN ? "var(--warn)" : "var(--ok)";
+    } else el.hidden = true;
+  }
+  function setCount(id, n) {
+    const el = $(id);
+    el.hidden = !n;
+    el.textContent = n;
+  }
+
+  /* ---------- session save/load (local only, explicit) ---------- */
+  const SESSION_KEY = "novaT6BromcomSession";
+  $("btnSaveSession").addEventListener("click", () => {
+    try {
+      const snap = {
+        lessons: state.lessons,
+        subjectMap: state.subjectMap,
+        students: state.students,
+        overrides: state.overrides,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
+      $("sessionInfo").textContent = "Saved in this browser (stays on this computer).";
+    } catch (e) {
+      $("sessionInfo").textContent = "Could not save: " + e.message;
+    }
+  });
+  $("btnLoadSession").addEventListener("click", () => {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) { $("sessionInfo").textContent = "No saved session found."; return; }
+    try {
+      const snap = JSON.parse(raw);
+      state.lessons = snap.lessons || [];
+      state.subjectMap = snap.subjectMap || { ...DEFAULT_SUBJECT_MAP };
+      state.students = snap.students || [];
+      state.overrides = snap.overrides || {};
+      $("subjMap").value = subjectMapToText(state.subjectMap);
+      rebuildStructure();
+      rematch();
+      updateCounts();
+      renderStructure();
+      $("sessionInfo").textContent = `Restored: ${state.classes.size} classes, ${state.students.length} students.`;
+      showStep(2);
+    } catch (e) {
+      $("sessionInfo").textContent = "Could not restore: " + e.message;
+    }
+  });
+  $("btnClearSession").addEventListener("click", () => {
+    localStorage.removeItem(SESSION_KEY);
+    $("sessionInfo").textContent = "Saved session cleared.";
+  });
+
+  /* ---------- misc ---------- */
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  /* ---------- sample data ---------- */
+  const SAMPLE_TT = `Class,Teacher,Room,Day,Period
+7A/Ma1,JSM,M1,Mon,1
+7A/Ma1,JSM,M1,Wed,3
+7A/Ma1,JSM,M1,Fri,2
+7A/Ma2,PKL,M2,Mon,1
+7A/Ma2,PKL,M2,Wed,3
+7A/Ma2,PKL,M2,Fri,2
+7A/En1,RBT,E1,Tue,2
+7A/En1,RBT,E1,Thu,4
+7A/En1,RBT,E1,Fri,5
+7A/Sc1,DWA,S3,Mon,4
+7A/Sc1,DWA,S3,Tue,5
+7A/Sc1,DWA,S3,Thu,1
+7B/Ma1,NCH,M3,Mon,2
+7B/Ma1,NCH,M3,Wed,4
+7B/Ma1,NCH,M3,Fri,1
+10A/Ma1,JSM,M1,Tue,1
+10A/Ma1,JSM,M1,Thu,3
+10A/Ma1,JSM,M1,Fri,4
+10A/En1,RBT,E1,Mon,3
+10A/En1,RBT,E1,Wed,1
+10A/Gg1,KLO,H2,Tue,4
+10A/Gg1,KLO,H2,Thu,2
+10A/Hi1,MFR,H1,Tue,4
+10A/Hi1,MFR,H1,Fri,3
+11X/Bs1,TGR,B1,Mon,5
+11X/Bs1,TGR,B1,Wed,2`;
+
+  const SAMPLE_ST = `UPN,AdmissionNumber,Surname,Forename,Year,Classes
+H801234567001,004521,Ahmed,Sara,7,"7A/Ma1;7A/En1;7A/Sc1"
+H801234567002,004522,Brown,Oliver,7,"7A/Ma2;7A/En1;7A/Sc1"
+H801234567003,004523,Chen,Wei,7,"7B/Ma1;7A/En1;7A/Sc1"
+H801234567004,004524,Davies,Ffion,7,"7A/Ma1;7A/En1;7A/Sc1"
+H801234567005,004871,Evans,Jack,10,"10A/Ma1;10A/En1;10A/Gg1"
+H801234567006,004872,Franklin,Amara,10,"10A/Ma1;10A/En1;10A/Hi1"
+H801234567007,004873,Garcia,Luis,10,"10a ma1;10A/En1;10A/Gg1"
+H801234567008,004874,Hassan,Leila,10,"10A/Ma1;10A/En1;10A/Dr1"
+,004875,Ibrahim,Yusuf,11,"11X/Bs1"`;
+
+})();
+</script>
+</body>
+</html>
